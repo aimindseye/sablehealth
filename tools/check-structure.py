@@ -3,8 +3,8 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-source = (root / 'app/src/main/java/io/github/aimindseye/sablehealth/SableTheme.kt').read_text()
-activity = (root / 'app/src/main/java/io/github/aimindseye/sablehealth/MainActivity.kt').read_text()
+source = (root / 'app/src/main/java/io/github/aimindseye/sablehealth/SablePalette.kt').read_text()
+activity = '\n'.join(path.read_text() for path in (root / 'app/src/main/java/io/github/aimindseye/sablehealth').glob('*.kt'))
 core = (root / 'core/src/main/kotlin/io/github/aimindseye/sablehealth/core/KeyboardMapping.kt').read_text()
 manifest = (root / 'app/src/main/AndroidManifest.xml').read_text()
 assert '0xFF2E9BD6' in source and '0xFF1A6FA0' in source, 'not Sable Blue'
