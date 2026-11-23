@@ -61,7 +61,7 @@ internal fun SettingsPage(state: SableAppState, profile: DeviceProfile) {
         "M0 establishes per-profile defaults. Custom remapping editor is planned as a follow-up; " +
             "no silent reassignment.",
     )
-    FocusButton("Back") { state.page = Page.MAIN }
+    FocusButton("Back", { state.page = Page.MAIN })
 }
 
 @Composable
