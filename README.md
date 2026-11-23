@@ -64,3 +64,8 @@ Acceptance details: `docs/R51_DASHBOARD_ACCEPTANCE.md`; static gate: `python3 to
 The owner-confirmed Q25 Dashboard screenshot exposed tiny font glyphs in the steps ring and heart widget and excessive apparent chrome height. R5.2 uses two checked-in Android vector assets for a larger Sable Blue step/footprint ring and a distinct **red heart** with a white pulse. Red is the heart **category icon**, **not an adverse reading or warning**. Q25 reclaims one Dashboard header row by putting its screen title/demo state into the app subtitle; header and bottom tab pills are visibly 36dp tall inside **48dp** focusable/tappable targets. Titan 2 retains its accepted header/nav sizing. No new permissions, sensor reads or medical judgments.
 
 See `docs/R52_Q25_ICON_CHROME_ACCEPTANCE.md` for device testing, `docs/r52-preview.html` for the clearly labeled browser concept, and `python3 tools/check-r52-contract.py` for source-specific static checks.
+
+
+## M0 R5.3 — Q25 branded header + shared Phosphor icon family
+
+R5.3 corrects Q25 Sources taking the full header width: brand, Sources and Settings now each have bounded space. Steps uses the exact Phosphor regular `footprints` icon and the launcher icon uses Phosphor regular `heartbeat` in Sable Games' black/white/blue composition. Android adaptive/round/monochrome assets and MIT attribution are included. Existing R5.1 four-widget behavior, Fitbit data boundaries and Titan 2 spacing remain unchanged. See `docs/R53_Q25_HEADER_PHOSPHOR_ACCEPTANCE.md`.

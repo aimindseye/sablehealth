@@ -12,8 +12,8 @@ manifest = (root / 'app/src/main/AndroidManifest.xml').read_text()
 
 assert 'SectionHeading("Dashboard"' in home and 'if (!compactQ25)' in home
 assert 'DASHBOARD · DEMO' in chrome and 'DASHBOARD · NO RECORDS' in chrome
-assert 'Q25ChromeButton("Sources", onSources)' in chrome
-assert 'Q25ChromeButton("Settings", onSettings)' in chrome
+assert '"Sources"' in chrome and 'onSources' in chrome
+assert '"Settings"' in chrome and 'onSettings' in chrome
 assert 'Q25_TOUCH_HEIGHT_DP = 48' in chrome
 assert 'Q25_VISUAL_HEIGHT_DP = 36' in chrome
 assert 'if (compactQ25)' in chrome and 'Q25ChromeButton(' in chrome

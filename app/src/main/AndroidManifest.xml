@@ -4,6 +4,8 @@
     </queries>
     <application
         android:label="Sable Health"
+        android:icon="@mipmap/ic_sable_health"
+        android:roundIcon="@mipmap/ic_sable_health_round"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:theme="@style/Theme.SableHealth">

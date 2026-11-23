@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -45,7 +46,7 @@ internal fun HealthAppContent(
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         HealthHeader(
             title =
-                if (state.page == Page.MAIN) {
+                if (profile == DeviceProfile.Q25 || state.page == Page.MAIN) {
                     "Sable Health"
                 } else {
                     state.page.name
@@ -55,6 +56,8 @@ internal fun HealthAppContent(
             subtitle =
                 if (dashboardOnQ25) {
                     if (state.demo) "DASHBOARD · DEMO" else "DASHBOARD · NO RECORDS"
+                } else if (profile == DeviceProfile.Q25 && state.page != Page.MAIN) {
+                    state.page.name + " · " + profile.label
                 } else if (state.demo) {
                     "DEMO DATA · ${profile.label}"
                 } else {
@@ -115,6 +118,7 @@ internal fun HealthHeader(
         ),
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -134,8 +138,18 @@ internal fun HealthHeader(
                 )
             }
             if (compactQ25) {
-                Q25ChromeButton("Sources", onSources)
-                Q25ChromeButton("Settings", onSettings)
+                // Constrain the row's actions before measuring the weighted brand column.
+                // A full-width child in an unbounded Row used to hide the brand and Settings.
+                Q25ChromeButton(
+                    "Sources",
+                    onSources,
+                    modifier = Modifier.width(Q25_HEADER_ACTION_WIDTH_DP.dp),
+                )
+                Q25ChromeButton(
+                    "Settings",
+                    onSettings,
+                    modifier = Modifier.width(Q25_HEADER_ACTION_WIDTH_DP.dp),
+                )
             } else {
                 FocusButton("Sources", onSources)
                 FocusButton("Settings", onSettings)
@@ -179,6 +193,7 @@ internal fun FocusButton(
     }
 }
 
+private const val Q25_HEADER_ACTION_WIDTH_DP = 76
 private const val Q25_TOUCH_HEIGHT_DP = 48
 private const val Q25_VISUAL_HEIGHT_DP = 36
 private const val Q25_CHROME_TEXT_SP = 12
