@@ -11,7 +11,7 @@ class SourcesUiContractTest {
         val confirmed = SourcesUiContract.companionStatus(true)
         assertTrue(confirmed.contains("User-confirmed"))
         assertFalse(confirmed.contains("Connected to Sable Health"))
-        assertTrue(SourcesUiContract.exportStatus().contains("unverified"))
+        assertTrue(SourcesUiContract.EXPORT_STATUS.contains("unverified"))
     }
 
     @Test

@@ -7,5 +7,5 @@ object SourcesUiContract {
     fun companionStatus(userConfirmed: Boolean): String =
         if (userConfirmed) "User-confirmed sync" else "Setup not confirmed in this app"
 
-    fun exportStatus(): String = "Health Connect export unverified"
+    const val EXPORT_STATUS = "Health Connect export unverified"
 }
