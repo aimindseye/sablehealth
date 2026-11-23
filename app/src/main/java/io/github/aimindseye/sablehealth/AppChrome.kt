@@ -64,9 +64,11 @@ internal fun HealthAppContent(
                     "NO RECORDS IMPORTED · ${profile.label}"
                 },
             compactQ25 = profile == DeviceProfile.Q25,
-            onBack = if (state.page == Page.MAIN) null else state::back,
-            onSources = { state.page = Page.SOURCES },
-            onSettings = { state.page = Page.SETTINGS },
+            actions = HeaderActions(
+                onBack = if (state.page == Page.MAIN) null else state::back,
+                onSources = { state.page = Page.SOURCES },
+                onSettings = { state.page = Page.SETTINGS },
+            ),
         )
         Box(Modifier.weight(1f)) {
             Column(
@@ -106,14 +108,18 @@ private fun HealthPage(
     }
 }
 
+internal data class HeaderActions(
+    val onBack: (() -> Unit)?,
+    val onSources: () -> Unit,
+    val onSettings: () -> Unit,
+)
+
 @Composable
 internal fun HealthHeader(
     title: String,
     subtitle: String,
     compactQ25: Boolean,
-    onBack: (() -> Unit)? = null,
-    onSources: () -> Unit,
-    onSettings: () -> Unit,
+    actions: HeaderActions,
 ) {
     val titleStyle = if (compactQ25) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
     val subtitleStyle = if (compactQ25) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall
@@ -128,8 +134,8 @@ internal fun HealthHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (onBack != null) {
-                FocusButton("←", onBack, modifier = Modifier.width(48.dp))
+            actions.onBack?.let { goBack ->
+                FocusButton("←", goBack, modifier = Modifier.width(48.dp))
             }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -151,17 +157,17 @@ internal fun HealthHeader(
                 // A full-width child in an unbounded Row used to hide the brand and Settings.
                 Q25ChromeButton(
                     "Sources",
-                    onSources,
+                    actions.onSources,
                     modifier = Modifier.width(Q25_HEADER_ACTION_WIDTH_DP.dp),
                 )
                 Q25ChromeButton(
                     "Settings",
-                    onSettings,
+                    actions.onSettings,
                     modifier = Modifier.width(Q25_HEADER_ACTION_WIDTH_DP.dp),
                 )
             } else {
-                FocusButton("Sources", onSources)
-                FocusButton("Settings", onSettings)
+                FocusButton("Sources", actions.onSources)
+                FocusButton("Settings", actions.onSettings)
             }
         }
     }
