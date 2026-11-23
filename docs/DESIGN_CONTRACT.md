@@ -67,3 +67,7 @@ Based on actual Q25 / Titan 2 screenshots, retain the approved Sable Blue visual
 - Chart colors: Sable Blue `#2E9BD6` for current/dominant marks in dark mode and `#1A6FA0` in light mode; earlier/secondary marks use the same tone with opacity, and neutral gray (`onSurfaceVariant`) for the light sleep segment and gridlines. Never use color as the only signal: textual legend plus accessibility descriptions required.
 - This refinement does **not** imply Fitbit data availability or calculated clinical metrics. No network, new permissions, BLE pairing, analytics SDK or production Health Connect reads.
 - Screen illustrations are `docs/screenshots/compact-r4-*`. They are CSS simulations; native device results remain subject to Q25/Titan2 verification.
+
+## R5.1 Dashboard decision (2026-11-23)
+
+The first primary tab is **Dashboard** (not Today). It follows the owner-provided two-hero-card + wide sleep visual layout with exactly four configurable slots (2 hero, 1 wide, 1 compact), selected in Settings. Steps, Heart rate, Sleep stages, HRV are the defaults. The data-sync status is always separate and never counts as a widget. User can reorder slots and choose Text/Graph for graph-capable widgets. Dashboard contains current progress and last-night data only, no seven-day trends. Never treat absent records as zero; no unsupported Fitbit metrics are invented. Historical plots remain in Move, Vitals and Trends. Q25 uses compact chrome, Titan 2 retains standard chrome.

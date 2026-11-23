@@ -6,33 +6,6 @@ import androidx.compose.runtime.Composable
 import io.github.aimindseye.sablehealth.core.DemoHealth
 
 @Composable
-internal fun TodaySection(
-    state: SableAppState,
-    onSources: () -> Unit,
-) {
-    ViewModeHeading(Section.TODAY, "Current day · no history charts", state)
-    if (!state.demo) {
-        EmptyState()
-    } else if (state.modeFor(Section.TODAY) == ViewMode.TEXT) {
-        TwoUp(DemoHealth.today)
-        Text(
-            "Baseline: finding your usual · no recovery score calculated",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Notice("Source: ${state.connect.label}", state.connect.detail, onClick = onSources)
-    } else {
-        TodayStepGoalChart()
-        SleepStageChart()
-        Text(
-            "Today graphs show current progress and last night only · synthetic demo",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
 internal fun SleepSection(state: SableAppState) {
     ViewModeHeading(Section.SLEEP, "Last night · sessions and stages", state)
     if (!state.demo) {

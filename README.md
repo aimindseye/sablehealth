@@ -6,7 +6,7 @@ Keyboard-first, privacy-first Android wellness viewer for Zinwa Q25, Unihertz Ti
 
 - Sable UI: exact Sable Games Blue `#2E9BD6` (dark), `#1A6FA0` (light), with Sable black/white backgrounds; follow-system, light and dark modes.
 - Three hardware profiles + generic keyboard and touch fallback. Defaults follow `sablegames` mappings; overrides persist locally.
-- Touch and keyboard-accessible onboarding, Today, Sleep, Move, Vitals, Trends, Settings, Sources, Help.
+- Touch and keyboard-accessible onboarding, Dashboard, Sleep, Move, Vitals, Trends, Settings, Sources, Help.
 - Synthetic demo data is permanently marked. Live placeholder contains **no** measurements.
 - R4 compact mode after Q25/Titan 2 feedback: 2-up cards for Sleep/Move/Vitals, smaller header/tab chrome, demo-only stage bar, steps bars and resting-HR line charts. Browser preview: `docs/compact-r4-preview.html`; device acceptance: `docs/R4_COMPACT_ACCEPTANCE.md`.
 - Health Connect diagnostic only: SDK status and number of already-granted permissions. **No health records are read, imported or stored in M0.**
@@ -48,3 +48,13 @@ Apache-2.0 proposed for independent Sable implementation. No source or formulas 
 ## R5 approved UI contract — daily Today, independent view modes
 
 R5 keeps the two-up Today cards as the default **Text** view. **Graphs** on Today display only today's step-goal progress and last-night stage composition. The seven-day steps and resting-heart-rate graphs live in Move, Vitals and Trends only, not on Today. View mode persists separately for each tab. Q25 has more compact application chrome while preserving minimum 48dp interactive targets; Titan 2 chrome is unchanged. Color-coded demo bars communicate informational/goal/below-plan/illustrative-outlier statuses only; no medical risk thresholds or diagnosis are inferred. See `docs/R5_ACCEPTANCE.md` and the local illustrative `docs/r5-preview.html`.
+
+## R5.1 approved Dashboard implementation
+
+**First tab is Dashboard, replacing Today.** The owner-provided design is the reference: two visual hero cards, a wide last-night sleep visualization and a compact fourth card. It contains **no seven-day histories**. The R5 global Text/Graphs toggle has been removed from Dashboard; individual Graph/Text styles can be selected on graph-capable widgets. Other tabs retain independently saved Text/Graphs choices.
+
+Settings → **Customize Dashboard widgets** offers a 20-item catalog and exactly four saved slots. Default order: Steps, Heart rate, Sleep stages, HRV. Slot order affects presentation (two hero, one wide, one compact); picker supports selection, deselection, reorder, per-widget style, restore defaults, Save/Cancel. A mandatory non-widget status always says M0 has never imported live records.
+
+All readings displayed in demo mode are synthetic. Unsupported or unverified proposals remain `No demo sample`, never invented measurements. Selecting No Records leaves the configured dashboard visible with missing-data placeholders. Actual Health Connect types/availability must be confirmed in M1 before enabling live measurement widgets.
+
+Acceptance details: `docs/R51_DASHBOARD_ACCEPTANCE.md`; static gate: `python3 tools/check-r51-contract.py`. This is a design-implementation candidate, not a Fitbit health-data release.

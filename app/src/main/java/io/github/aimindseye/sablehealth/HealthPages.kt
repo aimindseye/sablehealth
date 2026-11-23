@@ -37,6 +37,9 @@ internal fun SettingsPage(
     state: SableAppState,
     profile: DeviceProfile,
 ) {
+    SectionHeading("Dashboard", "Four configurable widgets")
+    FocusButton("Customize Dashboard widgets", { state.page = Page.WIDGETS })
+    Notice("Data status", "Always displayed separately. Missing records are never shown as zero.")
     SectionHeading("Phone & input", "Detected/selected profile: ${profile.label}")
     Text("Device profile", style = MaterialTheme.typography.titleMedium)
     FocusButton(

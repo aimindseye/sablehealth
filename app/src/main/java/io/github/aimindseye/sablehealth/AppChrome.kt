@@ -84,9 +84,10 @@ private fun HealthPage(
     profile: DeviceProfile,
 ) {
     when (state.page) {
-        Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25) { state.page = Page.SOURCES }
+        Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25)
         Page.SOURCES -> SourcesPage(state.connect, state::refreshSources) { state.page = Page.MAIN }
         Page.SETTINGS -> SettingsPage(state, profile)
+        Page.WIDGETS -> WidgetPickerPage(state)
         Page.HELP -> HelpPage(profile) { state.page = Page.MAIN }
     }
 }

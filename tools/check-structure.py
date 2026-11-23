@@ -10,7 +10,7 @@ manifest = (root / 'app/src/main/AndroidManifest.xml').read_text()
 assert '0xFF2E9BD6' in source and '0xFF1A6FA0' in source, 'not Sable Blue'
 for s in ['0xFF000000', '0xFF141414', '0xFFF5F7F9', '0xFFFFFFFF']:
     assert s in source, f'missing Sable token {s}'
-for section in ['TODAY', 'SLEEP', 'MOVE', 'VITALS', 'TRENDS']:
+for section in ['DASHBOARD', 'SLEEP', 'MOVE', 'VITALS', 'TRENDS']:
     assert section in activity, f'missing tab {section}'
 assert 'getSdkStatus' in activity and 'getGrantedPermissions' in activity
 assert 'readRecords' not in activity, 'M0 must not ingest health records'

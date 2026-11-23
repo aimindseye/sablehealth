@@ -31,10 +31,9 @@ import io.github.aimindseye.sablehealth.core.DemoMetric
 internal fun Dashboard(
     state: SableAppState,
     compactQ25: Boolean,
-    onSources: () -> Unit,
 ) {
     when (state.section) {
-        Section.TODAY -> TodaySection(state, onSources)
+        Section.DASHBOARD -> DashboardHome(state, compactQ25)
         Section.SLEEP -> SleepSection(state)
         Section.MOVE -> MoveSection(state, compactQ25)
         Section.VITALS -> VitalsSection(state, compactQ25)

@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Each section remembers its own preference; Today is a daily view, never a trend duplicate. */
+/** History/detail tabs remember independent Text/Graphs modes; Dashboard uses widget-level styles. */
 @Composable
 internal fun ViewModeHeading(
     section: Section,

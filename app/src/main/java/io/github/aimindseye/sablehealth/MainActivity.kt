@@ -35,14 +35,14 @@ import io.github.aimindseye.sablehealth.core.UiAction
 internal enum class Section(
     val title: String,
 ) {
-    TODAY("Today"),
+    DASHBOARD("Dashboard"),
     SLEEP("Sleep"),
     MOVE("Move"),
     VITALS("Vitals"),
     TRENDS("Trends"),
 }
 
-internal enum class Page { MAIN, SOURCES, SETTINGS, HELP }
+internal enum class Page { MAIN, SOURCES, SETTINGS, WIDGETS, HELP }
 
 internal data class ConnectStatus(
     val label: String,
@@ -76,7 +76,7 @@ internal fun SableApp() {
     }
 
     SableHealthTheme(state.appearance) {
-        BackHandler(enabled = state.page != Page.MAIN || state.section != Section.TODAY) {
+        BackHandler(enabled = state.page != Page.MAIN || state.section != Section.DASHBOARD) {
             state.back()
         }
         Surface(
