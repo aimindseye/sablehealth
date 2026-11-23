@@ -73,14 +73,15 @@ internal class SableAppState(
     }
 
     fun back() {
-        page = when (page) {
-            Page.WIDGETS -> Page.SETTINGS
-            Page.MAIN -> {
-                section = Section.DASHBOARD
-                Page.MAIN
+        page =
+            when (page) {
+                Page.WIDGETS -> Page.SETTINGS
+                Page.MAIN -> {
+                    section = Section.DASHBOARD
+                    Page.MAIN
+                }
+                else -> Page.MAIN
             }
-            else -> Page.MAIN
-        }
     }
 
     fun nextTab() {

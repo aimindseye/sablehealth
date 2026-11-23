@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,11 +59,26 @@ internal fun StepGoalRing(sizeDp: Int) {
 internal fun SleepMiniTimeline(compact: Boolean) {
     val violet = SablePalette.blue // A category graphic, not a normal/abnormal reading.
     Canvas(
-        Modifier.fillMaxWidth().height((if (compact) WAVE_Q25_HEIGHT_DP else WAVE_HEIGHT_DP).dp)
+        Modifier
+            .fillMaxWidth()
+            .height((if (compact) WAVE_Q25_HEIGHT_DP else WAVE_HEIGHT_DP).dp)
             .semantics { contentDescription = "Synthetic illustrative sleep stages overnight, not an actual sensor waveform" },
     ) {
-        val points = listOf(SLEEP_MID, SLEEP_HIGH, SLEEP_LOW, SLEEP_HIGH, SLEEP_LOW,
-            SLEEP_HIGH, SLEEP_LOW, SLEEP_MID, SLEEP_LOW, SLEEP_HIGH, SLEEP_MID, SLEEP_HIGH)
+        val points =
+            listOf(
+                SLEEP_MID,
+                SLEEP_HIGH,
+                SLEEP_LOW,
+                SLEEP_HIGH,
+                SLEEP_LOW,
+                SLEEP_HIGH,
+                SLEEP_LOW,
+                SLEEP_MID,
+                SLEEP_LOW,
+                SLEEP_HIGH,
+                SLEEP_MID,
+                SLEEP_HIGH,
+            )
         val path = Path()
         val dx = size.width / points.lastIndex
         points.forEachIndexed { index, y ->
@@ -104,18 +118,23 @@ internal fun WidgetValue(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        if (prominent) Text(
-            detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (prominent) {
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
 @Composable
-internal fun DashboardCard(modifier: Modifier, content: @Composable () -> Unit) {
+internal fun DashboardCard(
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

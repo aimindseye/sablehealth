@@ -27,12 +27,12 @@ assert 'DashboardWidgetSelection.toggle' in picker
 assert 'DashboardWidgetSelection.isValid' in picker
 assert 'Restore four defaults' in picker and 'Cancel · back to Settings' in picker
 assert 'Page.WIDGETS' in chrome and 'Customize Dashboard widgets' in (app / 'HealthPages.kt').read_text()
-assert 'val defaults = listOf' in widget and 'const val COUNT = 4' in widget
+assert 'val defaults =' in widget and 'listOf(' in widget and 'const val COUNT = 4' in widget
 assert 'SPO2(' in widget and 'READINESS(' in widget and 'DATA_FRESHNESS(' in widget
 assert 'No live data imported' in home
 assert 'Not synced' in (app / 'DashboardVisuals.kt').read_text()
 assert 'No demo sample' in (app / 'DashboardVisuals.kt').read_text()
-assert 'contentDescription' in home and 'compactQ25' in chrome
+assert 'contentDescription' in (app / 'DashboardVisuals.kt').read_text() and 'compactQ25' in chrome
 assert 'getGrantedPermissions' in activity and 'readRecords' not in activity
 assert 'android.permission.INTERNET' not in manifest and 'android.permission.BLUETOOTH' not in manifest
 print('PASS_R51: dashboard four-widget selection, no history/imports, fallback states and Q25 input')

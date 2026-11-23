@@ -53,9 +53,10 @@ internal fun WidgetPickerPage(state: SableAppState) {
     WidgetCatalogSelection(selected, onToggle = { selected = DashboardWidgetSelection.toggle(selected, it) })
     FocusButton("Restore four defaults", {
         selected = DashboardWidgetSelection.defaults
-        styles = DashboardWidget.entries.associateWith {
-            DashboardWidgetSelection.styleFor(it, null)
-        }
+        styles =
+            DashboardWidget.entries.associateWith {
+                DashboardWidgetSelection.styleFor(it, null)
+            }
     })
     if (DashboardWidgetSelection.isValid(selected)) {
         FocusButton("Save four Dashboard widgets", {
@@ -89,9 +90,13 @@ private fun SelectedWidgetRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("${index + 1}. ${widget.label}", modifier = Modifier.weight(1f),
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "${index + 1}. ${widget.label}",
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+            )
             if (index > 0) FocusButton("↑", { actions.onMove(-1) })
             if (index < count - 1) FocusButton("↓", { actions.onMove(1) })
             FocusButton("Remove", actions.onRemove)
@@ -122,9 +127,11 @@ private fun WidgetCatalogSelection(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(widget.label, style = MaterialTheme.typography.bodyMedium)
-                    Text(widget.phase.description,
+                    Text(
+                        widget.phase.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 // At four, remove a current choice before adding a replacement.
                 if (checked || selected.size < DashboardWidgetSelection.COUNT) {
@@ -135,6 +142,9 @@ private fun WidgetCatalogSelection(
             }
         }
     }
-    Notice("M0 limitation", "All numbers are synthetic demonstrations. Fitbit Air exports and live " +
-        "Health Connect data must be verified in M1. Unverified widgets stay empty, never zero.")
+    Notice(
+        "M0 limitation",
+        "All numbers are synthetic demonstrations. Fitbit Air exports and live " +
+            "Health Connect data must be verified in M1. Unverified widgets stay empty, never zero.",
+    )
 }
