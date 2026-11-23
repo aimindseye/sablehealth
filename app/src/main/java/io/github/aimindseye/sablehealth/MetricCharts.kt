@@ -122,7 +122,7 @@ internal fun SleepStageChart() {
         val colors = listOf(
             MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.primary.copy(alpha = REM_STAGE_ALPHA),
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = LIGHT_STAGE_ALPHA,
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = LIGHT_STAGE_ALPHA),
         )
         Row(
             Modifier.fillMaxWidth().height(17.dp)
