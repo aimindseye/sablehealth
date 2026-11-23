@@ -32,26 +32,45 @@ object KeyboardMapping {
     private const val ESC = 111
 
     fun action(profile: DeviceProfile, press: Press): UiAction? {
-        if (press.alt || press.ctrl || press.meta || press.editingText) return null
-        val mapped = when (press.code) {
-            UP -> UiAction.UP
-            DOWN -> UiAction.DOWN
-            LEFT -> UiAction.LEFT
-            RIGHT -> UiAction.RIGHT
-            CENTER, ENTER, SPACE -> UiAction.CONFIRM
-            BACK, ESC -> UiAction.BACK
-            T -> UiAction.NEXT_TAB
-            R -> UiAction.REFRESH
-            SLASH -> UiAction.HELP
-            I -> if (profile.letterNavigation) UiAction.UP else null
-            J -> if (profile.letterNavigation) UiAction.LEFT else null
-            K -> if (profile.letterNavigation) UiAction.DOWN else null
-            L -> if (profile.letterNavigation) UiAction.RIGHT else null
+        if (press.alt || press.ctrl) return null
+        if (press.meta || press.editingText) return null
+        val mapped = dpadAction(press.code)
+            ?: commandAction(press.code)
+            ?: letterAction(profile, press.code)
+        // Repetition is for navigation only, not selection or side effects.
+        return if (press.repeatCount > 0 && !isDirectional(mapped)) null else mapped
+    }
+
+    private fun dpadAction(code: Int): UiAction? = when (code) {
+        UP -> UiAction.UP
+        DOWN -> UiAction.DOWN
+        LEFT -> UiAction.LEFT
+        RIGHT -> UiAction.RIGHT
+        else -> null
+    }
+
+    private fun commandAction(code: Int): UiAction? = when (code) {
+        CENTER, ENTER, SPACE -> UiAction.CONFIRM
+        BACK, ESC -> UiAction.BACK
+        T -> UiAction.NEXT_TAB
+        R -> UiAction.REFRESH
+        SLASH -> UiAction.HELP
+        else -> null
+    }
+
+    private fun letterAction(profile: DeviceProfile, code: Int): UiAction? {
+        if (!profile.letterNavigation) return null
+        return when (code) {
+            I -> UiAction.UP
+            J -> UiAction.LEFT
+            K -> UiAction.DOWN
+            L -> UiAction.RIGHT
             else -> null
         }
-        // Repetition is for navigation only, not selection or side effects.
-        return if (press.repeatCount > 0 && mapped !in setOf(
-                UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT
-            )) null else mapped
+    }
+
+    private fun isDirectional(action: UiAction?): Boolean = when (action) {
+        UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT -> true
+        else -> false
     }
 }

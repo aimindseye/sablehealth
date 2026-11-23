@@ -8,6 +8,7 @@ Keyboard-first, privacy-first Android wellness viewer for Zinwa Q25, Unihertz Ti
 - Three hardware profiles + generic keyboard and touch fallback. Defaults follow `sablegames` mappings; overrides persist locally.
 - Touch and keyboard-accessible onboarding, Today, Sleep, Move, Vitals, Trends, Settings, Sources, Help.
 - Synthetic demo data is permanently marked. Live placeholder contains **no** measurements.
+- R4 compact mode after Q25/Titan 2 feedback: 2-up cards for Sleep/Move/Vitals, smaller header/tab chrome, demo-only stage bar, steps bars and resting-HR line charts. Browser preview: `docs/compact-r4-preview.html`; device acceptance: `docs/R4_COMPACT_ACCEPTANCE.md`.
 - Health Connect diagnostic only: SDK status and number of already-granted permissions. **No health records are read, imported or stored in M0.**
 - M1 adds granular read permissions, history access, actual data import, provenance and caching.
 - No accounts, telemetry, background sync or remote service.

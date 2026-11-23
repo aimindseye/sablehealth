@@ -7,6 +7,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 
@@ -45,8 +47,8 @@ internal fun HealthAppContent(state: SableAppState, profile: DeviceProfile) {
         Box(Modifier.weight(1f)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 HealthPage(state, profile)
             }
@@ -72,17 +74,24 @@ internal fun HealthHeader(
     onSources: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             FocusButton("Sources", onSources)
@@ -113,7 +122,7 @@ internal fun FocusButton(
         border = BorderStroke(1.dp, colors.outlineVariant),
     ) {
         Box(
-            Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -128,17 +137,25 @@ internal fun FocusButton(
 @Composable
 private fun BottomTabs(active: Section, onClick: (Section) -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Section.entries.forEach { tab ->
-            FocusButton(
-                label = tab.title,
-                onClick = { onClick(tab) },
-                selected = tab == active,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+    BoxWithConstraints {
+        val compact = maxWidth < 310.dp
+        val modifier = if (compact) {
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+        } else {
+            Modifier.fillMaxWidth()
+        }
+        Row(
+            modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Section.entries.forEach { tab ->
+                FocusButton(
+                    label = tab.title,
+                    onClick = { onClick(tab) },
+                    selected = tab == active,
+                    modifier = if (compact) Modifier else Modifier.weight(1f),
+                )
+            }
         }
     }
 }

@@ -54,3 +54,16 @@ Missing never becomes zero. Distinguish observed time from import time, consent 
 - [ ] Physical P26 validation — user test.
 - [ ] Full Android build and CI — pending access to SDK / GitHub workflow run.
 - [ ] Health Connect M1 permission and data validation — out of scope for M0.
+
+
+## R4 field-test layout refinement (2026-11-23)
+
+Based on actual Q25 / Titan 2 screenshots, retain the approved Sable Blue visual system but reduce vertical scrolling on square displays:
+
+- Sleep, Move and Vitals measurements use two equal-width cards per row at **>=320dp** available width and font scale **<=1.3**. Smaller windows or large-font accessibility settings revert to a single column; never sacrifice legibility for density.
+- Each card has a one-line label, value and concise metadata. Longer metadata is available in detail/source views in future data milestones; never trim the metric value itself during normal device settings.
+- Header uses a compact single row; Sources/Settings and every bottom tab retain **48dp minimum targets** and keyboard focus outlines. Tabs should fit one row in the Q25/Titan2 window; very narrow screens may scroll horizontally.
+- M0 demonstration charts: Sleep shows proportion of last night's deep / REM / light stages; Move shows 7 days of steps; Vitals shows 7 days resting HR; Trends has both time-series. These charts use only `DemoCharts` synthetic samples and are hidden entirely in no-data mode.
+- Chart colors: Sable Blue `#2E9BD6` for current/dominant marks in dark mode and `#1A6FA0` in light mode; earlier/secondary marks use the same tone with opacity, and neutral gray (`onSurfaceVariant`) for the light sleep segment and gridlines. Never use color as the only signal: textual legend plus accessibility descriptions required.
+- This refinement does **not** imply Fitbit data availability or calculated clinical metrics. No network, new permissions, BLE pairing, analytics SDK or production Health Connect reads.
+- Screen illustrations are `docs/screenshots/compact-r4-*`. They are CSS simulations; native device results remain subject to Q25/Titan2 verification.

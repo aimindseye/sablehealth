@@ -14,6 +14,7 @@ object DemoHealth {
         DemoMetric("TIME ASLEEP", "7h 42m", "11:15 PM – 7:18 AM"),
         DemoMetric("DEEP SLEEP", "1h 24m", "Synthetic sleep stage"),
         DemoMetric("REM", "1h 48m", "Synthetic sleep stage"),
+        DemoMetric("LIGHT SLEEP", "4h 30m", "Synthetic sleep stage"),
     )
     val move = listOf(
         DemoMetric("STEPS", "7,420", "9,000 daily goal"),

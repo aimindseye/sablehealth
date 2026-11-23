@@ -22,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DemoMetric
 
@@ -43,18 +45,22 @@ internal fun Dashboard(
 
 @Composable
 internal fun SectionHeading(title: String, subtitle: String) {
-    Text(title, style = MaterialTheme.typography.titleLarge)
-    Text(
-        subtitle,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable
 internal fun TwoUp(items: List<DemoMetric>) {
     BoxWithConstraints {
-        val columns = if (maxWidth >= 300.dp) 2 else 1
+        val columns = if (maxWidth >= 320.dp && LocalConfiguration.current.fontScale <= 1.3f) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -67,31 +73,35 @@ internal fun TwoUp(items: List<DemoMetric>) {
 }
 
 @Composable
-internal fun Metrics(items: List<DemoMetric>) {
-    items.forEach { MetricCard(it) }
-}
-
-@Composable
 private fun MetricCard(metric: DemoMetric) {
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
                 metric.label,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 metric.value,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(metric.detail, style = MaterialTheme.typography.bodySmall)
+            Text(
+                metric.detail,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
