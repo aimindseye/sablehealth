@@ -6,7 +6,7 @@ APP = ROOT / 'app/src/main/java/io/github/aimindseye/sablehealth'
 checks = {
     'SourcesScreens.kt': ['internal fun SourcesPage(', 'SourcesUiContract.companionStatus', 'state.companion.chooseConfirmation', 'SourceDetailPage', 'SourcePrivacyPage', 'Check availability again'],
     'SettingsScreens.kt': ['internal fun SettingsPage(', 'CompactChoiceRow(', 'Customize widgets', 'PhoneInputPage', 'SettingsPrivacyPage', 'Data mode'],
-    'CompactPreferencesUi.kt': ['internal fun CompactLinkRow(', 'minHeight = 48.dp', '.focusable()', 'onFocusChanged', 'internal fun CompactChoiceRow('],
+    'CompactPreferencesUi.kt': ['internal fun CompactLinkRow(', 'minHeight = 48.dp', '.focusable()', 'onFocusChanged', 'statusColor', 'semantics', 'internal fun CompactChoiceRow('],
     'SableAppState.kt': ['CompanionSyncPreferenceState', 'Page.SOURCE_DETAIL', 'Page.SOURCE_PRIVACY', 'Page.PHONE_INPUT', 'Page.SETTINGS_PRIVACY'],
     'AppChrome.kt': ['Page.SOURCE_DETAIL ->', 'Page.SOURCE_PRIVACY ->', 'Page.PHONE_INPUT ->', 'Page.SETTINGS_PRIVACY ->', 'onBack = if (state.page == Page.MAIN)'],
     'MainActivity.kt': ['SOURCE_DETAIL', 'SOURCE_PRIVACY', 'PHONE_INPUT', 'SETTINGS_PRIVACY'],

@@ -15,16 +15,21 @@ import io.github.aimindseye.sablehealth.core.SourcesUiContract
 @Composable
 internal fun SourcesPage(state: SableAppState) {
     CompactPageTitle("Data connections", "M0 DIAGNOSTIC")
+    val dark = MaterialTheme.colorScheme.background == SablePalette.darkBase
+    val availableColor = if (dark) ChartColors.darkGood else ChartColors.lightGood
+    val cautionColor = if (dark) ChartColors.darkCaution else ChartColors.lightCaution
     CompactLinkRow(
         title = "Health Connect · ${state.connect.label}",
         detail = "Record read access not requested · M0",
         onClick = { state.page = Page.SOURCE_DETAIL },
+        statusColor = if (state.connect.label == "Available") availableColor else cautionColor,
     )
     val companionStatus = SourcesUiContract.companionStatus(state.companion.confirmed)
     CompactLinkRow(
         title = "Google Health / Fitbit Air",
         detail = "$companionStatus · export unverified",
         onClick = { state.page = Page.SOURCE_DETAIL },
+        statusColor = cautionColor,
     )
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.weight(1f)) {

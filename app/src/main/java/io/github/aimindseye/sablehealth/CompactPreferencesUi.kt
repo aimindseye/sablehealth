@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -33,6 +39,7 @@ internal fun CompactLinkRow(
     detail: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    statusColor: Color? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -60,6 +67,9 @@ internal fun CompactLinkRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (statusColor != null) {
+                Box(Modifier.size(8.dp).background(statusColor, CircleShape))
             }
             Text("›", color = colors.primary, style = MaterialTheme.typography.titleLarge)
         }
@@ -128,6 +138,7 @@ internal fun CompactChoiceButton(
     var focused by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val activeBorder = if (focused) 2.dp else 1.dp
+    val focusColor = if (focused && selected) colors.onSurface else colors.primary
     Card(
         modifier =
             Modifier
@@ -136,19 +147,20 @@ internal fun CompactChoiceButton(
                 .onFocusChanged { focused = it.isFocused }
                 .border(
                     activeBorder,
-                    if (focused || selected) colors.primary else colors.outline,
+                    if (focused || selected) focusColor else colors.outline,
                     MaterialTheme.shapes.small,
                 )
+                .semantics { this.selected = selected }
                 .clickable(onClick = onClick)
                 .focusable(),
         border = BorderStroke(1.dp, if (selected) colors.primary else colors.outlineVariant),
-        colors = CardDefaults.cardColors(containerColor = if (selected) colors.surface else colors.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = if (selected) colors.primary else colors.surfaceVariant),
     ) {
         Box(Modifier.fillMaxWidth().padding(horizontal = 3.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (selected) colors.primary else colors.onSurface,
+                color = if (selected) colors.onPrimary else colors.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
