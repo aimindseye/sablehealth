@@ -149,8 +149,7 @@ internal fun CompactChoiceButton(
                     activeBorder,
                     if (focused || selected) focusColor else colors.outline,
                     MaterialTheme.shapes.small,
-                )
-                .semantics { this.selected = selected }
+                ).semantics { this.selected = selected }
                 .clickable(onClick = onClick)
                 .focusable(),
         border = BorderStroke(1.dp, if (selected) colors.primary else colors.outlineVariant),

@@ -43,8 +43,15 @@ internal enum class Section(
 }
 
 internal enum class Page {
-    MAIN, SOURCES, SOURCE_DETAIL, SOURCE_PRIVACY,
-    SETTINGS, WIDGETS, PHONE_INPUT, SETTINGS_PRIVACY, HELP,
+    MAIN,
+    SOURCES,
+    SOURCE_DETAIL,
+    SOURCE_PRIVACY,
+    SETTINGS,
+    WIDGETS,
+    PHONE_INPUT,
+    SETTINGS_PRIVACY,
+    HELP,
 }
 
 internal data class ConnectStatus(

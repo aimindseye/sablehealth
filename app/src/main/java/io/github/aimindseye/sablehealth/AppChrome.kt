@@ -64,11 +64,12 @@ internal fun HealthAppContent(
                     "NO RECORDS IMPORTED · ${profile.label}"
                 },
             compactQ25 = profile == DeviceProfile.Q25,
-            actions = HeaderActions(
-                onBack = if (state.page == Page.MAIN) null else state::back,
-                onSources = { state.page = Page.SOURCES },
-                onSettings = { state.page = Page.SETTINGS },
-            ),
+            actions =
+                HeaderActions(
+                    onBack = if (state.page == Page.MAIN) null else state::back,
+                    onSources = { state.page = Page.SOURCES },
+                    onSettings = { state.page = Page.SETTINGS },
+                ),
         )
         Box(Modifier.weight(1f)) {
             Column(
