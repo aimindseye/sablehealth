@@ -30,6 +30,13 @@ import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DemoCharts
 
 /** Chart widgets are M0 demonstration-only; no chart reads live records. */
+private const val BAR_WIDTH_FRACTION = 0.57f
+private const val HALF_HEIGHT_FRACTION = 0.5f
+private const val MUTED_BAR_ALPHA = 0.52f
+private const val REM_STAGE_ALPHA = 0.60f
+private const val LIGHT_STAGE_ALPHA = 0.45f
+private const val SWATCH_WIDTH_FRACTION = 0.10f
+
 @Composable
 internal fun StepsChart() {
     ChartSurface("Steps · last 7 days") {
@@ -44,13 +51,18 @@ internal fun StepsChart() {
             val maximum = samples.maxOrNull()?.coerceAtLeast(1f) ?: 1f
             val slot = size.width / samples.size
             val base = size.height
-            val width = slot * 0.57f
-            drawLine(grid, Offset(0f, base * 0.5f), Offset(size.width, base * 0.5f), 1.dp.toPx())
+            val width = slot * BAR_WIDTH_FRACTION
+            drawLine(
+                color = grid,
+                start = Offset(0f, base * HALF_HEIGHT_FRACTION),
+                end = Offset(size.width, base * HALF_HEIGHT_FRACTION),
+                strokeWidth = 1.dp.toPx(),
+            )
             samples.forEachIndexed { index, sample ->
                 val barHeight = base * sample / maximum
                 val x = slot * index + (slot - width) / 2f
                 drawRoundRect(
-                    color = if (index == samples.lastIndex) primary else primary.copy(alpha = 0.52f),
+                    color = if (index == samples.lastIndex) primary else primary.copy(alpha = MUTED_BAR_ALPHA),
                     topLeft = Offset(x, base - barHeight),
                     size = Size(width, barHeight),
                     cornerRadius = CornerRadius(3.dp.toPx()),
@@ -79,7 +91,12 @@ internal fun RestingHeartRateChart() {
             val yPadding = 5.dp.toPx()
             val spanX = (size.width - xPadding * 2).coerceAtLeast(0f)
             val spanY = (size.height - yPadding * 2).coerceAtLeast(0f)
-            drawLine(grid, Offset(0f, size.height * 0.5f), Offset(size.width, size.height * 0.5f), 1.dp.toPx())
+            drawLine(
+                color = grid,
+                start = Offset(0f, size.height * HALF_HEIGHT_FRACTION),
+                end = Offset(size.width, size.height * HALF_HEIGHT_FRACTION),
+                strokeWidth = 1.dp.toPx(),
+            )
             val points = samples.mapIndexed { index, sample ->
                 Offset(
                     xPadding + (spanX * index / (samples.size - 1).coerceAtLeast(1)),
@@ -104,8 +121,8 @@ internal fun SleepStageChart() {
     ChartSurface("Last night · sleep stages") {
         val colors = listOf(
             MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.60f),
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+            MaterialTheme.colorScheme.primary.copy(alpha = REM_STAGE_ALPHA),
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = LIGHT_STAGE_ALPHA,
         )
         Row(
             Modifier.fillMaxWidth().height(17.dp)
@@ -122,7 +139,11 @@ internal fun SleepStageChart() {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Deep 1h24", "REM 1h48", "Light 4h30").forEachIndexed { index, label ->
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.padding(top = 4.dp).height(8.dp).fillMaxWidth(0.10f).background(colors[index]))
+                    Box(
+                        Modifier.padding(top = 4.dp).height(8.dp)
+                            .fillMaxWidth(SWATCH_WIDTH_FRACTION)
+                            .background(colors[index]),
+                    )
                     Text(
                         label,
                         style = MaterialTheme.typography.bodySmall,

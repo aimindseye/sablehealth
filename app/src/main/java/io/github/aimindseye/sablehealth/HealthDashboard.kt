@@ -57,10 +57,15 @@ internal fun SectionHeading(title: String, subtitle: String) {
     }
 }
 
+private const val TWO_COLUMN_MIN_WIDTH_DP = 320
+private const val MAX_TWO_COLUMN_FONT_SCALE = 1.3f
+
 @Composable
 internal fun TwoUp(items: List<DemoMetric>) {
     BoxWithConstraints {
-        val columns = if (maxWidth >= 320.dp && LocalConfiguration.current.fontScale <= 1.3f) 2 else 1
+        val twoColumns = maxWidth >= TWO_COLUMN_MIN_WIDTH_DP.dp &&
+            LocalConfiguration.current.fontScale <= MAX_TWO_COLUMN_FONT_SCALE
+        val columns = if (twoColumns) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
