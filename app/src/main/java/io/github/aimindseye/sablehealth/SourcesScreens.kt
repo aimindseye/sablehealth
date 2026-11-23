@@ -61,7 +61,7 @@ internal fun SourceDetailPage(state: SableAppState) {
     Text("Companion setup confirmation", style = MaterialTheme.typography.titleMedium)
     FocusButton(
         label = if (state.companion.confirmed) "✓ I paired and synced in Google Health" else "I paired and synced in Google Health",
-        onClick = { state.companion.setConfirmed(!state.companion.confirmed) },
+        onClick = { state.companion.chooseConfirmation(!state.companion.confirmed) },
         selected = state.companion.confirmed,
         modifier = Modifier.fillMaxWidth(),
     )

@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'app/src/main/java/io/github/aimindseye/sablehealth'
 checks = {
-    'SourcesScreens.kt': ['internal fun SourcesPage(', 'SourcesUiContract.companionStatus', 'state.companion.setConfirmed', 'SourceDetailPage', 'SourcePrivacyPage', 'Check availability again'],
+    'SourcesScreens.kt': ['internal fun SourcesPage(', 'SourcesUiContract.companionStatus', 'state.companion.chooseConfirmation', 'SourceDetailPage', 'SourcePrivacyPage', 'Check availability again'],
     'SettingsScreens.kt': ['internal fun SettingsPage(', 'CompactChoiceRow(', 'Customize widgets', 'PhoneInputPage', 'SettingsPrivacyPage', 'Data mode'],
     'CompactPreferencesUi.kt': ['internal fun CompactLinkRow(', 'minHeight = 48.dp', '.focusable()', 'onFocusChanged', 'internal fun CompactChoiceRow('],
     'SableAppState.kt': ['CompanionSyncPreferenceState', 'Page.SOURCE_DETAIL', 'Page.SOURCE_PRIVACY', 'Page.PHONE_INPUT', 'Page.SETTINGS_PRIVACY'],
@@ -16,7 +16,7 @@ for filename, needles in checks.items():
     content=(APP/filename).read_text()
     failures += [f'{filename}: missing {needle}' for needle in needles if needle not in content]
 companion=(APP/'CompanionSyncPreferenceState.kt').read_text()
-for needle in ('fitbit.sync.user_confirmed', 'mutableStateOf', 'setConfirmed', 'preferences.edit()'):
+for needle in ('fitbit.sync.user_confirmed', 'mutableStateOf', 'chooseConfirmation', 'preferences.edit()'):
     if needle not in companion:
         failures.append(f'CompanionSyncPreferenceState: missing {needle}')
 core=(ROOT/'core/src/main/kotlin/io/github/aimindseye/sablehealth/core/SourcesUiContract.kt').read_text()

@@ -12,7 +12,7 @@ internal class CompanionSyncPreferenceState(
     var confirmed by mutableStateOf(preferences.getBoolean("fitbit.sync.user_confirmed", false))
         private set
 
-    fun setConfirmed(value: Boolean) {
+    fun chooseConfirmation(value: Boolean) {
         confirmed = value
         preferences.edit().putBoolean("fitbit.sync.user_confirmed", value).apply()
     }
