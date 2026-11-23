@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.sizeIn
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 
@@ -38,6 +40,8 @@ internal fun HealthAppContent(
     state: SableAppState,
     profile: DeviceProfile,
 ) {
+    val dashboardOnQ25 =
+        profile == DeviceProfile.Q25 && state.page == Page.MAIN && state.section == Section.DASHBOARD
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         HealthHeader(
             title =
@@ -49,7 +53,9 @@ internal fun HealthAppContent(
                         .replaceFirstChar(Char::uppercaseChar)
                 },
             subtitle =
-                if (state.demo) {
+                if (dashboardOnQ25) {
+                    if (state.demo) "DASHBOARD · DEMO" else "DASHBOARD · NO RECORDS"
+                } else if (state.demo) {
                     "DEMO DATA · ${profile.label}"
                 } else {
                     "NO RECORDS IMPORTED · ${profile.label}"
@@ -100,6 +106,8 @@ internal fun HealthHeader(
     onSources: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    val titleStyle = if (compactQ25) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
+    val subtitleStyle = if (compactQ25) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall
     Column(
         Modifier.fillMaxWidth().padding(
             horizontal = 10.dp,
@@ -113,20 +121,25 @@ internal fun HealthHeader(
             Column(Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = titleStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = subtitleStyle,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            FocusButton("Sources", onSources)
-            FocusButton("Settings", onSettings)
+            if (compactQ25) {
+                Q25ChromeButton("Sources", onSources)
+                Q25ChromeButton("Settings", onSettings)
+            } else {
+                FocusButton("Sources", onSources)
+                FocusButton("Settings", onSettings)
+            }
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -166,6 +179,52 @@ internal fun FocusButton(
     }
 }
 
+private const val Q25_TOUCH_HEIGHT_DP = 48
+private const val Q25_VISUAL_HEIGHT_DP = 36
+private const val Q25_CHROME_TEXT_SP = 12
+
+/** Tighter visual pill with a full 48dp hit target for touch, trackpad and accessibility. */
+@Composable
+private fun Q25ChromeButton(
+    label: String,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier =
+            modifier
+                .sizeIn(minWidth = 48.dp, minHeight = Q25_TOUCH_HEIGHT_DP.dp)
+                .onFocusChanged { focused = it.isFocused }
+                .clickable(onClick = onClick)
+                .focusable(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(Q25_VISUAL_HEIGHT_DP.dp)
+                    .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small),
+            shape = MaterialTheme.shapes.small,
+            color = if (selected) colors.surfaceVariant else colors.surface,
+            border = BorderStroke(1.dp, colors.outlineVariant),
+        ) {
+            Box(Modifier.padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    label,
+                    fontSize = Q25_CHROME_TEXT_SP.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (selected) colors.primary else colors.onSurface,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun BottomTabs(
     active: Section,
@@ -189,12 +248,21 @@ private fun BottomTabs(
             horizontalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Section.entries.forEach { tab ->
-                FocusButton(
-                    label = tab.title,
-                    onClick = { onClick(tab) },
-                    selected = tab == active,
-                    modifier = if (compact) Modifier else Modifier.weight(1f),
-                )
+                if (compactQ25) {
+                    Q25ChromeButton(
+                        label = tab.title,
+                        onClick = { onClick(tab) },
+                        selected = tab == active,
+                        modifier = if (compact) Modifier else Modifier.weight(1f),
+                    )
+                } else {
+                    FocusButton(
+                        label = tab.title,
+                        onClick = { onClick(tab) },
+                        selected = tab == active,
+                        modifier = if (compact) Modifier else Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

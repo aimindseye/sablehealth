@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -32,6 +33,7 @@ private const val RING_SWEEP_DEGREES = 360f
 private const val RING_START_DEGREES = -90f
 private const val RING_ALPHA = 0.20f
 private const val RING_WIDTH_DP = 5
+private const val RING_INSET_RATIO = 0.5f
 private const val SLEEP_HIGH = 0.23f
 private const val SLEEP_MID = 0.49f
 private const val SLEEP_LOW = 0.75f
@@ -45,13 +47,27 @@ private const val SLEEP_TIMELINE_DESCRIPTION = "Synthetic illustrative sleep sta
 internal fun StepGoalRing(sizeDp: Int) {
     val accent = MaterialTheme.colorScheme.primary
     Canvas(Modifier.size(sizeDp.dp).semantics { contentDescription = "Synthetic steps toward daily goal" }) {
-        val stroke = Stroke(width = RING_WIDTH_DP.dp.toPx(), cap = StrokeCap.Round)
-        drawArc(accent.copy(alpha = RING_ALPHA), RING_START_DEGREES, RING_SWEEP_DEGREES, false, style = stroke)
+        val strokeWidth = RING_WIDTH_DP.dp.toPx()
+        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        val inset = strokeWidth * RING_INSET_RATIO
+        val bounds = Size(size.width - strokeWidth, size.height - strokeWidth)
+        val topLeft = Offset(inset, inset)
         drawArc(
-            accent,
-            RING_START_DEGREES,
-            RING_SWEEP_DEGREES * DemoCharts.todayGoalFraction(),
-            false,
+            color = accent.copy(alpha = RING_ALPHA),
+            startAngle = RING_START_DEGREES,
+            sweepAngle = RING_SWEEP_DEGREES,
+            useCenter = false,
+            topLeft = topLeft,
+            size = bounds,
+            style = stroke,
+        )
+        drawArc(
+            color = accent,
+            startAngle = RING_START_DEGREES,
+            sweepAngle = RING_SWEEP_DEGREES * DemoCharts.todayGoalFraction(),
+            useCenter = false,
+            topLeft = topLeft,
+            size = bounds,
             style = stroke,
         )
     }

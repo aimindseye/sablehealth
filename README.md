@@ -58,3 +58,9 @@ Settings → **Customize Dashboard widgets** offers a 20-item catalog and exactl
 All readings displayed in demo mode are synthetic. Unsupported or unverified proposals remain `No demo sample`, never invented measurements. Selecting No Records leaves the configured dashboard visible with missing-data placeholders. Actual Health Connect types/availability must be confirmed in M1 before enabling live measurement widgets.
 
 Acceptance details: `docs/R51_DASHBOARD_ACCEPTANCE.md`; static gate: `python3 tools/check-r51-contract.py`. This is a design-implementation candidate, not a Fitbit health-data release.
+
+## R5.2 Q25 icon and chrome refinements
+
+The owner-confirmed Q25 Dashboard screenshot exposed tiny font glyphs in the steps ring and heart widget and excessive apparent chrome height. R5.2 uses two checked-in Android vector assets for a larger Sable Blue step/footprint ring and a distinct **red heart** with a white pulse. Red is the heart **category icon**, **not an adverse reading or warning**. Q25 reclaims one Dashboard header row by putting its screen title/demo state into the app subtitle; header and bottom tab pills are visibly 36dp tall inside **48dp** focusable/tappable targets. Titan 2 retains its accepted header/nav sizing. No new permissions, sensor reads or medical judgments.
+
+See `docs/R52_Q25_ICON_CHROME_ACCEPTANCE.md` for device testing, `docs/r52-preview.html` for the clearly labeled browser concept, and `python3 tools/check-r52-contract.py` for source-specific static checks.
