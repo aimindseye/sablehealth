@@ -134,7 +134,11 @@ internal fun CompactChoiceButton(
                 .fillMaxWidth()
                 .sizeIn(minHeight = 48.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .border(activeBorder, if (focused || selected) colors.primary else colors.outline, MaterialTheme.shapes.small)
+                .border(
+                    activeBorder,
+                    if (focused || selected) colors.primary else colors.outline,
+                    MaterialTheme.shapes.small,
+                )
                 .clickable(onClick = onClick)
                 .focusable(),
         border = BorderStroke(1.dp, if (selected) colors.primary else colors.outlineVariant),
