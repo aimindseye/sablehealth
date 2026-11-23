@@ -1,0 +1,32 @@
+name: R54 temporary ktlint formatter preview
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formatting:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '8.13'
+      - name: Format in throwaway checkout; no push
+        continue-on-error: true
+        run: gradle --no-daemon --console=plain ktlintFormat
+      - name: Package formatted Kotlin
+        run: tar -czf r54-formatted-source.tar.gz app/src/main/java core/src/main/kotlin core/src/test/kotlin
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r54-ktlint-formatted-source
+          path: r54-formatted-source.tar.gz
+          if-no-files-found: error
