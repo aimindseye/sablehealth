@@ -111,8 +111,18 @@ internal fun WidgetValue(
     val sample = if (demo) DashboardDemoSamples.forWidget(widget) else null
     val value = sample?.value ?: "—"
     val detail = sample?.detail ?: if (demo) "No demo sample" else "Not synced"
-    val textStyle = if (prominent && !compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium
-    val valueColor = if (sample == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+    val textStyle =
+        if (prominent && !compact) {
+            MaterialTheme.typography.titleLarge
+        } else {
+            MaterialTheme.typography.titleMedium
+        }
+    val valueColor =
+        if (sample == null) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             value,
