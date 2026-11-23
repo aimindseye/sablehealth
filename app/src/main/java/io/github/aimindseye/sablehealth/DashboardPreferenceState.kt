@@ -26,7 +26,9 @@ internal class DashboardPreferenceState(
             }
         }
 
-    fun styleFor(widget: DashboardWidget): WidgetStyle = dashboardStyles[widget] ?: DashboardWidgetSelection.styleFor(widget, null)
+    fun styleFor(widget: DashboardWidget): WidgetStyle {
+        return dashboardStyles[widget] ?: DashboardWidgetSelection.styleFor(widget, null)
+    }
 
     fun save(
         widgets: List<DashboardWidget>,

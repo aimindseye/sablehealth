@@ -27,6 +27,7 @@ private const val HERO_SIDE_DP = 7
 private const val HERO_GAP_DP = 7
 private const val COMPACT_RING_DP = 30
 private const val REGULAR_RING_DP = 40
+private const val COMPACT_WIDGET_SLOT_INDEX = 3
 private const val HERO_MIN_HEIGHT_DP = 127
 private const val HERO_Q25_MIN_HEIGHT_DP = 101
 private const val WIDE_VERTICAL_DP = 8
@@ -60,7 +61,7 @@ internal fun DashboardHome(
         }
     }
     DashboardWide(selected[2], state.demo, compactQ25, state.dashboard.styleFor(selected[2]))
-    DashboardCompact(selected[3], state.demo)
+    DashboardCompact(selected[COMPACT_WIDGET_SLOT_INDEX], state.demo)
     DashboardDataStatus(state)
 }
 
@@ -131,7 +132,13 @@ private fun DashboardWide(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(widget.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (demo) Text("DEMO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                if (demo) {
+                    Text(
+                        "DEMO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             if (demo && widget == DashboardWidget.SLEEP_STAGES && style == WidgetStyle.GRAPH) {
                 SleepMiniTimeline(compact)

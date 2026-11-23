@@ -13,6 +13,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -38,6 +39,7 @@ private const val WAVEPATH_END_FACTOR = 0.93f
 private const val WAVE_HEIGHT_DP = 50
 private const val WAVE_Q25_HEIGHT_DP = 40
 private const val GOAL_BAR_HEIGHT_DP = 10
+private const val SLEEP_TIMELINE_DESCRIPTION = "Synthetic illustrative sleep stages overnight, not a sensor waveform"
 
 @Composable
 internal fun StepGoalRing(sizeDp: Int) {
@@ -62,7 +64,7 @@ internal fun SleepMiniTimeline(compact: Boolean) {
         Modifier
             .fillMaxWidth()
             .height((if (compact) WAVE_Q25_HEIGHT_DP else WAVE_HEIGHT_DP).dp)
-            .semantics { contentDescription = "Synthetic illustrative sleep stages overnight, not an actual sensor waveform" },
+            .semantics { contentDescription = SLEEP_TIMELINE_DESCRIPTION },
     ) {
         val points =
             listOf(
@@ -109,12 +111,14 @@ internal fun WidgetValue(
     val sample = if (demo) DashboardDemoSamples.forWidget(widget) else null
     val value = sample?.value ?: "—"
     val detail = sample?.detail ?: if (demo) "No demo sample" else "Not synced"
+    val textStyle = if (prominent && !compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium
+    val valueColor = if (sample == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             value,
-            style = if (prominent && !compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+            style = textStyle,
             fontWeight = FontWeight.SemiBold,
-            color = if (sample == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+            color = valueColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

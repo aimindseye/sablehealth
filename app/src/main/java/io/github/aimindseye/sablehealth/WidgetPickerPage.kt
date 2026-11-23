@@ -33,7 +33,8 @@ internal fun WidgetPickerPage(state: SableAppState) {
         "Slots 1–2: hero cards · Slot 3: wide visual · Slot 4: compact row. " +
             "Source status is always shown separately.",
     )
-    Text("Selected: ${selected.size} of ${DashboardWidgetSelection.COUNT}", style = MaterialTheme.typography.titleMedium)
+    val selectionCount = "Selected: ${selected.size} of ${DashboardWidgetSelection.COUNT}"
+    Text(selectionCount, style = MaterialTheme.typography.titleMedium)
     selected.forEachIndexed { index, widget ->
         SelectedWidgetRow(
             widget,
