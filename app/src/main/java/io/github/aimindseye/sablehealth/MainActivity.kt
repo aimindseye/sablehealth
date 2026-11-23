@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -151,7 +152,7 @@ private fun SableApp() {
                     onboarded = true
                 }
             } else {
-                Column(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                     Header(
                         title = if (page == Page.MAIN) "Sable Health" else page.name.lowercase().replaceFirstChar(Char::uppercaseChar),
                         subtitle = if (demo) "DEMO DATA · ${profile.label}" else "NO RECORDS IMPORTED · ${profile.label}",
@@ -305,8 +306,13 @@ private fun MetricCard(metric: DemoMetric) {
 
 @Composable
 private fun Notice(title: String, detail: String, onClick: (() -> Unit)? = null) {
+    var focused by remember { mutableStateOf(false) }
     Card(
-        modifier = Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick).focusable() else Modifier),
+        modifier = Modifier.fillMaxWidth().then(
+            if (onClick != null) Modifier.onFocusChanged { focused = it.isFocused }
+                .border(if (focused) 2.dp else 0.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
+                .clickable(onClick = onClick).focusable() else Modifier
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -374,7 +380,7 @@ private fun HelpPage(profile: DeviceProfile, back: () -> Unit) {
 @Composable
 private fun Onboarding(profile: DeviceProfile, status: ConnectStatus, finish: (Boolean) -> Unit) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Sable Health", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
