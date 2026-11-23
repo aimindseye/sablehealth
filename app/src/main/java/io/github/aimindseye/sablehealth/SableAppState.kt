@@ -1,8 +1,8 @@
 package io.github.aimindseye.sablehealth
 
 import android.content.SharedPreferences
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.aimindseye.sablehealth.core.DeviceProfile
@@ -10,7 +10,9 @@ import io.github.aimindseye.sablehealth.core.DeviceProfile
 internal enum class ViewMode { TEXT, GRAPHS }
 
 /** A single state owner keeps callbacks and preference writes out of Compose screen functions. */
-internal class SableAppState(private val preferences: SharedPreferences) {
+internal class SableAppState(
+    private val preferences: SharedPreferences,
+) {
     var profileOverride by mutableStateOf(preferences.getString("profile", "auto") ?: "auto")
         private set
     var appearance by mutableStateOf(preferences.getString("appearance", "system") ?: "system")
@@ -19,18 +21,22 @@ internal class SableAppState(private val preferences: SharedPreferences) {
         private set
     var demo by mutableStateOf(preferences.getBoolean("demo", true))
         private set
-    private val viewModes = mutableStateMapOf<Section, ViewMode>().apply {
-        Section.entries.forEach { section ->
-            val default = if (section == Section.TODAY) ViewMode.TEXT else ViewMode.GRAPHS
-            this[section] = ViewMode.entries.firstOrNull {
-                it.name == preferences.getString("view.${section.name}", default.name)
-            } ?: default
+    private val viewModes =
+        mutableStateMapOf<Section, ViewMode>().apply {
+            Section.entries.forEach { section ->
+                val default = if (section == Section.TODAY) ViewMode.TEXT else ViewMode.GRAPHS
+                this[section] = ViewMode.entries.firstOrNull {
+                    it.name == preferences.getString("view.${section.name}", default.name)
+                } ?: default
+            }
         }
-    }
 
     fun modeFor(section: Section): ViewMode = viewModes[section] ?: ViewMode.TEXT
 
-    fun chooseViewMode(section: Section, mode: ViewMode) {
+    fun chooseViewMode(
+        section: Section,
+        mode: ViewMode,
+    ) {
         viewModes[section] = mode
         preferences.edit().putString("view.${section.name}", mode.name).apply()
     }
@@ -78,4 +84,3 @@ internal class SableAppState(private val preferences: SharedPreferences) {
         page = Page.SOURCES
     }
 }
-

@@ -34,24 +34,40 @@ import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 
 @Composable
-internal fun HealthAppContent(state: SableAppState, profile: DeviceProfile) {
+internal fun HealthAppContent(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         HealthHeader(
-            title = if (state.page == Page.MAIN) "Sable Health" else
-                state.page.name.lowercase().replaceFirstChar(Char::uppercaseChar),
-            subtitle = if (state.demo) "DEMO DATA · ${profile.label}" else
-                "NO RECORDS IMPORTED · ${profile.label}",
+            title =
+                if (state.page == Page.MAIN) {
+                    "Sable Health"
+                } else {
+                    state.page.name
+                        .lowercase()
+                        .replaceFirstChar(Char::uppercaseChar)
+                },
+            subtitle =
+                if (state.demo) {
+                    "DEMO DATA · ${profile.label}"
+                } else {
+                    "NO RECORDS IMPORTED · ${profile.label}"
+                },
             compactQ25 = profile == DeviceProfile.Q25,
             onSources = { state.page = Page.SOURCES },
             onSettings = { state.page = Page.SETTINGS },
         )
         Box(Modifier.weight(1f)) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
-                verticalArrangement = Arrangement.spacedBy(
-                    if (profile == DeviceProfile.Q25) 4.dp else 7.dp,
-                ),
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        if (profile == DeviceProfile.Q25) 4.dp else 7.dp,
+                    ),
             ) {
                 HealthPage(state, profile)
             }
@@ -63,7 +79,10 @@ internal fun HealthAppContent(state: SableAppState, profile: DeviceProfile) {
 }
 
 @Composable
-private fun HealthPage(state: SableAppState, profile: DeviceProfile) {
+private fun HealthPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
     when (state.page) {
         Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25) { state.page = Page.SOURCES }
         Page.SOURCES -> SourcesPage(state.connect, state::refreshSources) { state.page = Page.MAIN }
@@ -122,12 +141,13 @@ internal fun FocusButton(
     var focused by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     Surface(
-        modifier = modifier
-            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-            .onFocusChanged { focused = it.isFocused }
-            .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
-            .focusable(),
+        modifier =
+            modifier
+                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                .onFocusChanged { focused = it.isFocused }
+                .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small)
+                .clickable(onClick = onClick)
+                .focusable(),
         color = if (selected) colors.surfaceVariant else colors.surface,
         shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, colors.outlineVariant),
@@ -146,15 +166,20 @@ internal fun FocusButton(
 }
 
 @Composable
-private fun BottomTabs(active: Section, compactQ25: Boolean, onClick: (Section) -> Unit) {
+private fun BottomTabs(
+    active: Section,
+    compactQ25: Boolean,
+    onClick: (Section) -> Unit,
+) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     BoxWithConstraints {
         val compact = maxWidth < 310.dp
-        val modifier = if (compact) {
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-        } else {
-            Modifier.fillMaxWidth()
-        }
+        val modifier =
+            if (compact) {
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+            } else {
+                Modifier.fillMaxWidth()
+            }
         Row(
             modifier.padding(
                 horizontal = if (compactQ25) 1.dp else 4.dp,

@@ -64,10 +64,19 @@ internal fun TodayStepGoalChart() {
             Text("7,420 of 9,000 steps", style = MaterialTheme.typography.bodyMedium)
             Text("82% · Demo", color = MaterialTheme.colorScheme.primary)
         }
-        Box(Modifier.fillMaxWidth().height(GOAL_BAR_HEIGHT_DP.dp).clip(RoundedCornerShape(GOAL_CORNER_DP.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)) {
-            Box(Modifier.fillMaxWidth(DemoCharts.todayGoalFraction()).fillMaxHeight()
-                .background(MaterialTheme.colorScheme.primary))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(GOAL_BAR_HEIGHT_DP.dp)
+                .clip(RoundedCornerShape(GOAL_CORNER_DP.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(DemoCharts.todayGoalFraction())
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary),
+            )
         }
         Text(
             "Progress toward your chosen goal, not a medical assessment",
@@ -90,7 +99,10 @@ internal fun StepsChart(compact: Boolean = false) {
 }
 
 @Composable
-private fun StepBars(barColors: List<Color>, heightDp: Int) {
+private fun StepBars(
+    barColors: List<Color>,
+    heightDp: Int,
+) {
     Canvas(
         Modifier.fillMaxWidth().height(heightDp.dp).semantics {
             contentDescription = "Synthetic steps, seven days: " +
@@ -150,11 +162,15 @@ private fun HeartRateLine(heightDp: Int) {
         val inset = MARKER_RADIUS_DP.dp.toPx()
         val spanX = (size.width - inset * HEART_PADDING_PX_RATIO).coerceAtLeast(0f)
         val spanY = (size.height - inset * HEART_PADDING_PX_RATIO).coerceAtLeast(0f)
-        drawLine(grid, Offset(0f, size.height * HALF_HEIGHT_FRACTION),
-            Offset(size.width, size.height * HALF_HEIGHT_FRACTION))
-        val points = samples.mapIndexed { index, sample ->
-            Offset(inset + spanX * index / samples.lastIndex, inset + spanY * (1f - (sample - low) / range))
-        }
+        drawLine(
+            grid,
+            Offset(0f, size.height * HALF_HEIGHT_FRACTION),
+            Offset(size.width, size.height * HALF_HEIGHT_FRACTION),
+        )
+        val points =
+            samples.mapIndexed { index, sample ->
+                Offset(inset + spanX * index / samples.lastIndex, inset + spanY * (1f - (sample - low) / range))
+            }
         val path = Path()
         points.forEachIndexed { index, point ->
             if (index == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
@@ -167,13 +183,16 @@ private fun HeartRateLine(heightDp: Int) {
 @Composable
 internal fun SleepStageChart() {
     ChartSurface("Last night · sleep stages") {
-        val colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = REM_STAGE_ALPHA),
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = LIGHT_STAGE_ALPHA),
-        )
+        val colors =
+            listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.primary.copy(alpha = REM_STAGE_ALPHA),
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = LIGHT_STAGE_ALPHA),
+            )
         Row(
-            Modifier.fillMaxWidth().height(SLEEP_BAR_HEIGHT_DP.dp)
+            Modifier
+                .fillMaxWidth()
+                .height(SLEEP_BAR_HEIGHT_DP.dp)
                 .clip(RoundedCornerShape(SLEEP_BAR_CORNER_DP.dp))
                 .semantics {
                     contentDescription = "Synthetic last-night sleep: deep 1h24, REM 1h48, light 4h30"
@@ -187,11 +206,18 @@ internal fun SleepStageChart() {
             listOf("Deep 1h24", "REM 1h48", "Light 4h30").forEachIndexed { index, label ->
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(STAGE_CELL_SPACING_DP.dp)) {
                     Box(
-                        Modifier.padding(top = SWATCH_TOP_PADDING_DP.dp).height(STAGE_SWATCH_HEIGHT_DP.dp)
-                            .fillMaxWidth(SWATCH_WIDTH_FRACTION).background(colors[index]),
+                        Modifier
+                            .padding(top = SWATCH_TOP_PADDING_DP.dp)
+                            .height(STAGE_SWATCH_HEIGHT_DP.dp)
+                            .fillMaxWidth(SWATCH_WIDTH_FRACTION)
+                            .background(colors[index]),
                     )
-                    Text(label, style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -201,12 +227,13 @@ internal fun SleepStageChart() {
 @Composable
 private fun ChartLegend() {
     val dark = MaterialTheme.colorScheme.background == SablePalette.darkBase
-    val samples = listOf(
-        "Info" to DemoBandColor.INFO,
-        "Goal" to DemoBandColor.GOOD,
-        "Below" to DemoBandColor.CAUTION,
-        "Demo outlier" to DemoBandColor.OUTLIER,
-    )
+    val samples =
+        listOf(
+            "Info" to DemoBandColor.INFO,
+            "Goal" to DemoBandColor.GOOD,
+            "Below" to DemoBandColor.CAUTION,
+            "Demo outlier" to DemoBandColor.OUTLIER,
+        )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LEGEND_SPACING_DP.dp)) {
         samples.forEach { (label, band) ->
             Text(
@@ -223,7 +250,10 @@ private fun ChartLegend() {
 }
 
 @Composable
-private fun ChartSurface(title: String, content: @Composable () -> Unit) {
+private fun ChartSurface(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth(),
@@ -234,8 +264,11 @@ private fun ChartSurface(title: String, content: @Composable () -> Unit) {
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
-                Text("DEMO", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "DEMO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
             content()
         }
@@ -246,9 +279,13 @@ private fun ChartSurface(title: String, content: @Composable () -> Unit) {
 private fun DayLabels() {
     Row(Modifier.fillMaxWidth()) {
         listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
-            Text(label, Modifier.weight(1f), textAlign = TextAlign.Center,
+            Text(
+                label,
+                Modifier.weight(1f),
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -43,7 +43,10 @@ internal fun Dashboard(
 }
 
 @Composable
-internal fun SectionHeading(title: String, subtitle: String) {
+internal fun SectionHeading(
+    title: String,
+    subtitle: String,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text(
@@ -62,8 +65,9 @@ private const val MAX_TWO_COLUMN_FONT_SCALE = 1.3f
 @Composable
 internal fun TwoUp(items: List<DemoMetric>) {
     BoxWithConstraints {
-        val twoColumns = maxWidth >= TWO_COLUMN_MIN_WIDTH_DP.dp &&
-            LocalConfiguration.current.fontScale <= MAX_TWO_COLUMN_FONT_SCALE
+        val twoColumns =
+            maxWidth >= TWO_COLUMN_MIN_WIDTH_DP.dp &&
+                LocalConfiguration.current.fontScale <= MAX_TWO_COLUMN_FONT_SCALE
         val columns = if (twoColumns) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.chunked(columns).forEach { row ->
@@ -111,19 +115,25 @@ private fun MetricCard(metric: DemoMetric) {
 }
 
 @Composable
-internal fun Notice(title: String, detail: String, onClick: (() -> Unit)? = null) {
+internal fun Notice(
+    title: String,
+    detail: String,
+    onClick: (() -> Unit)? = null,
+) {
     var focused by remember { mutableStateOf(false) }
     val outline = MaterialTheme.colorScheme.primary
     val outlineShape = MaterialTheme.shapes.medium
-    val modifier = if (onClick == null) {
-        Modifier.fillMaxWidth()
-    } else {
-        Modifier.fillMaxWidth()
-            .onFocusChanged { focused = it.isFocused }
-            .border(if (focused) 2.dp else 0.dp, outline, outlineShape)
-            .clickable(onClick = onClick)
-            .focusable()
-    }
+    val modifier =
+        if (onClick == null) {
+            Modifier.fillMaxWidth()
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused }
+                .border(if (focused) 2.dp else 0.dp, outline, outlineShape)
+                .clickable(onClick = onClick)
+                .focusable()
+        }
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),

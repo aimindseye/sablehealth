@@ -15,7 +15,11 @@ import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 
 @Composable
-internal fun SourcesPage(status: ConnectStatus, refresh: () -> Unit, back: () -> Unit) {
+internal fun SourcesPage(
+    status: ConnectStatus,
+    refresh: () -> Unit,
+    back: () -> Unit,
+) {
     SectionHeading("Data sources", "Read-only availability and access diagnostic")
     Notice("Health Connect: ${status.label}", status.detail)
     Notice(
@@ -29,7 +33,10 @@ internal fun SourcesPage(status: ConnectStatus, refresh: () -> Unit, back: () ->
 }
 
 @Composable
-internal fun SettingsPage(state: SableAppState, profile: DeviceProfile) {
+internal fun SettingsPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
     SectionHeading("Phone & input", "Detected/selected profile: ${profile.label}")
     Text("Device profile", style = MaterialTheme.typography.titleMedium)
     FocusButton(
@@ -65,7 +72,10 @@ internal fun SettingsPage(state: SableAppState, profile: DeviceProfile) {
 }
 
 @Composable
-internal fun HelpPage(profile: DeviceProfile, back: () -> Unit) {
+internal fun HelpPage(
+    profile: DeviceProfile,
+    back: () -> Unit,
+) {
     SectionHeading("Keyboard controls", profile.label)
     Notice(
         "Move focus",
@@ -78,9 +88,17 @@ internal fun HelpPage(profile: DeviceProfile, back: () -> Unit) {
 }
 
 @Composable
-internal fun Onboarding(profile: DeviceProfile, status: ConnectStatus, finish: (Boolean) -> Unit) {
+internal fun Onboarding(
+    profile: DeviceProfile,
+    status: ConnectStatus,
+    finish: (Boolean) -> Unit,
+) {
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
+        Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(

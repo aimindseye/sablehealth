@@ -14,7 +14,11 @@ import androidx.compose.ui.unit.dp
 
 /** Each section remembers its own preference; Today is a daily view, never a trend duplicate. */
 @Composable
-internal fun ViewModeHeading(section: Section, subtitle: String, state: SableAppState) {
+internal fun ViewModeHeading(
+    section: Section,
+    subtitle: String,
+    state: SableAppState,
+) {
     val mode = state.modeFor(section)
     Row(
         Modifier.fillMaxWidth(),

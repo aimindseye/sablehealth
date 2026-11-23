@@ -31,36 +31,45 @@ object KeyboardMapping {
     private const val SLASH = 76
     private const val ESC = 111
 
-    fun action(profile: DeviceProfile, press: Press): UiAction? {
+    fun action(
+        profile: DeviceProfile,
+        press: Press,
+    ): UiAction? {
         val hasModifier = press.alt || press.ctrl || press.meta
         val blocked = hasModifier || press.editingText
-        val mapped = if (blocked) {
-            null
-        } else {
-            dpadAction(press.code) ?: commandAction(press.code) ?: letterAction(profile, press.code)
-        }
+        val mapped =
+            if (blocked) {
+                null
+            } else {
+                dpadAction(press.code) ?: commandAction(press.code) ?: letterAction(profile, press.code)
+            }
         // Repetition is for navigation only, not selection or side effects.
         return if (press.repeatCount > 0 && !isDirectional(mapped)) null else mapped
     }
 
-    private fun dpadAction(code: Int): UiAction? = when (code) {
-        UP -> UiAction.UP
-        DOWN -> UiAction.DOWN
-        LEFT -> UiAction.LEFT
-        RIGHT -> UiAction.RIGHT
-        else -> null
-    }
+    private fun dpadAction(code: Int): UiAction? =
+        when (code) {
+            UP -> UiAction.UP
+            DOWN -> UiAction.DOWN
+            LEFT -> UiAction.LEFT
+            RIGHT -> UiAction.RIGHT
+            else -> null
+        }
 
-    private fun commandAction(code: Int): UiAction? = when (code) {
-        CENTER, ENTER, SPACE -> UiAction.CONFIRM
-        BACK, ESC -> UiAction.BACK
-        T -> UiAction.NEXT_TAB
-        R -> UiAction.REFRESH
-        SLASH -> UiAction.HELP
-        else -> null
-    }
+    private fun commandAction(code: Int): UiAction? =
+        when (code) {
+            CENTER, ENTER, SPACE -> UiAction.CONFIRM
+            BACK, ESC -> UiAction.BACK
+            T -> UiAction.NEXT_TAB
+            R -> UiAction.REFRESH
+            SLASH -> UiAction.HELP
+            else -> null
+        }
 
-    private fun letterAction(profile: DeviceProfile, code: Int): UiAction? {
+    private fun letterAction(
+        profile: DeviceProfile,
+        code: Int,
+    ): UiAction? {
         if (!profile.letterNavigation) return null
         return when (code) {
             I -> UiAction.UP
@@ -71,8 +80,9 @@ object KeyboardMapping {
         }
     }
 
-    private fun isDirectional(action: UiAction?): Boolean = when (action) {
-        UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT -> true
-        else -> false
-    }
+    private fun isDirectional(action: UiAction?): Boolean =
+        when (action) {
+            UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT -> true
+            else -> false
+        }
 }

@@ -30,22 +30,24 @@ object DemoCharts {
     val steps = listOf(MON_STEPS, TUE_STEPS, WED_STEPS, THU_STEPS, FRI_STEPS, SAT_STEPS, SUN_STEPS)
     val restingHr = listOf(MON_HR, TUE_HR, WED_HR, THU_HR, FRI_HR, SAT_HR, SUN_HR)
     val sleepStageMinutes = listOf(DEEP_MINUTES, REM_MINUTES, LIGHT_MINUTES)
-    val stepBands = listOf(
-        DemoBand.SYNTHETIC_OUTLIER,
-        DemoBand.INFORMATIONAL,
-        DemoBand.GOAL_MET,
-        DemoBand.INFORMATIONAL,
-        DemoBand.INFORMATIONAL,
-        DemoBand.BELOW_PLAN,
-        DemoBand.INFORMATIONAL,
-    )
+    val stepBands =
+        listOf(
+            DemoBand.SYNTHETIC_OUTLIER,
+            DemoBand.INFORMATIONAL,
+            DemoBand.GOAL_MET,
+            DemoBand.INFORMATIONAL,
+            DemoBand.INFORMATIONAL,
+            DemoBand.BELOW_PLAN,
+            DemoBand.INFORMATIONAL,
+        )
 
     fun todayGoalFraction(): Float = (TODAY_STEPS.toFloat() / TODAY_GOAL_STEPS).coerceIn(0f, 1f)
 
     fun stagesMatchTotalSleep(): Boolean = sleepStageMinutes.sum() == TOTAL_ASLEEP_MINUTES
 
-    fun validDemoBands(): Boolean = stepBands.size == steps.size &&
-        stepBands[2] == DemoBand.GOAL_MET &&
-        steps[2] >= TODAY_GOAL_STEPS &&
-        steps.last().toInt() == TODAY_STEPS
+    fun validDemoBands(): Boolean =
+        stepBands.size == steps.size &&
+            stepBands[2] == DemoBand.GOAL_MET &&
+            steps[2] >= TODAY_GOAL_STEPS &&
+            steps.last().toInt() == TODAY_STEPS
 }

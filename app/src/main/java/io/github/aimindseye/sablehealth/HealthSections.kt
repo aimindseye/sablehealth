@@ -6,7 +6,10 @@ import androidx.compose.runtime.Composable
 import io.github.aimindseye.sablehealth.core.DemoHealth
 
 @Composable
-internal fun TodaySection(state: SableAppState, onSources: () -> Unit) {
+internal fun TodaySection(
+    state: SableAppState,
+    onSources: () -> Unit,
+) {
     ViewModeHeading(Section.TODAY, "Current day · no history charts", state)
     if (!state.demo) {
         EmptyState()
@@ -43,7 +46,10 @@ internal fun SleepSection(state: SableAppState) {
 }
 
 @Composable
-internal fun MoveSection(state: SableAppState, compactQ25: Boolean) {
+internal fun MoveSection(
+    state: SableAppState,
+    compactQ25: Boolean,
+) {
     ViewModeHeading(Section.MOVE, "Activity and seven-day steps", state)
     if (!state.demo) {
         EmptyState()
@@ -56,7 +62,10 @@ internal fun MoveSection(state: SableAppState, compactQ25: Boolean) {
 }
 
 @Composable
-internal fun VitalsSection(state: SableAppState, compactQ25: Boolean) {
+internal fun VitalsSection(
+    state: SableAppState,
+    compactQ25: Boolean,
+) {
     ViewModeHeading(Section.VITALS, "Daily values and heart-rate history", state)
     if (!state.demo) {
         EmptyState()
@@ -69,7 +78,10 @@ internal fun VitalsSection(state: SableAppState, compactQ25: Boolean) {
 }
 
 @Composable
-internal fun TrendsSection(state: SableAppState, compactQ25: Boolean) {
+internal fun TrendsSection(
+    state: SableAppState,
+    compactQ25: Boolean,
+) {
     ViewModeHeading(Section.TRENDS, "Historical comparisons · synthetic", state)
     if (!state.demo) {
         Notice(

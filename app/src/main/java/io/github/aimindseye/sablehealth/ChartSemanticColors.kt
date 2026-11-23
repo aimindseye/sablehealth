@@ -17,16 +17,24 @@ internal object ChartColors {
 
 internal enum class DemoBandColor { INFO, GOOD, CAUTION, OUTLIER }
 
-internal fun demoBandColor(band: DemoBand, dark: Boolean): Color = when (band) {
-    DemoBand.INFORMATIONAL -> if (dark) SablePalette.blue else SablePalette.blueLightSurface
-    DemoBand.GOAL_MET -> if (dark) ChartColors.darkGood else ChartColors.lightGood
-    DemoBand.BELOW_PLAN -> if (dark) ChartColors.darkCaution else ChartColors.lightCaution
-    DemoBand.SYNTHETIC_OUTLIER -> if (dark) SablePalette.darkError else SablePalette.lightError
-}
+internal fun demoBandColor(
+    band: DemoBand,
+    dark: Boolean,
+): Color =
+    when (band) {
+        DemoBand.INFORMATIONAL -> if (dark) SablePalette.blue else SablePalette.blueLightSurface
+        DemoBand.GOAL_MET -> if (dark) ChartColors.darkGood else ChartColors.lightGood
+        DemoBand.BELOW_PLAN -> if (dark) ChartColors.darkCaution else ChartColors.lightCaution
+        DemoBand.SYNTHETIC_OUTLIER -> if (dark) SablePalette.darkError else SablePalette.lightError
+    }
 
-internal fun demoLegendColor(band: DemoBandColor, dark: Boolean): Color = when (band) {
-    DemoBandColor.INFO -> demoBandColor(DemoBand.INFORMATIONAL, dark)
-    DemoBandColor.GOOD -> demoBandColor(DemoBand.GOAL_MET, dark)
-    DemoBandColor.CAUTION -> demoBandColor(DemoBand.BELOW_PLAN, dark)
-    DemoBandColor.OUTLIER -> demoBandColor(DemoBand.SYNTHETIC_OUTLIER, dark)
-}
+internal fun demoLegendColor(
+    band: DemoBandColor,
+    dark: Boolean,
+): Color =
+    when (band) {
+        DemoBandColor.INFO -> demoBandColor(DemoBand.INFORMATIONAL, dark)
+        DemoBandColor.GOOD -> demoBandColor(DemoBand.GOAL_MET, dark)
+        DemoBandColor.CAUTION -> demoBandColor(DemoBand.BELOW_PLAN, dark)
+        DemoBandColor.OUTLIER -> demoBandColor(DemoBand.SYNTHETIC_OUTLIER, dark)
+    }

@@ -5,8 +5,13 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class DeviceProfileTest {
-    private fun detect(m: String, n: String, d: String = "", kb: Boolean = true, nav: Boolean = false) =
-        DeviceProfile.detect(m, n, d, kb, nav)
+    private fun detect(
+        m: String,
+        n: String,
+        d: String = "",
+        kb: Boolean = true,
+        nav: Boolean = false,
+    ) = DeviceProfile.detect(m, n, d, kb, nav)
 
     @Test fun identifiesAllThreeProfiles() {
         assertEquals(DeviceProfile.Q25, detect("Zinwa", "Q25", nav = true))

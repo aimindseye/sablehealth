@@ -32,7 +32,9 @@ import io.github.aimindseye.sablehealth.core.KeyboardMapping
 import io.github.aimindseye.sablehealth.core.Press
 import io.github.aimindseye.sablehealth.core.UiAction
 
-internal enum class Section(val title: String) {
+internal enum class Section(
+    val title: String,
+) {
     TODAY("Today"),
     SLEEP("Sleep"),
     MOVE("Move"),
@@ -78,11 +80,12 @@ internal fun SableApp() {
             state.back()
         }
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .focusRequester(rootFocus)
-                .onPreviewKeyEvent { handleDeviceKey(it, state, profile, focusManager) }
-                .focusable(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .focusRequester(rootFocus)
+                    .onPreviewKeyEvent { handleDeviceKey(it, state, profile, focusManager) }
+                    .focusable(),
             color = MaterialTheme.colorScheme.background,
         ) {
             if (state.onboarded) {
@@ -100,8 +103,9 @@ private fun detectDevice(configuration: Configuration): DeviceProfile =
         model = Build.MODEL.orEmpty(),
         device = Build.DEVICE.orEmpty(),
         hasQwerty = configuration.keyboard == Configuration.KEYBOARD_QWERTY,
-        hasDpad = configuration.navigation == Configuration.NAVIGATION_DPAD ||
-            configuration.navigation == Configuration.NAVIGATION_TRACKBALL,
+        hasDpad =
+            configuration.navigation == Configuration.NAVIGATION_DPAD ||
+                configuration.navigation == Configuration.NAVIGATION_TRACKBALL,
     )
 
 private fun handleDeviceKey(
@@ -112,25 +116,38 @@ private fun handleDeviceKey(
 ): Boolean {
     if (!state.onboarded || event.type != KeyEventType.KeyDown) return false
     val native = event.nativeKeyEvent
-    val action = KeyboardMapping.action(
-        profile,
-        Press(
-            code = native.keyCode,
-            repeatCount = native.repeatCount,
-            alt = native.isAltPressed,
-            ctrl = native.isCtrlPressed,
-            meta = native.isMetaPressed,
-        ),
-    )
+    val action =
+        KeyboardMapping.action(
+            profile,
+            Press(
+                code = native.keyCode,
+                repeatCount = native.repeatCount,
+                alt = native.isAltPressed,
+                ctrl = native.isCtrlPressed,
+                meta = native.isMetaPressed,
+            ),
+        )
     return when (action) {
         UiAction.UP -> focusManager.moveFocus(FocusDirection.Up)
         UiAction.DOWN -> focusManager.moveFocus(FocusDirection.Down)
         UiAction.LEFT -> focusManager.moveFocus(FocusDirection.Left)
         UiAction.RIGHT -> focusManager.moveFocus(FocusDirection.Right)
-        UiAction.BACK -> { state.back(); true }
-        UiAction.NEXT_TAB -> { state.nextTab(); true }
-        UiAction.REFRESH -> { state.refreshSources(); true }
-        UiAction.HELP -> { state.page = Page.HELP; true }
+        UiAction.BACK -> {
+            state.back()
+            true
+        }
+        UiAction.NEXT_TAB -> {
+            state.nextTab()
+            true
+        }
+        UiAction.REFRESH -> {
+            state.refreshSources()
+            true
+        }
+        UiAction.HELP -> {
+            state.page = Page.HELP
+            true
+        }
         // A focused Compose clickable handles Enter / Space without double activation.
         UiAction.CONFIRM, null -> false
     }
@@ -141,8 +158,12 @@ private suspend fun inspectHealthConnect(context: Context): ConnectStatus =
     try {
         when (HealthConnectClient.getSdkStatus(context)) {
             HealthConnectClient.SDK_AVAILABLE -> {
-                val count = HealthConnectClient.getOrCreate(context)
-                    .permissionController.getGrantedPermissions().size
+                val count =
+                    HealthConnectClient
+                        .getOrCreate(context)
+                        .permissionController
+                        .getGrantedPermissions()
+                        .size
                 ConnectStatus("Available", "Health Connect available · no records queried in M0", count)
             }
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
