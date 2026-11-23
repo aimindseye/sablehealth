@@ -38,20 +38,13 @@ import io.github.aimindseye.sablehealth.core.WidgetStyle
 private const val NARROW_TWO_UP_DP = 310
 private const val ACCESSIBLE_FONT_THRESHOLD = 1.3f
 private const val HERO_VERTICAL_DP = 7
+private const val HERO_SIDE_DP = 7
+private const val HERO_GAP_DP = 7
+private const val COMPACT_RING_DP = 30
+private const val REGULAR_RING_DP = 40
 private const val HERO_MIN_HEIGHT_DP = 127
 private const val HERO_Q25_MIN_HEIGHT_DP = 101
 private const val WIDE_VERTICAL_DP = 8
-private const val WAVE_HEIGHT_DP = 50
-private const val WAVE_Q25_HEIGHT_DP = 40
-private const val RING_SWEEP_DEGREES = 360f
-private const val RING_START_DEGREES = -90f
-private const val RING_ALPHA = 0.20f
-private const val RING_WIDTH_DP = 5
-private const val SLEEP_HIGH = 0.23f
-private const val SLEEP_MID = 0.49f
-private const val SLEEP_LOW = 0.75f
-private const val GOAL_BAR_HEIGHT_DP = 10
-private const val WAVEPATH_END_FACTOR = 0.93f
 
 /** Four fixed slots: two hero cards, one wide visual, and one compact secondary tile. */
 @Composable
@@ -60,27 +53,27 @@ internal fun DashboardHome(
     compactQ25: Boolean,
 ) {
     SectionHeading("Dashboard", "Your health at a glance · no weekly trends")
-    val selected = state.dashboardWidgets
+    val selected = state.dashboard.widgets
     BoxWithConstraints {
         val pair = maxWidth >= NARROW_TWO_UP_DP.dp &&
             LocalConfiguration.current.fontScale <= ACCESSIBLE_FONT_THRESHOLD
         if (pair) {
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(HERO_GAP_DP.dp)) {
                 selected.take(2).forEach { widget ->
                     Box(Modifier.weight(1f)) {
-                        DashboardHero(widget, state.demo, compactQ25, state.styleFor(widget))
+                        DashboardHero(widget, state.demo, compactQ25, state.dashboard.styleFor(widget))
                     }
                 }
             }
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(HERO_GAP_DP.dp)) {
                 selected.take(2).forEach { widget ->
-                    DashboardHero(widget, state.demo, compactQ25, state.styleFor(widget))
+                    DashboardHero(widget, state.demo, compactQ25, state.dashboard.styleFor(widget))
                 }
             }
         }
     }
-    DashboardWide(selected[2], state.demo, compactQ25, state.styleFor(selected[2]))
+    DashboardWide(selected[2], state.demo, compactQ25, state.dashboard.styleFor(selected[2]))
     DashboardCompact(selected[3], state.demo)
     DashboardDataStatus(state)
 }
@@ -97,7 +90,7 @@ private fun DashboardHero(
             Modifier
                 .fillMaxWidth()
                 .height((if (compact) HERO_Q25_MIN_HEIGHT_DP else HERO_MIN_HEIGHT_DP).dp)
-                .padding(horizontal = 7.dp, vertical = HERO_VERTICAL_DP.dp),
+                .padding(horizontal = HERO_SIDE_DP.dp, vertical = HERO_VERTICAL_DP.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -116,7 +109,7 @@ private fun HeroIcon(widget: DashboardWidget, style: WidgetStyle, compact: Boole
     when {
         widget == DashboardWidget.STEPS && style == WidgetStyle.GRAPH -> {
             Box(contentAlignment = Alignment.Center) {
-                StepGoalRing(if (compact) 30 else 40)
+                StepGoalRing(if (compact) COMPACT_RING_DP else REGULAR_RING_DP)
                 Text("↟", color = MaterialTheme.colorScheme.primary, fontSize = if (compact) 17.sp else 23.sp)
             }
         }
@@ -124,22 +117,6 @@ private fun HeroIcon(widget: DashboardWidget, style: WidgetStyle, compact: Boole
             Text("♥", color = MaterialTheme.colorScheme.primary, fontSize = if (compact) 25.sp else 32.sp)
         else ->
             Text("●", color = MaterialTheme.colorScheme.primary, fontSize = if (compact) 17.sp else 23.sp)
-    }
-}
-
-@Composable
-private fun StepGoalRing(sizeDp: Int) {
-    val accent = MaterialTheme.colorScheme.primary
-    Canvas(Modifier.size(sizeDp.dp).semantics { contentDescription = "Synthetic steps toward daily goal" }) {
-        val stroke = Stroke(width = RING_WIDTH_DP.dp.toPx(), cap = StrokeCap.Round)
-        drawArc(accent.copy(alpha = RING_ALPHA), RING_START_DEGREES, RING_SWEEP_DEGREES, false, style = stroke)
-        drawArc(
-            accent,
-            RING_START_DEGREES,
-            RING_SWEEP_DEGREES * DemoCharts.todayGoalFraction(),
-            false,
-            style = stroke,
-        )
     }
 }
 
@@ -177,35 +154,6 @@ private fun DashboardWide(
 }
 
 @Composable
-private fun SleepMiniTimeline(compact: Boolean) {
-    val violet = SablePalette.blue // A category graphic, not a normal/abnormal reading.
-    Canvas(
-        Modifier.fillMaxWidth().height((if (compact) WAVE_Q25_HEIGHT_DP else WAVE_HEIGHT_DP).dp)
-            .semantics { contentDescription = "Synthetic illustrative sleep stages overnight, not an actual sensor waveform" },
-    ) {
-        val points = listOf(SLEEP_MID, SLEEP_HIGH, SLEEP_LOW, SLEEP_HIGH, SLEEP_LOW,
-            SLEEP_HIGH, SLEEP_LOW, SLEEP_MID, SLEEP_LOW, SLEEP_HIGH, SLEEP_MID, SLEEP_HIGH)
-        val path = Path()
-        val dx = size.width / points.lastIndex
-        points.forEachIndexed { index, y ->
-            val xx = index * dx
-            val yy = y * size.height * WAVEPATH_END_FACTOR
-            if (index == 0) path.moveTo(xx, yy) else path.lineTo(xx, yy)
-        }
-        drawLine(violet.copy(alpha = RING_ALPHA), Offset(0f, size.height), Offset(size.width, size.height))
-        drawPath(path, color = violet, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
-    }
-}
-
-@Composable
-private fun DashboardGoalBar() {
-    val accent = MaterialTheme.colorScheme.primary
-    Box(Modifier.fillMaxWidth().height(GOAL_BAR_HEIGHT_DP.dp).background(accent.copy(alpha = RING_ALPHA))) {
-        Box(Modifier.fillMaxWidth(DemoCharts.todayGoalFraction()).fillMaxHeight().background(accent))
-    }
-}
-
-@Composable
 private fun DashboardCompact(widget: DashboardWidget, demo: Boolean) {
     DashboardCard(Modifier.fillMaxWidth()) {
         Row(
@@ -216,35 +164,6 @@ private fun DashboardCompact(widget: DashboardWidget, demo: Boolean) {
             Text(widget.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             WidgetValue(widget, demo)
         }
-    }
-}
-
-@Composable
-private fun WidgetValue(
-    widget: DashboardWidget,
-    demo: Boolean,
-    prominent: Boolean = false,
-    compact: Boolean = false,
-) {
-    val sample = if (demo) DashboardDemoSamples.forWidget(widget) else null
-    val value = sample?.value ?: "—"
-    val detail = sample?.detail ?: if (demo) "No demo sample" else "Not synced"
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            value,
-            style = if (prominent && !compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (sample == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (prominent) Text(
-            detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -260,11 +179,3 @@ private fun DashboardDataStatus(state: SableAppState) {
     )
 }
 
-@Composable
-private fun DashboardCard(modifier: Modifier, content: @Composable () -> Unit) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        content = { content() },
-    )
-}

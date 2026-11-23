@@ -23,9 +23,9 @@ import io.github.aimindseye.sablehealth.core.WidgetStyle
 /** Draft edits do not overwrite current Dashboard until all four slots are saved. */
 @Composable
 internal fun WidgetPickerPage(state: SableAppState) {
-    var selected by remember(state) { mutableStateOf(state.dashboardWidgets.toList()) }
+    var selected by remember(state) { mutableStateOf(state.dashboard.widgets.toList()) }
     var styles by remember(state) {
-        mutableStateOf(DashboardWidget.entries.associateWith { state.styleFor(it) })
+        mutableStateOf(DashboardWidget.entries.associateWith { state.dashboard.styleFor(it) })
     }
     SectionHeading("Customize Dashboard", "Choose four widgets · order sets their layout")
     Notice(
@@ -35,10 +35,16 @@ internal fun WidgetPickerPage(state: SableAppState) {
     )
     Text("Selected: ${selected.size} of ${DashboardWidgetSelection.COUNT}", style = MaterialTheme.typography.titleMedium)
     selected.forEachIndexed { index, widget ->
-        SelectedWidgetRow(widget, index, selected.size, styles[widget] ?: WidgetStyle.TEXT,
-            onMove = { offset -> selected = DashboardWidgetSelection.move(selected, index, offset) },
-            onRemove = { selected = DashboardWidgetSelection.toggle(selected, widget) },
-            onStyle = { style -> styles = styles + (widget to style) },
+        SelectedWidgetRow(
+            widget,
+            index,
+            selected.size,
+            styles[widget] ?: WidgetStyle.TEXT,
+            WidgetRowActions(
+                onMove = { offset -> selected = DashboardWidgetSelection.move(selected, index, offset) },
+                onRemove = { selected = DashboardWidgetSelection.toggle(selected, widget) },
+                onStyle = { style -> styles = styles + (widget to style) },
+            ),
         )
     }
     if (selected.size < DashboardWidgetSelection.COUNT) {
@@ -53,7 +59,7 @@ internal fun WidgetPickerPage(state: SableAppState) {
     })
     if (DashboardWidgetSelection.isValid(selected)) {
         FocusButton("Save four Dashboard widgets", {
-            state.saveDashboard(selected, styles)
+            state.dashboard.save(selected, styles)
             state.section = Section.DASHBOARD
             state.page = Page.MAIN
         })
@@ -63,15 +69,19 @@ internal fun WidgetPickerPage(state: SableAppState) {
     FocusButton("Cancel · back to Settings", { state.page = Page.SETTINGS })
 }
 
+private data class WidgetRowActions(
+    val onMove: (Int) -> Unit,
+    val onRemove: () -> Unit,
+    val onStyle: (WidgetStyle) -> Unit,
+)
+
 @Composable
 private fun SelectedWidgetRow(
     widget: DashboardWidget,
     index: Int,
     count: Int,
     mode: WidgetStyle,
-    onMove: (Int) -> Unit,
-    onRemove: () -> Unit,
-    onStyle: (WidgetStyle) -> Unit,
+    actions: WidgetRowActions,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(
@@ -82,15 +92,15 @@ private fun SelectedWidgetRow(
             Text("${index + 1}. ${widget.label}", modifier = Modifier.weight(1f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium)
-            if (index > 0) FocusButton("↑", { onMove(-1) })
-            if (index < count - 1) FocusButton("↓", { onMove(1) })
-            FocusButton("Remove", onRemove)
+            if (index > 0) FocusButton("↑", { actions.onMove(-1) })
+            if (index < count - 1) FocusButton("↓", { actions.onMove(1) })
+            FocusButton("Remove", actions.onRemove)
         }
         if (widget.supportsGraph) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Display", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                FocusButton("Text", { onStyle(WidgetStyle.TEXT) }, selected = mode == WidgetStyle.TEXT)
-                FocusButton("Graph", { onStyle(WidgetStyle.GRAPH) }, selected = mode == WidgetStyle.GRAPH)
+                FocusButton("Text", { actions.onStyle(WidgetStyle.TEXT) }, selected = mode == WidgetStyle.TEXT)
+                FocusButton("Graph", { actions.onStyle(WidgetStyle.GRAPH) }, selected = mode == WidgetStyle.GRAPH)
             }
         }
     }

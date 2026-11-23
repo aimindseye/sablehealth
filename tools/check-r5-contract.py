@@ -13,7 +13,7 @@ assert 'DashboardHome(' in home and 'SLEEP_STAGES' in home
 assert 'StepsChart(' not in home and 'RestingHeartRateChart(' not in home
 assert 'Section.DASHBOARD' in app and 'ViewMode.GRAPHS' in app
 assert 'mutableStateMapOf' in app
-assert 'dashboard.widgets.v1' in app and 'saveDashboard' in app
+assert 'DashboardPreferenceState(preferences)' in app
 assert 'DashboardWidgetSelection' in (src / 'WidgetPickerPage.kt').read_text()
 assert 'Section.MOVE' in sections and 'Section.VITALS' in sections
 assert 'compactQ25' in chrome and 'DeviceProfile.Q25' in chrome

@@ -19,15 +19,19 @@ assert 'DashboardHome(' in home
 assert 'StepsChart(' not in home and 'RestingHeartRateChart(' not in home
 assert 'DashboardHero(' in home and 'DashboardWide(' in home and 'DashboardCompact(' in home
 assert 'DashboardDataStatus(state)' in home
-assert 'dashboard.widgets.v1' in state and 'saveDashboard(' in state
-assert 'WidgetStyle' in state and 'preferences.edit()' in state
+assert 'DashboardPreferenceState(preferences)' in state
+assert 'dashboard.widgets.v1' in (app / 'DashboardPreferenceState.kt').read_text()
+assert 'WidgetStyle' in (app / 'DashboardPreferenceState.kt').read_text()
+assert 'preferences.edit()' in (app / 'DashboardPreferenceState.kt').read_text()
 assert 'DashboardWidgetSelection.toggle' in picker
 assert 'DashboardWidgetSelection.isValid' in picker
 assert 'Restore four defaults' in picker and 'Cancel · back to Settings' in picker
 assert 'Page.WIDGETS' in chrome and 'Customize Dashboard widgets' in (app / 'HealthPages.kt').read_text()
 assert 'val defaults = listOf' in widget and 'const val COUNT = 4' in widget
 assert 'SPO2(' in widget and 'READINESS(' in widget and 'DATA_FRESHNESS(' in widget
-assert 'Not synced' in home and 'No demo sample' in home and 'No live data imported' in home
+assert 'No live data imported' in home
+assert 'Not synced' in (app / 'DashboardVisuals.kt').read_text()
+assert 'No demo sample' in (app / 'DashboardVisuals.kt').read_text()
 assert 'contentDescription' in home and 'compactQ25' in chrome
 assert 'getGrantedPermissions' in activity and 'readRecords' not in activity
 assert 'android.permission.INTERNET' not in manifest and 'android.permission.BLUETOOTH' not in manifest
