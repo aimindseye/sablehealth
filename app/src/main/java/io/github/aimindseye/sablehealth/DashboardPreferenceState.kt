@@ -26,9 +26,11 @@ internal class DashboardPreferenceState(
             }
         }
 
-    fun styleFor(widget: DashboardWidget): WidgetStyle {
-        return dashboardStyles[widget] ?: DashboardWidgetSelection.styleFor(widget, null)
-    }
+    fun styleFor(widget: DashboardWidget): WidgetStyle =
+        when (val savedStyle = dashboardStyles[widget]) {
+            null -> DashboardWidgetSelection.styleFor(widget, null)
+            else -> savedStyle
+        }
 
     fun save(
         widgets: List<DashboardWidget>,
