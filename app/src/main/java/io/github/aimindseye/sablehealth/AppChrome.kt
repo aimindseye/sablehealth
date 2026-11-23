@@ -64,6 +64,7 @@ internal fun HealthAppContent(
                     "NO RECORDS IMPORTED · ${profile.label}"
                 },
             compactQ25 = profile == DeviceProfile.Q25,
+            onBack = if (state.page == Page.MAIN) null else state::back,
             onSources = { state.page = Page.SOURCES },
             onSettings = { state.page = Page.SETTINGS },
         )
@@ -94,10 +95,14 @@ private fun HealthPage(
 ) {
     when (state.page) {
         Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25)
-        Page.SOURCES -> SourcesPage(state.connect, state::refreshSources) { state.page = Page.MAIN }
+        Page.SOURCES -> SourcesPage(state)
+        Page.SOURCE_DETAIL -> SourceDetailPage(state)
+        Page.SOURCE_PRIVACY -> SourcePrivacyPage(state)
         Page.SETTINGS -> SettingsPage(state, profile)
         Page.WIDGETS -> WidgetPickerPage(state)
-        Page.HELP -> HelpPage(profile) { state.page = Page.MAIN }
+        Page.PHONE_INPUT -> PhoneInputPage(state, profile)
+        Page.SETTINGS_PRIVACY -> SettingsPrivacyPage()
+        Page.HELP -> HelpPage(profile, state::back)
     }
 }
 
@@ -106,6 +111,7 @@ internal fun HealthHeader(
     title: String,
     subtitle: String,
     compactQ25: Boolean,
+    onBack: (() -> Unit)? = null,
     onSources: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -122,6 +128,9 @@ internal fun HealthHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            if (onBack != null) {
+                FocusButton("←", onBack, modifier = Modifier.width(48.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     title,

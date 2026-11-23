@@ -15,66 +15,6 @@ import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 
 @Composable
-internal fun SourcesPage(
-    status: ConnectStatus,
-    refresh: () -> Unit,
-    back: () -> Unit,
-) {
-    SectionHeading("Data sources", "Read-only availability and access diagnostic")
-    Notice("Health Connect: ${status.label}", status.detail)
-    Notice(
-        "Granted permissions",
-        "${status.grantedCount?.toString() ?: "Unknown"} · individual metric permissions are not requested by M0",
-    )
-    Notice("Data imported", "None · no health measurements are read or stored in this milestone")
-    Notice("Your privacy", "No backend, telemetry, login, network sync or direct Fitbit Bluetooth pairing")
-    FocusButton("Check again", refresh)
-    FocusButton("Back", back)
-}
-
-@Composable
-internal fun SettingsPage(
-    state: SableAppState,
-    profile: DeviceProfile,
-) {
-    SectionHeading("Dashboard", "Four configurable widgets")
-    FocusButton("Customize Dashboard widgets", { state.page = Page.WIDGETS })
-    Notice("Data status", "Always displayed separately. Missing records are never shown as zero.")
-    SectionHeading("Phone & input", "Detected/selected profile: ${profile.label}")
-    Text("Device profile", style = MaterialTheme.typography.titleMedium)
-    FocusButton(
-        "Automatic detection",
-        { state.chooseProfile("auto") },
-        selected = state.profileOverride == "auto",
-    )
-    DeviceProfile.entries.forEach { candidate ->
-        FocusButton(
-            candidate.label,
-            { state.chooseProfile(candidate.name) },
-            selected = state.profileOverride == candidate.name,
-        )
-    }
-    Text("Appearance", style = MaterialTheme.typography.titleMedium)
-    listOf("system", "light", "dark").forEach { value ->
-        FocusButton(
-            value.replaceFirstChar(Char::uppercaseChar),
-            { state.chooseAppearance(value) },
-            selected = state.appearance == value,
-        )
-    }
-    Text("Data mode", style = MaterialTheme.typography.titleMedium)
-    FocusButton("Synthetic demonstration", { state.chooseDemo(true) }, selected = state.demo)
-    FocusButton("No records (live placeholder)", { state.chooseDemo(false) }, selected = !state.demo)
-    Notice("Sable Blue", "Dark #2E9BD6 · light surface #1A6FA0 · exact Sable Games tokens")
-    Notice(
-        "Remappable keys",
-        "M0 establishes per-profile defaults. Custom remapping editor is planned as a follow-up; " +
-            "no silent reassignment.",
-    )
-    FocusButton("Back", { state.page = Page.MAIN })
-}
-
-@Composable
 internal fun HelpPage(
     profile: DeviceProfile,
     back: () -> Unit,

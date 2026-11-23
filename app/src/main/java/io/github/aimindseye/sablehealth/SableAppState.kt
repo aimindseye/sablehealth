@@ -15,6 +15,15 @@ internal class SableAppState(
 ) {
     val dashboard = DashboardPreferenceState(preferences)
 
+    /** User declaration only: not a Bluetooth connection or Health Connect verification. */
+    var companionSyncConfirmed by mutableStateOf(preferences.getBoolean("fitbit.sync.user_confirmed", false))
+        private set
+
+    fun confirmCompanionSync(confirmed: Boolean) {
+        companionSyncConfirmed = confirmed
+        preferences.edit().putBoolean("fitbit.sync.user_confirmed", confirmed).apply()
+    }
+
     var profileOverride by mutableStateOf(preferences.getString("profile", "auto") ?: "auto")
         private set
     var appearance by mutableStateOf(preferences.getString("appearance", "system") ?: "system")
@@ -75,7 +84,9 @@ internal class SableAppState(
     fun back() {
         page =
             when (page) {
-                Page.WIDGETS -> Page.SETTINGS
+                Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY -> Page.SETTINGS
+                Page.HELP -> Page.PHONE_INPUT
+                Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY -> Page.SOURCES
                 Page.MAIN -> {
                     section = Section.DASHBOARD
                     Page.MAIN
@@ -90,6 +101,7 @@ internal class SableAppState(
     }
 
     fun refreshSources() {
+        connect = ConnectStatus("Checking", "Checking Health Connect platform access")
         diagnosticsVersion++
         page = Page.SOURCES
     }

@@ -69,3 +69,11 @@ See `docs/R52_Q25_ICON_CHROME_ACCEPTANCE.md` for device testing, `docs/r52-previ
 ## M0 R5.3 — Q25 branded header + shared Phosphor icon family
 
 R5.3 corrects Q25 Sources taking the full header width: brand, Sources and Settings now each have bounded space. Steps uses the exact Phosphor regular `footprints` icon and the launcher icon uses Phosphor regular `heartbeat` in Sable Games' black/white/blue composition. Android adaptive/round/monochrome assets and MIT attribution are included. Existing R5.1 four-widget behavior, Fitbit data boundaries and Titan 2 spacing remain unchanged. See `docs/R53_Q25_HEADER_PHOSPHOR_ACCEPTANCE.md`.
+
+## R5.4 — Sources and Settings overview
+
+The compact Sources screen separates Health Connect platform availability, permissions granted to Sable Health, and **zero imported records in M0** from the *user's declaration* of Google Health / Fitbit Air sync. In Sources → Connection details, users can mark whether they have paired and synced the official companion. This declaration is stored locally, is off by default for all new installations, and **never** verifies Fitbit data or Health Connect exports. Check availability again reads only SDK status and this app's granted-permission count. M1 will handle actual read-only metric import after per-record validation.
+
+The compact Settings screen groups four-widget Dashboard customization, System/Light/Dark appearance, Demo/No records presentation, phone & keyboard, and local-only privacy. Device profiles and detailed explanations are in secondary screens. The Q25 top bar retains Sable Health, Back, Sources and Settings; focus/keyboard and Titan 2 behavior are preserved.
+
+Review the [R5.4 acceptance checklist](docs/R54_SOURCES_SETTINGS_ACCEPTANCE.md) and the [approved UI/UX specification](docs/R54_APPROVED_DESIGN.md). Draft PR quality/security gates remain enforced.
