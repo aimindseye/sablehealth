@@ -32,11 +32,13 @@ object KeyboardMapping {
     private const val ESC = 111
 
     fun action(profile: DeviceProfile, press: Press): UiAction? {
-        if (press.alt || press.ctrl) return null
-        if (press.meta || press.editingText) return null
-        val mapped = dpadAction(press.code)
-            ?: commandAction(press.code)
-            ?: letterAction(profile, press.code)
+        val hasModifier = press.alt || press.ctrl || press.meta
+        val blocked = hasModifier || press.editingText
+        val mapped = if (blocked) {
+            null
+        } else {
+            dpadAction(press.code) ?: commandAction(press.code) ?: letterAction(profile, press.code)
+        }
         // Repetition is for navigation only, not selection or side effects.
         return if (press.repeatCount > 0 && !isDirectional(mapped)) null else mapped
     }

@@ -44,3 +44,7 @@ Follow `docs/TITAN2_ACCEPTANCE.md` to test the debug APK on Titan 2, Q25 and P26
 ## License
 
 Apache-2.0 proposed for independent Sable implementation. No source or formulas have been copied from NOOP (PolyForm Noncommercial), Hælan (AGPL-3.0) or Pulse. Licensing notice and full text to be finalized before public release.
+
+## R5 approved UI contract — daily Today, independent view modes
+
+R5 keeps the two-up Today cards as the default **Text** view. **Graphs** on Today display only today's step-goal progress and last-night stage composition. The seven-day steps and resting-heart-rate graphs live in Move, Vitals and Trends only, not on Today. View mode persists separately for each tab. Q25 has more compact application chrome while preserving minimum 48dp interactive targets; Titan 2 chrome is unchanged. Color-coded demo bars communicate informational/goal/below-plan/illustrative-outlier statuses only; no medical risk thresholds or diagnosis are inferred. See `docs/R5_ACCEPTANCE.md` and the local illustrative `docs/r5-preview.html`.

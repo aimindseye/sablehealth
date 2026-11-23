@@ -6,68 +6,80 @@ import androidx.compose.runtime.Composable
 import io.github.aimindseye.sablehealth.core.DemoHealth
 
 @Composable
-internal fun TodaySection(demo: Boolean, status: ConnectStatus, onSources: () -> Unit) {
-    SectionHeading(
-        "Today",
-        if (demo) "Your day at a glance · synthetic demonstration" else
-            "Connect a source to see your readings",
-    )
-    if (demo) {
+internal fun TodaySection(state: SableAppState, onSources: () -> Unit) {
+    ViewModeHeading(Section.TODAY, "Current day · no history charts", state)
+    if (!state.demo) {
+        EmptyState()
+    } else if (state.modeFor(Section.TODAY) == ViewMode.TEXT) {
         TwoUp(DemoHealth.today)
         Text(
             "Baseline: finding your usual · no recovery score calculated",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Notice("Source: ${state.connect.label}", state.connect.detail, onClick = onSources)
     } else {
-        EmptyState()
-    }
-    Notice("Source: ${status.label}", status.detail, onClick = onSources)
-}
-
-@Composable
-internal fun SleepSection(demo: Boolean) {
-    SectionHeading("Sleep", "Last night · sleep sessions and stages")
-    if (demo) {
-        TwoUp(DemoHealth.sleep)
+        TodayStepGoalChart()
         SleepStageChart()
-    } else {
-        EmptyState()
+        Text(
+            "Today graphs show current progress and last night only · synthetic demo",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 @Composable
-internal fun MoveSection(demo: Boolean) {
-    SectionHeading("Move", "Daily activity and movement")
-    if (demo) {
+internal fun SleepSection(state: SableAppState) {
+    ViewModeHeading(Section.SLEEP, "Last night · sessions and stages", state)
+    if (!state.demo) {
+        EmptyState()
+    } else if (state.modeFor(Section.SLEEP) == ViewMode.TEXT) {
+        TwoUp(DemoHealth.sleep)
+    } else {
+        TwoUp(DemoHealth.sleep.take(2))
+        SleepStageChart()
+    }
+}
+
+@Composable
+internal fun MoveSection(state: SableAppState, compactQ25: Boolean) {
+    ViewModeHeading(Section.MOVE, "Activity and seven-day steps", state)
+    if (!state.demo) {
+        EmptyState()
+    } else if (state.modeFor(Section.MOVE) == ViewMode.TEXT) {
         TwoUp(DemoHealth.move)
-        StepsChart()
     } else {
-        EmptyState()
+        TwoUp(DemoHealth.move.take(2))
+        StepsChart(compact = compactQ25)
     }
 }
 
 @Composable
-internal fun VitalsSection(demo: Boolean) {
-    SectionHeading("Vitals", "Recorded values, not diagnoses")
-    if (demo) {
+internal fun VitalsSection(state: SableAppState, compactQ25: Boolean) {
+    ViewModeHeading(Section.VITALS, "Daily values and heart-rate history", state)
+    if (!state.demo) {
+        EmptyState()
+    } else if (state.modeFor(Section.VITALS) == ViewMode.TEXT) {
         TwoUp(DemoHealth.vitals)
-        RestingHeartRateChart()
     } else {
-        EmptyState()
+        TwoUp(DemoHealth.vitals.take(2))
+        RestingHeartRateChart(compact = compactQ25)
     }
 }
 
 @Composable
-internal fun TrendsSection(demo: Boolean) {
-    SectionHeading("Trends", "Last seven days · synthetic examples")
-    if (demo) {
-        StepsChart()
-        RestingHeartRateChart()
-    } else {
+internal fun TrendsSection(state: SableAppState, compactQ25: Boolean) {
+    ViewModeHeading(Section.TRENDS, "Historical comparisons · synthetic", state)
+    if (!state.demo) {
         Notice(
             "Not enough history",
             "Trend charts are withheld until real data is available and coverage is sufficient.",
         )
+    } else if (state.modeFor(Section.TRENDS) == ViewMode.TEXT) {
+        TwoUp(DemoHealth.trendSummary)
+    } else {
+        StepsChart(compact = compactQ25)
+        RestingHeartRateChart(compact = compactQ25)
     }
 }

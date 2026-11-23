@@ -29,17 +29,16 @@ import io.github.aimindseye.sablehealth.core.DemoMetric
 
 @Composable
 internal fun Dashboard(
-    section: Section,
-    demo: Boolean,
-    status: ConnectStatus,
+    state: SableAppState,
+    compactQ25: Boolean,
     onSources: () -> Unit,
 ) {
-    when (section) {
-        Section.TODAY -> TodaySection(demo, status, onSources)
-        Section.SLEEP -> SleepSection(demo)
-        Section.MOVE -> MoveSection(demo)
-        Section.VITALS -> VitalsSection(demo)
-        Section.TRENDS -> TrendsSection(demo)
+    when (state.section) {
+        Section.TODAY -> TodaySection(state, onSources)
+        Section.SLEEP -> SleepSection(state)
+        Section.MOVE -> MoveSection(state, compactQ25)
+        Section.VITALS -> VitalsSection(state, compactQ25)
+        Section.TRENDS -> TrendsSection(state, compactQ25)
     }
 }
 

@@ -41,26 +41,31 @@ internal fun HealthAppContent(state: SableAppState, profile: DeviceProfile) {
                 state.page.name.lowercase().replaceFirstChar(Char::uppercaseChar),
             subtitle = if (state.demo) "DEMO DATA · ${profile.label}" else
                 "NO RECORDS IMPORTED · ${profile.label}",
+            compactQ25 = profile == DeviceProfile.Q25,
             onSources = { state.page = Page.SOURCES },
             onSettings = { state.page = Page.SETTINGS },
         )
         Box(Modifier.weight(1f)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
+                    .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
+                verticalArrangement = Arrangement.spacedBy(
+                    if (profile == DeviceProfile.Q25) 4.dp else 7.dp,
+                ),
             ) {
                 HealthPage(state, profile)
             }
         }
-        if (state.page == Page.MAIN) BottomTabs(state.section) { state.section = it }
+        if (state.page == Page.MAIN) {
+            BottomTabs(state.section, profile == DeviceProfile.Q25) { state.section = it }
+        }
     }
 }
 
 @Composable
 private fun HealthPage(state: SableAppState, profile: DeviceProfile) {
     when (state.page) {
-        Page.MAIN -> Dashboard(state.section, state.demo, state.connect) { state.page = Page.SOURCES }
+        Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25) { state.page = Page.SOURCES }
         Page.SOURCES -> SourcesPage(state.connect, state::refreshSources) { state.page = Page.MAIN }
         Page.SETTINGS -> SettingsPage(state, profile)
         Page.HELP -> HelpPage(profile) { state.page = Page.MAIN }
@@ -71,10 +76,16 @@ private fun HealthPage(state: SableAppState, profile: DeviceProfile) {
 internal fun HealthHeader(
     title: String,
     subtitle: String,
+    compactQ25: Boolean,
     onSources: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
+    Column(
+        Modifier.fillMaxWidth().padding(
+            horizontal = 10.dp,
+            vertical = if (compactQ25) 0.dp else 4.dp,
+        ),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -135,7 +146,7 @@ internal fun FocusButton(
 }
 
 @Composable
-private fun BottomTabs(active: Section, onClick: (Section) -> Unit) {
+private fun BottomTabs(active: Section, compactQ25: Boolean, onClick: (Section) -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     BoxWithConstraints {
         val compact = maxWidth < 310.dp
@@ -145,7 +156,10 @@ private fun BottomTabs(active: Section, onClick: (Section) -> Unit) {
             Modifier.fillMaxWidth()
         }
         Row(
-            modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier.padding(
+                horizontal = if (compactQ25) 1.dp else 4.dp,
+                vertical = if (compactQ25) 0.dp else 2.dp,
+            ),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Section.entries.forEach { tab ->

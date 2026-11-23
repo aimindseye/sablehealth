@@ -1,10 +1,13 @@
 package io.github.aimindseye.sablehealth
 
 import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.aimindseye.sablehealth.core.DeviceProfile
+
+internal enum class ViewMode { TEXT, GRAPHS }
 
 /** A single state owner keeps callbacks and preference writes out of Compose screen functions. */
 internal class SableAppState(private val preferences: SharedPreferences) {
@@ -16,6 +19,22 @@ internal class SableAppState(private val preferences: SharedPreferences) {
         private set
     var demo by mutableStateOf(preferences.getBoolean("demo", true))
         private set
+    private val viewModes = mutableStateMapOf<Section, ViewMode>().apply {
+        Section.entries.forEach { section ->
+            val default = if (section == Section.TODAY) ViewMode.TEXT else ViewMode.GRAPHS
+            this[section] = ViewMode.entries.firstOrNull {
+                it.name == preferences.getString("view.${section.name}", default.name)
+            } ?: default
+        }
+    }
+
+    fun modeFor(section: Section): ViewMode = viewModes[section] ?: ViewMode.TEXT
+
+    fun chooseViewMode(section: Section, mode: ViewMode) {
+        viewModes[section] = mode
+        preferences.edit().putString("view.${section.name}", mode.name).apply()
+    }
+
     var section by mutableStateOf(Section.TODAY)
     var page by mutableStateOf(Page.MAIN)
     var diagnosticsVersion by mutableStateOf(0)

@@ -21,6 +21,10 @@ object DemoHealth {
         DemoMetric("ACTIVE", "42 min", "Synthetic active minutes"),
         DemoMetric("DISTANCE", "5.4 km", "Synthetic walk distance"),
     )
+    val trendSummary = listOf(
+        DemoMetric("STEPS", "7 days", "Synthetic activity history"),
+        DemoMetric("RESTING HR", "7 days", "Synthetic heart-rate history"),
+    )
     val vitals = listOf(
         DemoMetric("HEART RATE", "74 bpm", "Synthetic sample at 10:24"),
         DemoMetric("RESTING HR", "61 bpm", "Synthetic daily average"),
