@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
-import io.github.aimindseye.sablehealth.core.DemoHealth
 import io.github.aimindseye.sablehealth.core.DemoMetric
 
 @Composable
@@ -34,57 +33,11 @@ internal fun Dashboard(
     onSources: () -> Unit,
 ) {
     when (section) {
-        Section.TODAY -> {
-            SectionHeading(
-                "Today",
-                if (demo) "Your day at a glance · synthetic demonstration" else
-                    "Connect a source to see your readings",
-            )
-            if (demo) {
-                TwoUp(DemoHealth.today)
-                Notice(
-                    "Finding your usual",
-                    "Personal baselines appear only after sufficient valid history. " +
-                        "No recovery score is fabricated.",
-                )
-            } else {
-                Notice(
-                    "No measurements yet",
-                    "M0 does not import health records. Health Connect integration follows in M1.",
-                )
-            }
-            Notice("Source status: ${status.label}", status.detail, onClick = onSources)
-        }
-        Section.SLEEP -> {
-            SectionHeading("Sleep", "Last night · sleep sessions and stages")
-            if (demo) Metrics(DemoHealth.sleep) else EmptyState()
-            Notice(
-                "Sleep quality",
-                "Metrics will include sources, local wake date and coverage. " +
-                    "Never treat missing sleep as zero.",
-            )
-        }
-        Section.MOVE -> {
-            SectionHeading("Move", "Activity and workouts")
-            if (demo) Metrics(DemoHealth.move) else EmptyState()
-            Notice("Workout history", "M2 will reconcile repeated events across sources without double counting.")
-        }
-        Section.VITALS -> {
-            SectionHeading("Vitals", "Recorded values, not medical conclusions")
-            if (demo) Metrics(DemoHealth.vitals) else EmptyState()
-            Notice(
-                "Reading freshness",
-                "The data view will distinguish the last measurement from the last successful import.",
-            )
-        }
-        Section.TRENDS -> {
-            SectionHeading("Trends", "7 days · 30 days · 90 days")
-            Notice(
-                "Not enough history",
-                "Time-series charts and personal comparisons are withheld until the needed coverage is present.",
-            )
-            if (demo) Notice("Example · 7 days", "Steps  6.9k  ·  Sleep  7h 23m  ·  values are synthetic")
-        }
+        Section.TODAY -> TodaySection(demo, status, onSources)
+        Section.SLEEP -> SleepSection(demo)
+        Section.MOVE -> MoveSection(demo)
+        Section.VITALS -> VitalsSection(demo)
+        Section.TRENDS -> TrendsSection(demo)
     }
 }
 
@@ -99,7 +52,7 @@ internal fun SectionHeading(title: String, subtitle: String) {
 }
 
 @Composable
-private fun TwoUp(items: List<DemoMetric>) {
+internal fun TwoUp(items: List<DemoMetric>) {
     BoxWithConstraints {
         val columns = if (maxWidth >= 300.dp) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -114,7 +67,7 @@ private fun TwoUp(items: List<DemoMetric>) {
 }
 
 @Composable
-private fun Metrics(items: List<DemoMetric>) {
+internal fun Metrics(items: List<DemoMetric>) {
     items.forEach { MetricCard(it) }
 }
 
@@ -169,6 +122,6 @@ internal fun Notice(title: String, detail: String, onClick: (() -> Unit)? = null
 }
 
 @Composable
-private fun EmptyState() {
+internal fun EmptyState() {
     Notice("No records imported", "This is a foundation build. Actual Health Connect import is scheduled for M1.")
 }
