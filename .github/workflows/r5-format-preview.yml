@@ -21,6 +21,7 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Format project Kotlin in throwaway checkout
+        continue-on-error: true # preview only; PR's quality check still fails on uncorrectable rules
         run: gradle --no-daemon --console=plain ktlintFormat
       - name: Package formatted source as review artifact
         run: zip -q -r formatted-source.zip app/src/main/java core/src/main/kotlin core/src/test/kotlin
