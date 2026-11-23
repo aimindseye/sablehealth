@@ -24,7 +24,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
         with:
           gradle-version: '8.13'
-      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdkmanager"
+          "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - run: gradle --no-daemon :core:test :app:assembleDebug :app:lintDebug
       - uses: SonarSource/sonarqube-scan-action@fd88b7d7ccba0a872887e4f2015e5de2c445d933
         env:

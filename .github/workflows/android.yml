@@ -27,7 +27,9 @@ jobs:
           gradle-version: '8.13'
       - name: Install Android API 36
         run: |
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdkmanager"
+          "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build, test, lint and quality gates
         run: |
           gradle --no-daemon --console=plain :core:test :app:assembleDebug :app:lintDebug detekt ktlintCheck
