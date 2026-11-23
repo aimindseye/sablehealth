@@ -20,7 +20,7 @@ internal fun SourcesPage(state: SableAppState) {
         detail = "Record read access not requested · M0",
         onClick = { state.page = Page.SOURCE_DETAIL },
     )
-    val companionStatus = SourcesUiContract.companionStatus(state.companionSyncConfirmed)
+    val companionStatus = SourcesUiContract.companionStatus(state.companion.confirmed)
     CompactLinkRow(
         title = "Google Health / Fitbit Air",
         detail = "$companionStatus · export unverified",
@@ -50,7 +50,7 @@ internal fun SourceDetailPage(state: SableAppState) {
     Notice("Imported records", "None. M0 has no data ingestion, regardless of companion syncing.")
     Notice(
         "Google Health / Fitbit Air",
-        if (state.companionSyncConfirmed) {
+        if (state.companion.confirmed) {
             "You marked the official companion as paired and synced. " +
                 "Sable Health cannot verify its connection or Health Connect exports yet."
         } else {
@@ -60,9 +60,9 @@ internal fun SourceDetailPage(state: SableAppState) {
     )
     Text("Companion setup confirmation", style = MaterialTheme.typography.titleMedium)
     FocusButton(
-        label = if (state.companionSyncConfirmed) "✓ I paired and synced in Google Health" else "I paired and synced in Google Health",
-        onClick = { state.confirmCompanionSync(!state.companionSyncConfirmed) },
-        selected = state.companionSyncConfirmed,
+        label = if (state.companion.confirmed) "✓ I paired and synced in Google Health" else "I paired and synced in Google Health",
+        onClick = { state.companion.setConfirmed(!state.companion.confirmed) },
+        selected = state.companion.confirmed,
         modifier = Modifier.fillMaxWidth(),
     )
     Notice(
@@ -74,11 +74,10 @@ internal fun SourceDetailPage(state: SableAppState) {
 }
 
 @Composable
-internal fun SourcePrivacyPage(state: SableAppState) {
+internal fun SourcePrivacyPage() {
     SectionHeading("Privacy & diagnostics", "Local foundation · M0")
     Notice("Health data", "No health readings are read, imported, stored or sent by M0.")
     Notice("Network and accounts", "No Sable Health account, backend, analytics, telemetry or direct Fitbit Bluetooth.")
     Notice("Diagnostics", "Provider availability and granted permissions only; no biometric values.")
     Notice("Export status", "Google Health sync is not proof of Health Connect export to Sable Health.")
-    CompactLinkRow("Connection detail", "View provider and permissions", { state.page = Page.SOURCE_DETAIL })
 }

@@ -15,14 +15,7 @@ internal class SableAppState(
 ) {
     val dashboard = DashboardPreferenceState(preferences)
 
-    /** User declaration only: not a Bluetooth connection or Health Connect verification. */
-    var companionSyncConfirmed by mutableStateOf(preferences.getBoolean("fitbit.sync.user_confirmed", false))
-        private set
-
-    fun confirmCompanionSync(confirmed: Boolean) {
-        companionSyncConfirmed = confirmed
-        preferences.edit().putBoolean("fitbit.sync.user_confirmed", confirmed).apply()
-    }
+    val companion = CompanionSyncPreferenceState(preferences)
 
     var profileOverride by mutableStateOf(preferences.getString("profile", "auto") ?: "auto")
         private set
