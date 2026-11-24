@@ -34,13 +34,13 @@ python3 tools/quality_preflight.py
 ## 5. GitHub CI and SonarCloud
 - `.github/workflows/android.yml`: all PR bases including stacked branches; runs `python3 tools/quality_preflight.py --ci`, checks release candidate is **unsigned**.
 - `.github/workflows/security.yml`: CodeQL, MobSF and Gitleaks on all PRs. Existing unresolved MobSF findings must be triaged, **not** disabled to get green.
-- `.github/workflows/sonar.yml`: SonarCloud only runs after the owner configures the matching Sonar project, repository secret `SONAR_TOKEN` and variable `SONAR_ENABLED=true`. A skipped job means **NOT RUN / PENDING CONFIGURATION**, not quality approval.
+- `.github/workflows/sonar.yml`: the owner confirmed SonarCloud project setup and `SONAR_TOKEN`. Analysis now runs on each same-repo PR and push to main without a `SONAR_ENABLED` toggle; a missing token or failing quality gate is a **FAILURE**, not a skip. Never print the token.
 - Sonar uses authentic `core:jacocoTestReport` and Android Lint XML. The JVM report does not replace Android UI coverage; no blanket production exclusions to inflate scores. Sonar's quality gate remains independent.
 - Never relax thresholds, patch workflows to bypass gates or use broad suppressions. If legacy findings block merging, record them and request targeted review.
 
 ## 6. Owner-only release signing
 - The package `io.github.aimindseye.sablehealth` is registered with Android Developer Console. Package registration alone is **not** proof of the release certificate identity.
-- TenSeven Launcher, Sable Games and Sable Watch have used the same registered signing key. Reusing that key for Sable Health is allowed **only if the Android Developer Console confirms the same public certificate is registered for this exact package**. Pin its SHA-256 in `config/release-certificate.sha256` only after checking.
+- The owner confirmed `io.github.aimindseye.sablehealth` is registered with the same public signing certificate as TenSeven, Sable Games and Sable Watch. The shared public SHA-256 is pinned in tracked `config/release-certificate.sha256`; owner-only private key never belongs in Git or CI.
 - Signing keystore stays on the owner's Mac/encrypted backup. The canonical `bash tools/build-release.sh` prompts for path and alias and reads hidden passwords directly from the terminal; `apksigner` receives passwords only through stdin. Never put secrets into repo files, GitHub secrets, process arguments, artifacts or CI.
 - All signed release builds require: clean committed source, public pinned registered cert, local full quality preflight, an **unsigned** Gradle APK, `apksigner` signing using terminal-prompted secrets, post-signature verification, `aapt2` package/version/minSdk verification and SHA-256 receipt.
 - `bash tools/build-release.sh` is the **one release entrypoint**; it creates signed APK/receipts under Downloads only after local qualification. It **does not publish**. CI produces only unsigned candidates. Owner manually attaches verified APK to GitHub Releases after signoff. Do not commit APKs.
