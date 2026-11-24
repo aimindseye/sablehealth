@@ -86,6 +86,25 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
+      - name: Print SonarCloud gate conditions and issue IDs (diagnostic only)
+        if: always() && github.event_name == 'pull_request'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Read-only API calls. This step never changes the gate, issues or configuration.
+          echo 'SONAR_DIAGNOSTIC_QUALITY_GATE_BEGIN'
+          (
+            curl --fail --silent --show-error -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=aimindseye_sablehealth&pullRequest=$PR_NUMBER" \
+              | jq -c '{status: .projectStatus.status, conditions: [.projectStatus.conditions[]? | {metricKey, status, actualValue, errorThreshold}]}'
+          ) || echo 'SONAR_DIAGNOSTIC_GATE_QUERY_UNAVAILABLE'
+          echo 'SONAR_DIAGNOSTIC_ISSUES_BEGIN'
+          (
+            curl --fail --silent --show-error -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/issues/search?componentKeys=aimindseye_sablehealth&pullRequest=$PR_NUMBER&ps=100" \
+              | jq -c '{total, issues: [.issues[]? | {rule, severity, type, component, line, message}]}'
+          ) || echo 'SONAR_DIAGNOSTIC_ISSUES_QUERY_UNAVAILABLE'
       - name: Upload analysis input reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
