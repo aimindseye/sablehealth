@@ -87,7 +87,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-internal fun SableApp(resumeVersion: Int = 0) {
+internal fun SableApp(
+    resumeVersion: Int = 0,
+    inspect: suspend (Context) -> ConnectStatus = ::inspectHealthConnect,
+) {
     val context = LocalContext.current
     val preferences = remember(context) { context.getSharedPreferences("sable_health_m0", Context.MODE_PRIVATE) }
     var entry by rememberSaveable {
@@ -111,7 +114,7 @@ internal fun SableApp(resumeVersion: Int = 0) {
     }
     LaunchedEffect(state.diagnosticsVersion, resumeVersion) {
         state.connect = ConnectStatus("Checking", "Checking Health Connect permissions")
-        state.connect = inspectHealthConnect(context)
+        state.connect = inspect(context)
     }
 
     SableHealthTheme(state.appearance) {
@@ -154,7 +157,7 @@ private fun detectDevice(configuration: Configuration): DeviceProfile =
                 configuration.navigation == Configuration.NAVIGATION_TRACKBALL,
     )
 
-private fun handleDeviceKey(
+internal fun handleDeviceKey(
     event: KeyEvent,
     state: SableAppState,
     profile: DeviceProfile,
@@ -206,22 +209,27 @@ private fun handleDeviceKey(
 
 /** Provider and permission inspection only; never reads records. */
 internal suspend fun inspectHealthConnect(context: Context): ConnectStatus =
+    inspectHealthConnect({ HealthConnectClient.getSdkStatus(context) }) {
+        val client = HealthConnectClient.getOrCreate(context)
+        val skinAvailable =
+            client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
+                HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+        PlatformReadAccess(skinAvailable, client.permissionController.getGrantedPermissions())
+    }
+
+internal data class PlatformReadAccess(
+    val skinAvailable: Boolean,
+    val granted: Set<String>,
+)
+
+/** Keep status handling and the read-only allowlist independent of the Android service. */
+internal suspend fun inspectHealthConnect(
+    sdkStatus: () -> Int,
+    readAccess: suspend () -> PlatformReadAccess,
+): ConnectStatus =
     try {
-        when (HealthConnectClient.getSdkStatus(context)) {
-            HealthConnectClient.SDK_AVAILABLE -> {
-                val client = HealthConnectClient.getOrCreate(context)
-                val skin = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
-                val skinAvailable =
-                    client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
-                        HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
-                val supported =
-                    M1HealthConnectProbe.metrics
-                        .map { it.permission }
-                        .filter { it != skin || skinAvailable }
-                        .toSet()
-                val granted = client.permissionController.getGrantedPermissions().intersect(supported)
-                ConnectStatus("Available", "Read access checked · no records queried", granted.size, granted, supported)
-            }
+        when (sdkStatus()) {
+            HealthConnectClient.SDK_AVAILABLE -> availableReadAccess(readAccess())
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
                 ConnectStatus("Update required", "Install or update Health Connect from its provider")
             else -> ConnectStatus("Unavailable", "Health Connect is not available on this device")
@@ -231,3 +239,14 @@ internal suspend fun inspectHealthConnect(context: Context): ConnectStatus =
     } catch (_: Exception) {
         ConnectStatus("Diagnostic error", "Could not inspect permissions; no data was read")
     }
+
+private fun availableReadAccess(access: PlatformReadAccess): ConnectStatus {
+    val skin = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
+    val supported =
+        M1HealthConnectProbe.metrics
+            .map { it.permission }
+            .filter { it != skin || access.skinAvailable }
+            .toSet()
+    val granted = access.granted.intersect(supported)
+    return ConnectStatus("Available", "Read access checked · no records queried", granted.size, granted, supported)
+}
