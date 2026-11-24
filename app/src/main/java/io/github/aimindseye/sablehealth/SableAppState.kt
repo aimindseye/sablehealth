@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.aimindseye.sablehealth.core.DeviceProfile
+import io.github.aimindseye.sablehealth.core.SetupEntry
 
 internal enum class ViewMode { TEXT, GRAPHS }
 
@@ -93,9 +94,15 @@ internal class SableAppState(
         section = Section.entries[(section.ordinal + 1) % Section.entries.size]
     }
 
-    fun refreshSources() {
+    var setupAction: (SetupEntry) -> Unit = {}
+
+    fun recheckPermissions() {
         connect = ConnectStatus("Checking", "Checking Health Connect platform access")
         diagnosticsVersion++
+    }
+
+    fun refreshSources() {
+        recheckPermissions()
         page = Page.SOURCES
     }
 }

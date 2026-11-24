@@ -13,7 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
@@ -27,10 +31,15 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.SkinTemperatureRecord
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 import io.github.aimindseye.sablehealth.core.KeyboardMapping
 import io.github.aimindseye.sablehealth.core.Press
+import io.github.aimindseye.sablehealth.core.SetupEntry
 import io.github.aimindseye.sablehealth.core.UiAction
+import kotlinx.coroutines.CancellationException
 
 internal enum class Section(
     val title: String,
@@ -59,35 +68,53 @@ internal data class ConnectStatus(
     val label: String,
     val detail: String,
     val grantedCount: Int? = null,
+    val granted: Set<String> = emptySet(),
+    val supported: Set<String> = emptySet(),
 )
 
 class MainActivity : ComponentActivity() {
+    private var resumeVersion by mutableStateOf(0)
+
+    override fun onResume() {
+        super.onResume()
+        resumeVersion++
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { SableApp() }
+        setContent { SableApp(resumeVersion) }
     }
 }
 
 @Composable
-internal fun SableApp() {
+internal fun SableApp(resumeVersion: Int = 0) {
     val context = LocalContext.current
     val preferences = remember(context) { context.getSharedPreferences("sable_health_m0", Context.MODE_PRIVATE) }
+    var entry by rememberSaveable {
+        mutableStateOf(if (preferences.getBoolean("onboarded", false)) "" else SetupEntry.FIRST_RUN.name)
+    }
+    var returnPage by rememberSaveable { mutableStateOf(Page.SETTINGS.name) }
     val state = remember(preferences) { SableAppState(preferences) }
+    state.setupAction = { mode ->
+        returnPage = state.page.name
+        entry = mode.name
+    }
     val configuration = LocalConfiguration.current
     val detected = remember(configuration) { detectDevice(configuration) }
     val profile = state.selectedProfile(detected)
     val focusManager = LocalFocusManager.current
     val rootFocus = remember { FocusRequester() }
 
-    LaunchedEffect(state.onboarded) {
-        if (state.onboarded) rootFocus.requestFocus()
+    LaunchedEffect(entry) {
+        rootFocus.requestFocus()
     }
-    LaunchedEffect(state.diagnosticsVersion) {
+    LaunchedEffect(state.diagnosticsVersion, resumeVersion) {
+        state.connect = ConnectStatus("Checking", "Checking Health Connect permissions")
         state.connect = inspectHealthConnect(context)
     }
 
     SableHealthTheme(state.appearance) {
-        BackHandler(enabled = state.page != Page.MAIN || state.section != Section.DASHBOARD) {
+        BackHandler(enabled = entry.isEmpty() && (state.page != Page.MAIN || state.section != Section.DASHBOARD)) {
             state.back()
         }
         Surface(
@@ -95,14 +122,21 @@ internal fun SableApp() {
                 Modifier
                     .fillMaxSize()
                     .focusRequester(rootFocus)
-                    .onPreviewKeyEvent { handleDeviceKey(it, state, profile, focusManager) }
+                    .onPreviewKeyEvent { handleDeviceKey(it, state, profile, focusManager, entry.isNotEmpty()) }
                     .focusable(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            if (state.onboarded) {
+            if (entry.isEmpty()) {
                 HealthAppContent(state, profile)
             } else {
-                Onboarding(profile, state.connect, state::completeOnboarding)
+                val mode = SetupEntry.valueOf(entry)
+                SetupWizard(state, profile, mode) { finished ->
+                    if (mode == SetupEntry.FIRST_RUN && finished) {
+                        state.completeOnboarding(state.demo)
+                    }
+                    state.page = if (mode == SetupEntry.FIRST_RUN) Page.MAIN else Page.valueOf(returnPage)
+                    entry = ""
+                }
             }
         }
     }
@@ -124,8 +158,9 @@ private fun handleDeviceKey(
     state: SableAppState,
     profile: DeviceProfile,
     focusManager: FocusManager,
+    setupActive: Boolean,
 ): Boolean {
-    if (!state.onboarded || event.type != KeyEventType.KeyDown) return false
+    if (event.type != KeyEventType.KeyDown) return false
     val native = event.nativeKeyEvent
     val action =
         KeyboardMapping.action(
@@ -138,6 +173,7 @@ private fun handleDeviceKey(
                 meta = native.isMetaPressed,
             ),
         )
+    if (setupActive && action !in setOf(UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT)) return false
     return when (action) {
         UiAction.UP -> focusManager.moveFocus(FocusDirection.Up)
         UiAction.DOWN -> focusManager.moveFocus(FocusDirection.Down)
@@ -164,23 +200,27 @@ private fun handleDeviceKey(
     }
 }
 
-/** M0 intentionally checks provider state only. It never asks for data read permissions. */
-private suspend fun inspectHealthConnect(context: Context): ConnectStatus =
+/** Provider and permission inspection only; never reads records. */
+internal suspend fun inspectHealthConnect(context: Context): ConnectStatus =
     try {
         when (HealthConnectClient.getSdkStatus(context)) {
             HealthConnectClient.SDK_AVAILABLE -> {
-                val count =
-                    HealthConnectClient
-                        .getOrCreate(context)
-                        .permissionController
-                        .getGrantedPermissions()
-                        .size
-                ConnectStatus("Available", "Health Connect available · no records queried in M0", count)
+                val client = HealthConnectClient.getOrCreate(context)
+                val skin = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
+                val skinAvailable =
+                    client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
+                        HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+                val supported =
+                    M1HealthConnectProbe.metrics.map { it.permission }.filter { it != skin || skinAvailable }.toSet()
+                val granted = client.permissionController.getGrantedPermissions().intersect(supported)
+                ConnectStatus("Available", "Read access checked · no records queried", granted.size, granted, supported)
             }
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
                 ConnectStatus("Update required", "Install or update Health Connect from its provider")
             else -> ConnectStatus("Unavailable", "Health Connect is not available on this device")
         }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
     } catch (_: Exception) {
         ConnectStatus("Diagnostic error", "Could not inspect permissions; no data was read")
     }

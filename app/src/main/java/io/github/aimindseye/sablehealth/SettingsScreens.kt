@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import io.github.aimindseye.sablehealth.core.DeviceProfile
+import io.github.aimindseye.sablehealth.core.SetupEntry
 
 @Composable
 internal fun SettingsPage(
@@ -11,6 +12,9 @@ internal fun SettingsPage(
     profile: DeviceProfile,
 ) {
     CompactPageTitle("Customize experience", "LOCAL")
+    CompactLinkRow("Check permissions", state.connect.label, { state.setupAction(SetupEntry.PERMISSIONS_ONLY) })
+    CompactLinkRow("Run complete setup", "Review all setup stages", { state.setupAction(SetupEntry.REVIEW_ALL) })
+    CompactLinkRow("Choose setup steps", "Repeat selected stages", { state.setupAction(SetupEntry.SELECTED_STEPS) })
     CompactLinkRow(
         "Dashboard",
         "Customize widgets · ${state.dashboard.widgets.size} selected",
