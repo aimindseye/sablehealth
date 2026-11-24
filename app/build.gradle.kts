@@ -46,11 +46,12 @@ val robolectricSdkVersions =
     )
 val robolectricSdkJars =
     robolectricSdkVersions.map { version ->
-        configurations.detachedConfiguration(
-            dependencies.create("org.robolectric:android-all-instrumented:$version@jar"),
-        ).apply {
-            isTransitive = false
-        }
+        configurations
+            .detachedConfiguration(
+                dependencies.create("org.robolectric:android-all-instrumented:$version@jar"),
+            ).apply {
+                isTransitive = false
+            }
     }
 val robolectricSdkDir = layout.buildDirectory.dir("robolectric-sdks")
 val prepareRobolectricSdks by tasks.registering(Sync::class) {
