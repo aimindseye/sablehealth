@@ -70,20 +70,8 @@ def fingerprint(finding: dict) -> tuple[str, str, str]:
     return rule, level, location(finding)
 
 
-def check(report: dict, baseline: dict) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]], list[tuple[str, str, str]]]:
-    if baseline.get("schema") != 1:
-        raise ScanError("Unknown baseline schema")
-    if not baseline.get("source_commit") or not baseline.get("review_issue"):
-        raise ScanError("Baseline must pin mainline commit and open security review")
-    tool = baseline.get("tool", {})
-    if not isinstance(tool, dict):
-        raise ScanError("Malformed baseline scanner identity")
-    expected_version = tool.get("version")
-    if tool.get("name") != "mobsfscan" or not isinstance(expected_version, str) or not expected_version:
-        raise ScanError("Baseline must pin MobSF identity and version")
-    allowed = baseline.get("inherited")
-    if not isinstance(allowed, list) or not allowed:
-        raise ScanError("Baseline lacks a documented inherited finding list")
+def baseline_limits(allowed: list) -> Counter:
+    """Validate one explicitly bounded instance per inherited fingerprint."""
     limits: Counter = Counter()
     for item in allowed:
         if not isinstance(item, dict) or set(item) != {"ruleId", "level", "path", "limit"}:
@@ -96,6 +84,27 @@ def check(report: dict, baseline: dict) -> tuple[list[tuple[str, str, str]], lis
         if type(item["limit"]) is not int or item["limit"] != 1 or key in limits:
             raise ScanError("Baseline requires one instance per exact fingerprint")
         limits[key] = 1
+    return limits
+
+
+def validate_baseline(baseline: dict) -> tuple[str, Counter]:
+    if baseline.get("schema") != 1:
+        raise ScanError("Unknown baseline schema")
+    if not baseline.get("source_commit") or not baseline.get("review_issue"):
+        raise ScanError("Baseline must pin mainline commit and open security review")
+    tool = baseline.get("tool", {})
+    if not isinstance(tool, dict):
+        raise ScanError("Malformed baseline scanner identity")
+    version = tool.get("version")
+    if tool.get("name") != "mobsfscan" or not isinstance(version, str) or not version:
+        raise ScanError("Baseline must pin MobSF identity and version")
+    allowed = baseline.get("inherited")
+    if not isinstance(allowed, list) or not allowed:
+        raise ScanError("Baseline lacks a documented inherited finding list")
+    return version, baseline_limits(allowed)
+
+
+def validate_report(report: dict, version: str) -> list:
     if report.get("version") != "2.1.0":
         raise ScanError("Unexpected SARIF version")
     runs = report.get("runs")
@@ -106,11 +115,17 @@ def check(report: dict, baseline: dict) -> tuple[list[tuple[str, str, str]], lis
     if not isinstance(tool_info, dict):
         raise ScanError("Malformed SARIF tool")
     driver = tool_info.get("driver", {})
-    if not isinstance(driver, dict) or driver.get("name") != "mobsfscan" or driver.get("version") != expected_version:
+    if not isinstance(driver, dict) or driver.get("name") != "mobsfscan" or driver.get("version") != version:
         raise ScanError("MobSF identity/version differs from documented baseline")
     results = run.get("results")
     if not isinstance(results, list):
         raise ScanError("MobSF SARIF results field missing or invalid")
+    return results
+
+
+def check(report: dict, baseline: dict) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]], list[tuple[str, str, str]]]:
+    version, limits = validate_baseline(baseline)
+    results = validate_report(report, version)
     seen = Counter()
     inherited, new_notes, new_blocking = [], [], []
     for item in results:
