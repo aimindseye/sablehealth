@@ -96,13 +96,13 @@ internal class SableAppState(
 
     var setupAction: (SetupEntry) -> Unit = {}
 
-    fun recheckPermissions() {
-        connect = ConnectStatus("Checking", "Checking Health Connect platform access")
-        diagnosticsVersion++
-    }
-
     fun refreshSources() {
         recheckPermissions()
         page = Page.SOURCES
     }
+}
+
+internal fun SableAppState.recheckPermissions() {
+    connect = ConnectStatus("Checking", "Checking Health Connect platform access")
+    diagnosticsVersion++
 }

@@ -174,30 +174,33 @@ private fun handleDeviceKey(
                 meta = native.isMetaPressed,
             ),
         )
-    if (setupActive && action !in setOf(UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT)) return false
-    return when (action) {
-        UiAction.UP -> focusManager.moveFocus(FocusDirection.Up)
-        UiAction.DOWN -> focusManager.moveFocus(FocusDirection.Down)
-        UiAction.LEFT -> focusManager.moveFocus(FocusDirection.Left)
-        UiAction.RIGHT -> focusManager.moveFocus(FocusDirection.Right)
-        UiAction.BACK -> {
-            state.back()
-            true
+    return if (setupActive && action !in setOf(UiAction.UP, UiAction.DOWN, UiAction.LEFT, UiAction.RIGHT)) {
+        false
+    } else {
+        when (action) {
+            UiAction.UP -> focusManager.moveFocus(FocusDirection.Up)
+            UiAction.DOWN -> focusManager.moveFocus(FocusDirection.Down)
+            UiAction.LEFT -> focusManager.moveFocus(FocusDirection.Left)
+            UiAction.RIGHT -> focusManager.moveFocus(FocusDirection.Right)
+            UiAction.BACK -> {
+                state.back()
+                true
+            }
+            UiAction.NEXT_TAB -> {
+                state.nextTab()
+                true
+            }
+            UiAction.REFRESH -> {
+                state.refreshSources()
+                true
+            }
+            UiAction.HELP -> {
+                state.page = Page.HELP
+                true
+            }
+            // A focused Compose clickable handles Enter / Space without double activation.
+            UiAction.CONFIRM, null -> false
         }
-        UiAction.NEXT_TAB -> {
-            state.nextTab()
-            true
-        }
-        UiAction.REFRESH -> {
-            state.refreshSources()
-            true
-        }
-        UiAction.HELP -> {
-            state.page = Page.HELP
-            true
-        }
-        // A focused Compose clickable handles Enter / Space without double activation.
-        UiAction.CONFIRM, null -> false
     }
 }
 

@@ -69,11 +69,11 @@ internal fun SetupWizard(
     val actions =
         SetupActions(
             back = back,
-            nextLabel = if (!choosing && stage == SetupStage.REVIEW) "Finish" else "Next",
+            nextLabel = setupNextLabel(choosing, stage),
             next = advance,
             skip = { if (choosing) close(false) else advance() },
         )
-    SetupFrame(if (choosing) "SETUP" else "${index + 1}/${stages.size}", actions) {
+    SetupFrame(setupProgress(choosing, index, stages.size), actions) {
         holder.SaveableStateProvider(if (choosing) "picker" else stage.name) {
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -89,6 +89,17 @@ internal fun SetupWizard(
         }
     }
 }
+
+private fun setupNextLabel(
+    choosing: Boolean,
+    stage: SetupStage,
+): String = if (!choosing && stage == SetupStage.REVIEW) "Finish" else "Next"
+
+private fun setupProgress(
+    choosing: Boolean,
+    index: Int,
+    size: Int,
+): String = if (choosing) "SETUP" else "${index + 1}/$size"
 
 private data class SetupActions(
     val back: () -> Unit,
@@ -110,7 +121,8 @@ private fun SetupFrame(
             .safeDrawingPadding()
             .padding(8.dp)
             .onPreviewKeyEvent {
-                if (it.type == KeyEventType.KeyDown && it.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE) {
+                val escape = it.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE
+                if (it.type == KeyEventType.KeyDown && escape) {
                     actions.back()
                     true
                 } else {
