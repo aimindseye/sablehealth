@@ -36,6 +36,8 @@ android {
 }
 
 tasks.withType<Test>().configureEach {
+    // Use the same Maven Central endpoint as the Gradle dependency resolver.
+    systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
     extensions.configure<JacocoTaskExtension> {
         isIncludeNoLocationClasses = true
         excludes = listOf("jdk.internal.*")

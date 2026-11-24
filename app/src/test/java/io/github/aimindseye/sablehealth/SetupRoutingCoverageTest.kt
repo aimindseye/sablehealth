@@ -41,7 +41,12 @@ class SetupRoutingCoverageTest {
 
     @Test
     fun returningUserReentersFromSettingsAndSources() {
-        preferences.edit().clear().putBoolean("onboarded", true).putString("profile", "Q25").commit()
+        preferences
+            .edit()
+            .clear()
+            .putBoolean("onboarded", true)
+            .putString("profile", "Q25")
+            .commit()
         compose.setContent { SableApp() }
         compose.onNodeWithText("Welcome").assertDoesNotExist()
         click("Settings")
@@ -65,7 +70,12 @@ class SetupRoutingCoverageTest {
 
     @Test
     fun resumeAndManualRecheckUseActualLatestAccess() {
-        preferences.edit().clear().putBoolean("onboarded", true).putString("profile", "Q25").commit()
+        preferences
+            .edit()
+            .clear()
+            .putBoolean("onboarded", true)
+            .putString("profile", "Q25")
+            .commit()
         val version = mutableStateOf(0)
         val supported = setOf("read.steps")
         var granted = supported

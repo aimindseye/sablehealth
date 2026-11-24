@@ -136,16 +136,12 @@ class SetupPlatformCoverageTest {
             assertFalse(request.busy)
             val missing =
                 object : ContextWrapper(context) {
-                    override fun startActivity(intent: Intent) {
-                        throw ActivityNotFoundException()
-                    }
+                    override fun startActivity(intent: Intent): Unit = throw ActivityNotFoundException()
                 }
             assertEquals("Health Connect settings unavailable.", openHealthConnectSettings(missing))
             val blocked =
                 object : ContextWrapper(context) {
-                    override fun startActivity(intent: Intent) {
-                        throw SecurityException()
-                    }
+                    override fun startActivity(intent: Intent): Unit = throw SecurityException()
                 }
             assertEquals("Health Connect settings access blocked.", openHealthConnectSettings(blocked))
         }
