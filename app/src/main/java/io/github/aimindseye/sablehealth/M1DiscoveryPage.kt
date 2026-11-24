@@ -45,6 +45,7 @@ internal fun M1DiscoveryPage() {
     var scanning by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<HealthMetricCoverage>>(emptyList()) }
     var scannedAt by remember { mutableStateOf<String?>(null) }
+    var reportVisible by remember { mutableStateOf(false) }
     val permissionLauncher =
         rememberLauncherForActivityResult(
             PermissionController.createRequestPermissionResultContract(),
@@ -57,6 +58,7 @@ internal fun M1DiscoveryPage() {
                 }
             results = emptyList()
             scannedAt = null
+            reportVisible = false
         }
     val platformAvailable =
         remember(context) {
@@ -113,6 +115,7 @@ internal fun M1DiscoveryPage() {
                 scanning = true
                 results = emptyList()
                 scannedAt = null
+                reportVisible = false
                 message = "Scanning locally · no measurements retained"
                 scope.launch {
                     try {
@@ -156,18 +159,30 @@ internal fun M1DiscoveryPage() {
             )
         }
         FocusButton(
-            "Review and share coverage report",
-            onClick = {
-                val report = HealthCoverageContract.redactedReport(results, scannedAt.orEmpty())
-                val intent =
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, "Sable Health M1-A coverage")
-                        putExtra(Intent.EXTRA_TEXT, report)
-                    }
-                context.startActivity(Intent.createChooser(intent, "Share metadata-only coverage"))
-            },
+            "Review coverage report",
+            onClick = { reportVisible = !reportVisible },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (reportVisible) {
+            val report = HealthCoverageContract.redactedReport(results, scannedAt.orEmpty())
+            Text(report, style = MaterialTheme.typography.bodySmall)
+            Text(
+                "This includes timestamps and writer app names. Share only if you choose.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FocusButton(
+                "Share reviewed report",
+                onClick = {
+                    val intent =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Sable Health M1-A coverage")
+                            putExtra(Intent.EXTRA_TEXT, report)
+                        }
+                    context.startActivity(Intent.createChooser(intent, "Share metadata-only coverage"))
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
