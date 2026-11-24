@@ -5,7 +5,7 @@
 set -u
 umask 077
 
-ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)" || exit 2
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 2
 cd "$ROOT" || exit 2
 
 fail() {
@@ -14,7 +14,7 @@ fail() {
 }
 cleanup() {
     unset store_pass key_pass
-    if [[ -n "\${stage_dir:-}" && -d "$stage_dir" ]]; then
+    if [[ -n "${stage_dir:-}" && -d "$stage_dir" ]]; then
         rm -rf "$stage_dir"
     fi
 }
@@ -43,11 +43,11 @@ version="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' app/build.gr
 code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -n1)"
 [[ "$version" =~ ^[a-zA-Z0-9._-]+$ && "$code" =~ ^[0-9]+$ ]] ||
     fail "Invalid Gradle version metadata"
-out="\${SABLE_HEALTH_RELEASE_DIR:-$HOME/Downloads/sablehealth-release/$version}"
+out="${SABLE_HEALTH_RELEASE_DIR:-$HOME/Downloads/sablehealth-release/$version}"
 asset="SableHealth-$version-vc$code.apk"
 [[ ! -e "$out/$asset" ]] || fail "Release artifact already exists; refusing overwrite"
 
-sdk="\${ANDROID_HOME:-\${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
 apksigner="$sdk/build-tools/36.0.0/apksigner"
 [[ -x "$apksigner" ]] || fail "Android SDK 36.0.0 apksigner unavailable"
 [[ -x "$sdk/build-tools/36.0.0/aapt2" ]] || fail "Android SDK 36.0.0 aapt2 unavailable"
@@ -56,7 +56,7 @@ apksigner="$sdk/build-tools/36.0.0/apksigner"
 [[ ! -f keystore.properties ]] ||
     fail "Move ignored keystore.properties out of this checkout: signing is interactive only"
 for name in SABLE_HEALTH_KEYSTORE SABLE_HEALTH_KEYSTORE_PASSWORD SABLE_HEALTH_KEY_ALIAS SABLE_HEALTH_KEY_PASSWORD; do
-    if [[ -n "\${!name:-}" ]]; then
+    if [[ -n "${!name:-}" ]]; then
         fail "Signing environment variables are not used by this interactive release script"
     fi
 done
@@ -73,7 +73,7 @@ python3 tools/verify-release-apk.py --ci-unsigned "$unsigned" \
 echo 'STEP_2=INTERACTIVE_SIGNING_INPUTS'
 printf 'Keystore location (absolute path, .jks/.keystore): '
 IFS= read -r keystore || fail "Keystore path input unavailable"
-keystore="\${keystore/#\~/$HOME}"
+keystore="${keystore/#\~/$HOME}"
 [[ -f "$keystore" ]] || fail "Keystore does not exist"
 printf 'Key alias: '
 IFS= read -r alias_name || fail "Key alias input unavailable"
@@ -85,7 +85,7 @@ IFS= read -r -s -p 'Key password (hidden; Enter if same): ' key_pass || fail "Ke
 printf '\n'
 [[ -n "$key_pass" ]] || key_pass="$store_pass"
 
-stage_dir="$(mktemp -d "\${TMPDIR:-/tmp}/sablehealth-release.XXXXXXXX")" ||
+stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/sablehealth-release.XXXXXXXX")" ||
     fail "Cannot create temporary private release directory"
 signed="$stage_dir/$asset"
 
