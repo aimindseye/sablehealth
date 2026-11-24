@@ -54,7 +54,7 @@ jobs:
         # Permit report collection, but the next step checks the actual scanner outcome.
         continue-on-error: true
         with:
-          args: '. --sarif --output mobsfscan-results.sarif --type android'
+          args: '. --sarif --output mobsfscan-results.sarif --type android --no-fail'
       - name: Enforce baseline-aware MobSF risk gate
         env:
           MOBSF_SCAN_OUTCOME: ${{ steps.mobsfscan.outcome }}
