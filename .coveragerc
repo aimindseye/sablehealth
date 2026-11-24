@@ -1,7 +1,11 @@
 [run]
 branch = True
 relative_files = True
-include = tools/check_mobsf_findings.py
+include =
+    tools/check_mobsf_findings.py
+    tools/check-m1a-contract.py
+    tools/check-r5-contract.py
+    tools/check-structure.py
 
 [report]
 show_missing = True

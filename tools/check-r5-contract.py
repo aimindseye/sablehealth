@@ -20,5 +20,6 @@ assert 'compactQ25' in chrome and 'DeviceProfile.Q25' in chrome
 assert 'contentDescription' in charts and 'DEMO' in charts
 assert 'DemoBand' in core and 'TODAY_GOAL_STEPS' in core
 assert 'getGrantedPermissions' in (src / 'MainActivity.kt').read_text()
-assert 'readRecords' not in '\n'.join(p.read_text() for p in src.glob('*.kt'))
+assert 'readRecords' not in (src / 'MainActivity.kt').read_text(), 'M0 entrypoint must remain read-free'
+assert 'readRecords' in (src / 'M1HealthConnectProbe.kt').read_text()
 print('PASS_R51_DASHBOARD: 4 widgets, daily-only home, Q25 density, demo chart semantics')

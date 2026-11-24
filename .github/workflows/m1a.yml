@@ -1,0 +1,56 @@
+name: Android M1-A stacked validation
+
+on:
+  pull_request:
+    branches:
+      - feature/sablehealth-m0-foundation-20261123
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m1a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '8.13'
+      - name: Install Android API 36
+        run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdkmanager"
+          "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+      - name: M0-R5.4 contracts plus M1-A read-only guard
+        run: |
+          python3 tools/check-structure.py
+          python3 tools/check-r5-contract.py
+          python3 tools/check-r51-contract.py
+          python3 tools/check-r52-contract.py
+          python3 tools/check-r53-contract.py
+          python3 tools/check-r54-contract.py
+          python3 tools/check-m1a-contract.py
+      - name: Build, test, Android lint, Detekt, ktlint
+        run: |
+          gradle --no-daemon --console=plain :core:test :app:assembleDebug :app:lintDebug detekt ktlintCheck
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m1a-android-reports
+          path: |
+            app/build/reports/
+            core/build/reports/
+          if-no-files-found: ignore

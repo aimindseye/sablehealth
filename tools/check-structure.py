@@ -13,7 +13,9 @@ for s in ['0xFF000000', '0xFF141414', '0xFFF5F7F9', '0xFFFFFFFF']:
 for section in ['DASHBOARD', 'SLEEP', 'MOVE', 'VITALS', 'TRENDS']:
     assert section in activity, f'missing tab {section}'
 assert 'getSdkStatus' in activity and 'getGrantedPermissions' in activity
-assert 'readRecords' not in activity, 'M0 must not ingest health records'
+assert 'readRecords' not in (root / 'app/src/main/java/io/github/aimindseye/sablehealth/MainActivity.kt').read_text(), 'M0 activity must remain diagnostic-only'
+probe = (root / 'app/src/main/java/io/github/aimindseye/sablehealth/M1HealthConnectProbe.kt').read_text()
+assert 'readRecords' in probe and 'insertRecords' not in probe and 'deleteRecords' not in probe
 for key in ['UiAction.CONFIRM', 'UiAction.REFRESH', 'editingText', 'repeatCount']:
     assert key in activity + core, f'missing key contract {key}'
 assert 'android.permission.INTERNET' not in manifest
