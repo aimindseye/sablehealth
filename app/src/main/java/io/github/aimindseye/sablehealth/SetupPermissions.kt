@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -29,52 +30,16 @@ internal fun setupAccessSummary(status: ConnectStatus): String =
     }
 
 @Composable
-internal fun SetupPermissions(state: SableAppState) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+internal fun SetupPermissions(
+    state: SableAppState,
+    inspect: suspend (Context) -> ConnectStatus = ::inspectHealthConnect,
+    requestOverride: ((Set<String>) -> Unit)? = null,
+) {
     val recommended = M1HealthConnectProbe.metrics.filter { it.name in recommendedNames }.map { it.permission }.toSet()
     var selection by rememberSaveable { mutableStateOf(recommended.joinToString(",")) }
-    var message by rememberSaveable { mutableStateOf("") }
-    var busy by rememberSaveable { mutableStateOf(false) }
-    val launcher =
-        rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
-            busy = false
-            message = "Permission screen closed. Checking actual access."
-            state.recheckPermissions()
-        }
     val selected = selection.split(",").filter { it.isNotEmpty() }.toSet()
     Text(setupAccessSummary(state.connect), style = MaterialTheme.typography.bodyMedium)
-    FocusButton(
-        "Grant missing selected",
-        onClick = {
-            if (!busy) {
-                busy = true
-                scope.launch {
-                    try {
-                        val actual = inspectHealthConnect(context)
-                        state.connect = actual
-                        val missing = SetupPlan.missing(selected, actual.supported, actual.granted)
-                        if (missing.isEmpty()) {
-                            message = "No missing supported selection. Check access or select categories."
-                            busy = false
-                        } else {
-                            launcher.launch(missing)
-                        }
-                    } catch (cancelled: CancellationException) {
-                        busy = false
-                        throw cancelled
-                    } catch (_: Exception) {
-                        busy = false
-                        message = "Permission screen unavailable. Recheck and retry."
-                    }
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    FocusButton("Recheck permissions", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
-    if (busy) Text("Waiting for Android permissions")
-    if (message.isNotEmpty()) Text(message, style = MaterialTheme.typography.bodySmall)
+    SetupRequestControls(state, selected, inspect, requestOverride)
     CompactChoiceRow(
         "Select read categories",
         listOf("recommended" to "Recommended", "all" to "All supported"),
@@ -83,6 +48,81 @@ internal fun SetupPermissions(state: SableAppState) {
     )
     SetupMetricRows(state.connect, selected) {
         selection = (if (it in selected) selected - it else selected + it).joinToString(",")
+    }
+}
+
+@Composable
+private fun SetupRequestControls(
+    state: SableAppState,
+    selected: Set<String>,
+    inspect: suspend (Context) -> ConnectStatus,
+    requestOverride: ((Set<String>) -> Unit)?,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val request = remember { SetupRequestState() }
+    val launcher =
+        rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
+            request.finished()
+            state.recheckPermissions()
+        }
+    FocusButton(
+        "Grant missing selected",
+        onClick = {
+            if (!request.busy) {
+                request.busy = true
+                scope.launch {
+                    request.request(state, selected, { inspect(context) }) { missing ->
+                        if (requestOverride == null) {
+                            launcher.launch(missing)
+                        } else {
+                            requestOverride(missing)
+                            request.finished()
+                        }
+                    }
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    FocusButton("Recheck permissions", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
+    if (request.busy) Text("Waiting for Android permissions")
+    if (request.message.isNotEmpty()) Text(request.message, style = MaterialTheme.typography.bodySmall)
+}
+
+internal class SetupRequestState {
+    var busy by mutableStateOf(false)
+    var message by mutableStateOf("")
+        private set
+
+    fun finished() {
+        busy = false
+        message = "Permission screen closed. Checking actual access."
+    }
+
+    suspend fun request(
+        state: SableAppState,
+        selected: Set<String>,
+        inspect: suspend () -> ConnectStatus,
+        launch: (Set<String>) -> Unit,
+    ) {
+        try {
+            val actual = inspect()
+            state.connect = actual
+            val missing = SetupPlan.missing(selected, actual.supported, actual.granted)
+            if (missing.isEmpty()) {
+                message = "No missing supported selection. Check access or select categories."
+                busy = false
+            } else {
+                launch(missing)
+            }
+        } catch (cancelled: CancellationException) {
+            busy = false
+            throw cancelled
+        } catch (_: Exception) {
+            busy = false
+            message = "Permission screen unavailable. Recheck and retry."
+        }
     }
 }
 
@@ -110,19 +150,23 @@ private fun SetupMetricRows(
 }
 
 @Composable
-internal fun SetupVerify(state: SableAppState) {
+internal fun SetupVerify(
+    state: SableAppState,
+    discovery: DiscoveryState = remember(state.connect.granted) { DiscoveryState() },
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val discovery = remember(state.connect.granted) { DiscoveryState() }
     Notice("Read access", setupAccessSummary(state.connect))
     FocusButton("Recheck permissions", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
-    FocusButton(
-        "Scan allowed records",
-        onClick = {
-            if (state.connect.granted.isNotEmpty()) scope.launch { discovery.scan(context) }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    if (state.connect.granted.isNotEmpty()) {
+        FocusButton(
+            "Scan allowed records",
+            onClick = { scope.launch { discovery.scan(context) } },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else {
+        Text("Grant read access before scanning.")
+    }
     Text(discovery.message, style = MaterialTheme.typography.bodySmall)
     discovery.results.forEach { coverage ->
         CompactSummary(coverage.type, HealthCoverageContract.status(coverage))

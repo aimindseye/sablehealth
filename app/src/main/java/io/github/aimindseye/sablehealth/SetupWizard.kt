@@ -14,11 +14,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 import io.github.aimindseye.sablehealth.core.SetupEntry
@@ -32,6 +36,8 @@ internal fun SetupWizard(
     entry: SetupEntry,
     close: (Boolean) -> Unit,
 ) {
+    val draft = rememberSaveable(saver = SetupDraft.saver) { SetupDraft(state.appearance, state.demo, state.companion.confirmed) }
+    val holder = rememberSaveableStateHolder()
     var selected by rememberSaveable { mutableStateOf(SetupStage.entries.joinToString(",") { it.name }) }
     var choosing by rememberSaveable { mutableStateOf(entry == SetupEntry.SELECTED_STEPS) }
     var index by rememberSaveable { mutableStateOf(0) }
@@ -43,15 +49,27 @@ internal fun SetupWizard(
             index > 0 -> index = SetupPlan.previous(index)
             entry == SetupEntry.SELECTED_STEPS -> choosing = true
             entry != SetupEntry.FIRST_RUN -> close(false)
+            else -> Unit
         }
     }
     BackHandler { back() }
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp),
+        Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .padding(8.dp)
+            .onPreviewKeyEvent {
+                if (it.type == KeyEventType.KeyDown && it.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE) {
+                    back()
+                    true
+                } else {
+                    false
+                }
+            },
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         CompactPageTitle("Sable Health", if (choosing) "SETUP" else "${index + 1}/${stages.size}")
-        key(choosing, stage) {
+        holder.SaveableStateProvider(if (choosing) "picker" else stage.name) {
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -60,7 +78,7 @@ internal fun SetupWizard(
                     SetupStagePicker(selected) { selected = it }
                 } else {
                     Text(stage.title, style = MaterialTheme.typography.titleLarge)
-                    SetupStageContent(stage, state, profile)
+                    SetupStageContent(stage, state, profile, draft)
                 }
             }
         }
@@ -70,14 +88,22 @@ internal fun SetupWizard(
             next = {
                 when {
                     choosing -> choosing = false
-                    stage == SetupStage.REVIEW -> close(true)
+                    stage == SetupStage.REVIEW -> {
+                        draft.applyTo(state)
+                        close(true)
+                    }
                     else -> index = SetupPlan.next(index, stages.size)
                 }
             },
             skip = {
-                if (choosing || entry != SetupEntry.FIRST_RUN && index == 0) close(false)
-                else if (stage == SetupStage.REVIEW) close(true)
-                else index = SetupPlan.next(index, stages.size)
+                when {
+                    choosing -> close(false)
+                    stage == SetupStage.REVIEW -> {
+                        draft.applyTo(state)
+                        close(true)
+                    }
+                    else -> index = SetupPlan.next(index, stages.size)
+                }
             },
         )
     }
@@ -122,50 +148,81 @@ private fun SetupStageContent(
     stage: SetupStage,
     state: SableAppState,
     profile: DeviceProfile,
+    draft: SetupDraft,
 ) {
     when (stage) {
         SetupStage.WELCOME -> {
             Notice("Local-first wellness", "No cloud, account or background access.")
             Notice("Phone detected", profile.label)
         }
-        SetupStage.SOURCES -> SetupSources(state)
+        SetupStage.SOURCES -> SetupSources(state, draft)
         SetupStage.PERMISSIONS -> SetupPermissions(state)
         SetupStage.VERIFY -> SetupVerify(state)
-        SetupStage.PERSONALIZE -> SetupPersonalize(state)
+        SetupStage.PERSONALIZE -> SetupPersonalize(draft)
         SetupStage.REVIEW -> {
             Notice("Health Connect", state.connect.label)
             Notice("Read access", setupAccessSummary(state.connect))
-            Notice("Dashboard", "Setup does not import measurements. Demo remains synthetic.")
+            Notice("Dashboard", if (draft.demo) "Synthetic demo" else "No records imported")
+            Notice("Appearance", draft.appearance)
+            Notice("Companion", if (draft.confirmed) "User confirmed" else "Not confirmed")
             Text("Finish even if access is missing; return from Settings at any time.")
         }
     }
 }
 
 @Composable
-private fun SetupSources(state: SableAppState) {
+private fun SetupSources(
+    state: SableAppState,
+    draft: SetupDraft,
+) {
     Notice("Health Connect", state.connect.detail)
     FocusButton("Check availability", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
     Notice("Fitbit Air", "Pair and sync in Google Health. Sable Health cannot verify pairing.")
     CompactLinkRow(
         "Companion setup",
-        if (state.companion.confirmed) "User confirmed" else "Not confirmed",
-        { state.companion.chooseConfirmation(!state.companion.confirmed) },
+        if (draft.confirmed) "User confirmed" else "Not confirmed",
+        { draft.confirmed = !draft.confirmed },
     )
 }
 
 @Composable
-private fun SetupPersonalize(state: SableAppState) {
+private fun SetupPersonalize(draft: SetupDraft) {
     CompactChoiceRow(
         "Appearance",
         listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
-        state.appearance,
-        state::chooseAppearance,
+        draft.appearance,
+        { draft.appearance = it },
     )
     CompactChoiceRow(
         "Data mode",
         listOf("demo" to "Demo", "empty" to "No records"),
-        if (state.demo) "demo" else "empty",
-        { state.chooseDemo(it == "demo") },
+        if (draft.demo) "demo" else "empty",
+        { draft.demo = it == "demo" },
     )
-    Text("Choices save immediately. Existing dashboard widgets are preserved.")
+    Text("Choices save on Finish. Existing dashboard widgets are preserved.")
+}
+
+/** Only pending non-health preferences. Android grants are never persisted here. */
+internal class SetupDraft(
+    appearance: String,
+    demo: Boolean,
+    confirmed: Boolean,
+) {
+    var appearance by mutableStateOf(appearance)
+    var demo by mutableStateOf(demo)
+    var confirmed by mutableStateOf(confirmed)
+
+    fun applyTo(state: SableAppState) {
+        if (appearance != state.appearance) state.chooseAppearance(appearance)
+        if (demo != state.demo) state.chooseDemo(demo)
+        if (confirmed != state.companion.confirmed) state.companion.chooseConfirmation(confirmed)
+    }
+
+    companion object {
+        val saver =
+            listSaver<SetupDraft, String>(
+                save = { listOf(it.appearance, it.demo.toString(), it.confirmed.toString()) },
+                restore = { SetupDraft(it[0], it[1].toBoolean(), it[2].toBoolean()) },
+            )
+    }
 }

@@ -98,6 +98,7 @@ internal fun SableApp(resumeVersion: Int = 0) {
     state.setupAction = { mode ->
         returnPage = state.page.name
         entry = mode.name
+        state.recheckPermissions()
     }
     val configuration = LocalConfiguration.current
     val detected = remember(configuration) { detectDevice(configuration) }

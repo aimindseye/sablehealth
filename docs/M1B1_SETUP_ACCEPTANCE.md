@@ -12,5 +12,5 @@ Candidate only until local tests, signed device checks and SonarCloud new-code c
 - Optional Verify scan uses the unchanged bounded M1-A metadata-only reader.
 - Test Q25 and Titan 2 DPAD/trackpad/touch, focus, rotation, Android permission sheet recreation, small viewport.
 - No manifest or dependency changes; versionCode 2 supports signed update with the same certificate.
-- Personalization and companion confirmation save immediately when explicitly selected; Cancel does not undo those choices.
+- Personalization and companion confirmation are pending until Finish; cancel re-entry discards draft choices. Android permission grants are controlled by Android and cannot be rolled back by Cancel.
 - No public release until inherited MobSF issue #6 is closed.
