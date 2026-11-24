@@ -83,7 +83,6 @@ private class DiscoveryState {
 internal fun M1DiscoveryPage() {
     val context = LocalContext.current
     val state = remember { DiscoveryState() }
-    val scope = rememberCoroutineScope()
     val permissionLauncher =
         rememberLauncherForActivityResult(
             PermissionController.createRequestPermissionResultContract(),
