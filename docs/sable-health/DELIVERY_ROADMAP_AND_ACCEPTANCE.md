@@ -19,14 +19,25 @@ Current app supports keyboard-first, theme, synthetic Dashboard and diagnostic-o
 
 **Acceptance:** Q25 actual user-granted API test succeeds or gives precise failure; counts/permissions/origins correspond to HC; no fabricated metrics; teardown/revoke tested; typed and contract tests/CI pass; physical keyboard and touchscreen verified.
 
-## M1-B — local import and provenance foundation
+## M1-B1 — first-run wizard and Sources/Settings 2.0 (proposed)
+
+- Integrate six-stage setup (Welcome → Sources → Read permissions → Verify → Personalize → Review) using proven TenSeven design mechanics, **not** launcher permissions or code.
+- Android-managed Health Connect READ consent with Recommended, All supported READ, and Custom presets, requested only on a user tap. Do not add WRITE/background/history access.
+- One permission/provenance model shared across setup, Sources and Settings; remove outdated M0 text; preserve existing-install preferences.
+- Compact Q25 411dp layout and anchored Back/Next footer, accessibility/keyboard, resumable permission returns.
+- See [M1-B setup design and acceptance](M1B_SETUP_SOURCES_SETTINGS_DESIGN.md) and [GitHub issue #4](https://github.com/aimindseye/sablehealth/issues/4).
+
+**Acceptance:** no unexpected permission prompt or onboarding reset on upgrade; partial grants/revocation remain accurate; source writer/freshness and empty-data states verified on physical Q25.
+
+## M1-B2 — local real-data ingestion, provenance and Dashboard
 
 - Canonical schema in [Data Architecture](DATA_ARCHITECTURE_AND_RECONCILIATION.md).
-- Local secure storage model and retention/deletion policy, migrations and stable IDs; timestamps, units, methods, source app vs hardware distinction.
-- Read-only imported data displays on existing widgets, with data-age labels, no-record and partial-coverage states.
-- Synthetic onboarding/permission UX proof; physical Q25 + Titan2 tests.
+- Start with actually observed Health Connect Steps and Heart Rate via read-only access; Health Connect aggregate steps to avoid duplicated raw step totals.
+- Local secure-storage/retention/deletion threat model; migrations and stable record IDs before durable storage.
+- Explicitly source-labeled, timestamped real metrics and no-data/partial coverage UI. Never mix Demo values with real measurements.
+- Expand Sleep/Distance/Calories only after individual record coverage is confirmed.
 
-**Acceptance:** no duplicate on re-import, correct source attribution, crash/permission-revoke recovery, missing data shown truthfully.
+**Acceptance:** no duplicate on repeated import, correct source attribution, permission-revoke recovery, accurate sample/step semantics and no fabricated data.
 
 ## M2 — evidence-based charts + minimal transparent metrics
 
