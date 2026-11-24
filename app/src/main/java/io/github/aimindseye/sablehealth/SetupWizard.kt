@@ -3,6 +3,7 @@ package io.github.aimindseye.sablehealth
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +37,10 @@ internal fun SetupWizard(
     entry: SetupEntry,
     close: (Boolean) -> Unit,
 ) {
-    val draft = rememberSaveable(saver = SetupDraft.saver) { SetupDraft(state.appearance, state.demo, state.companion.confirmed) }
+    val draft =
+        rememberSaveable(saver = SetupDraft.saver) {
+            SetupDraft(state.appearance, state.demo, state.companion.confirmed)
+        }
     val holder = rememberSaveableStateHolder()
     var selected by rememberSaveable { mutableStateOf(SetupStage.entries.joinToString(",") { it.name }) }
     var choosing by rememberSaveable { mutableStateOf(entry == SetupEntry.SELECTED_STEPS) }
@@ -52,23 +56,24 @@ internal fun SetupWizard(
             else -> Unit
         }
     }
-    BackHandler { back() }
-    Column(
-        Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .padding(8.dp)
-            .onPreviewKeyEvent {
-                if (it.type == KeyEventType.KeyDown && it.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE) {
-                    back()
-                    true
-                } else {
-                    false
-                }
-            },
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        CompactPageTitle("Sable Health", if (choosing) "SETUP" else "${index + 1}/${stages.size}")
+    val advance = {
+        when {
+            choosing -> choosing = false
+            stage == SetupStage.REVIEW -> {
+                draft.applyTo(state)
+                close(true)
+            }
+            else -> index = SetupPlan.next(index, stages.size)
+        }
+    }
+    val actions =
+        SetupActions(
+            back = back,
+            nextLabel = if (!choosing && stage == SetupStage.REVIEW) "Finish" else "Next",
+            next = advance,
+            skip = { if (choosing) close(false) else advance() },
+        )
+    SetupFrame(if (choosing) "SETUP" else "${index + 1}/${stages.size}", actions) {
         holder.SaveableStateProvider(if (choosing) "picker" else stage.name) {
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -82,30 +87,41 @@ internal fun SetupWizard(
                 }
             }
         }
-        SetupFooter(
-            back = back,
-            nextLabel = if (!choosing && stage == SetupStage.REVIEW) "Finish" else "Next",
-            next = {
-                when {
-                    choosing -> choosing = false
-                    stage == SetupStage.REVIEW -> {
-                        draft.applyTo(state)
-                        close(true)
-                    }
-                    else -> index = SetupPlan.next(index, stages.size)
+    }
+}
+
+private data class SetupActions(
+    val back: () -> Unit,
+    val nextLabel: String,
+    val next: () -> Unit,
+    val skip: () -> Unit,
+)
+
+@Composable
+private fun SetupFrame(
+    progress: String,
+    actions: SetupActions,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BackHandler { actions.back() }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .padding(8.dp)
+            .onPreviewKeyEvent {
+                if (it.type == KeyEventType.KeyDown && it.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE) {
+                    actions.back()
+                    true
+                } else {
+                    false
                 }
             },
-            skip = {
-                when {
-                    choosing -> close(false)
-                    stage == SetupStage.REVIEW -> {
-                        draft.applyTo(state)
-                        close(true)
-                    }
-                    else -> index = SetupPlan.next(index, stages.size)
-                }
-            },
-        )
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        CompactPageTitle("Sable Health", progress)
+        content()
+        SetupFooter(actions)
     }
 }
 
@@ -130,16 +146,11 @@ private fun SetupStagePicker(
 }
 
 @Composable
-private fun SetupFooter(
-    back: () -> Unit,
-    nextLabel: String,
-    next: () -> Unit,
-    skip: () -> Unit,
-) {
+private fun SetupFooter(actions: SetupActions) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        FocusButton("Back", back, modifier = Modifier.weight(1f))
-        FocusButton("Skip", skip, modifier = Modifier.weight(1f))
-        FocusButton(nextLabel, next, modifier = Modifier.weight(1f))
+        FocusButton("Back", actions.back, modifier = Modifier.weight(1f))
+        FocusButton("Skip", actions.skip, modifier = Modifier.weight(1f))
+        FocusButton(actions.nextLabel, actions.next, modifier = Modifier.weight(1f))
     }
 }
 

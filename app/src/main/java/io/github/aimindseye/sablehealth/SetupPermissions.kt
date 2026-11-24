@@ -1,6 +1,8 @@
 package io.github.aimindseye.sablehealth
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -14,19 +16,31 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import io.github.aimindseye.sablehealth.core.HealthCoverageContract
 import io.github.aimindseye.sablehealth.core.SetupPlan
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 private val recommendedNames = setOf("Steps", "Sleep sessions", "Heart rate", "Resting heart rate", "Exercise sessions")
+private val activityNames = setOf("Steps", "Exercise sessions", "Active calories")
+
+private fun metricGroup(name: String): String =
+    when (name) {
+        in activityNames -> "Activity"
+        "Sleep sessions" -> "Sleep"
+        else -> "Vitals"
+    }
 
 internal fun setupAccessSummary(status: ConnectStatus): String =
     if (status.grantedCount == null) {
         "Access unknown · recheck"
     } else {
-        "${status.granted.size}/${status.supported.size} allowed · ${status.supported.minus(status.granted).size} not granted"
+        val missing = status.supported.minus(status.granted).size
+        "${status.granted.size}/${status.supported.size} allowed · $missing not granted"
     }
 
 @Composable
@@ -40,10 +54,15 @@ internal fun SetupPermissions(
     val selected = selection.split(",").filter { it.isNotEmpty() }.toSet()
     Text(setupAccessSummary(state.connect), style = MaterialTheme.typography.bodyMedium)
     SetupRequestControls(state, selected, inspect, requestOverride)
+    ManageAndroidPermissions()
     CompactChoiceRow(
         "Select read categories",
         listOf("recommended" to "Recommended", "all" to "All supported"),
-        if (selected == recommended) "recommended" else if (selected == state.connect.supported) "all" else "",
+        when {
+            selected == recommended -> "recommended"
+            selected.isNotEmpty() && selected == state.connect.supported -> "all"
+            else -> ""
+        },
         { selection = (if (it == "recommended") recommended else state.connect.supported).joinToString(",") },
     )
     SetupMetricRows(state.connect, selected) {
@@ -108,6 +127,7 @@ internal class SetupRequestState {
     ) {
         try {
             val actual = inspect()
+            currentCoroutineContext().ensureActive()
             state.connect = actual
             val missing = SetupPlan.missing(selected, actual.supported, actual.granted)
             if (missing.isEmpty()) {
@@ -132,22 +152,53 @@ private fun SetupMetricRows(
     selected: Set<String>,
     toggle: (String) -> Unit,
 ) {
-    M1HealthConnectProbe.metrics.forEach { metric ->
-        val permission = metric.permission
-        val access =
-            when {
-                status.grantedCount == null -> "Unknown"
-                permission !in status.supported -> "Unsupported"
-                permission in status.granted -> "Allowed"
-                else -> "Not granted"
-            }
-        CompactLinkRow(
-            metric.name,
-            (if (permission in selected) "Selected" else "Not selected") + " · " + access,
-            { toggle(permission) },
-        )
+    M1HealthConnectProbe.metrics.groupBy { metricGroup(it.name) }.forEach { (group, metrics) ->
+        Text(group, style = MaterialTheme.typography.titleSmall)
+        metrics.forEach { metric ->
+            val permission = metric.permission
+            CompactLinkRow(
+                metric.name,
+                (if (permission in selected) "Selected" else "Not selected") + " · " + metricAccess(status, permission),
+                { toggle(permission) },
+            )
+        }
     }
 }
+
+private fun metricAccess(
+    status: ConnectStatus,
+    permission: String,
+): String =
+    when {
+        status.grantedCount == null -> "Unknown"
+        permission !in status.supported -> "Unsupported"
+        permission in status.granted -> "Allowed"
+        else -> "Not granted"
+    }
+
+@Composable
+private fun ManageAndroidPermissions() {
+    val context = LocalContext.current
+    var message by remember { mutableStateOf("") }
+    FocusButton(
+        "Manage Android permissions",
+        onClick = {
+            message = openHealthConnectSettings(context)
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (message.isNotEmpty()) Text(message, style = MaterialTheme.typography.bodySmall)
+}
+
+internal fun openHealthConnectSettings(context: Context): String =
+    try {
+        context.startActivity(Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS))
+        ""
+    } catch (_: ActivityNotFoundException) {
+        "Health Connect settings unavailable."
+    } catch (_: SecurityException) {
+        "Health Connect settings access blocked."
+    }
 
 @Composable
 internal fun SetupVerify(
@@ -170,6 +221,7 @@ internal fun SetupVerify(
     Text(discovery.message, style = MaterialTheme.typography.bodySmall)
     discovery.results.forEach { coverage ->
         CompactSummary(coverage.type, HealthCoverageContract.status(coverage))
+        coverage.lastObservedUtc?.let { Text("Last observed (UTC): $it", style = MaterialTheme.typography.bodySmall) }
         if (coverage.originPackages.isNotEmpty()) {
             Text("Writer apps: ${coverage.originPackages.joinToString()}", style = MaterialTheme.typography.bodySmall)
         }

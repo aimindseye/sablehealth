@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import android.content.Context
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -12,7 +13,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.health.connect.client.HealthConnectClient
+import io.github.aimindseye.sablehealth.core.CoverageState
 import io.github.aimindseye.sablehealth.core.DeviceProfile
+import io.github.aimindseye.sablehealth.core.HealthMetricCoverage
 import io.github.aimindseye.sablehealth.core.SetupEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,6 +25,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -29,8 +34,11 @@ class SetupWizardCoverageTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun state(): SableAppState =
-        SableAppState(compose.activity.getSharedPreferences("wizard-coverage", Context.MODE_PRIVATE))
+    private fun state(): SableAppState {
+        val preferences = compose.activity.getSharedPreferences("wizard-coverage", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        return SableAppState(preferences)
+    }
 
     @Test
     fun completeSetupNavigatesAndCommitsOnlyAtFinish() {
@@ -96,6 +104,11 @@ class SetupWizardCoverageTest {
         click("All supported")
         click("Grant missing selected")
         assertEquals(supported - steps, requests)
+        click("Steps")
+        click("Recommended")
+        click("Grant missing selected")
+        assertEquals(4, requests.size)
+        click("All supported")
         actual = actual.copy(grantedCount = supported.size, granted = supported)
         requests = emptySet()
         click("Grant missing selected")
@@ -142,6 +155,77 @@ class SetupWizardCoverageTest {
         assertEquals(SetupEntry.SELECTED_STEPS, entry)
         click("Manage permissions")
         assertEquals(SetupEntry.PERMISSIONS_ONLY, entry)
+    }
+
+    @Test
+    fun firstRunSkipsWithoutPermissionRequest() {
+        val state = state()
+        var finished = false
+        showWizard(state, SetupEntry.FIRST_RUN) { finished = it }
+        click("Back")
+        visible("Welcome")
+        repeat(5) { click("Skip") }
+        visible("Review")
+        click("Finish")
+        assertTrue(finished)
+        assertTrue(state.demo)
+    }
+
+    @Test
+    fun cancelDoesNotWriteCompanionOrAppearance() {
+        val state = state()
+        var closed: Boolean? = null
+        showWizard(state, SetupEntry.REVIEW_ALL) { closed = it }
+        click("Next")
+        click("Companion setup")
+        click("Back")
+        click("Back")
+        assertEquals(false, closed)
+        assertFalse(state.companion.confirmed)
+        assertEquals("system", state.appearance)
+    }
+
+    @Test
+    fun verifyUsesExplicitLocalMetadataScan() {
+        val state = state()
+        val permission = M1HealthConnectProbe.metrics.first().permission
+        state.connect = ConnectStatus("Available", "Synthetic", 1, setOf(permission), setOf(permission))
+        val result =
+            HealthMetricCoverage(
+                type = "Steps",
+                permission = permission,
+                state = CoverageState.RECORDS_FOUND,
+                recordCount = 2,
+                lastObservedUtc = "2026-01-01T00:00:00Z",
+                originPackages = listOf("com.example.writer"),
+            )
+        val discovery = DiscoveryState { _, _ -> listOf(result) }
+        compose.setContent {
+            MaterialTheme {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    SetupVerify(state, discovery)
+                }
+            }
+        }
+        assertTrue(discovery.results.isEmpty())
+        click("Scan allowed records")
+        visible("Writer apps: com.example.writer")
+        visible("Last observed (UTC): 2026-01-01T00:00:00Z")
+    }
+
+    @Test
+    fun androidSettingsActionIsExplicit() {
+        val state = state()
+        compose.setContent {
+            MaterialTheme {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    SetupPermissions(state, requestOverride = {})
+                }
+            }
+        }
+        click("Manage Android permissions")
+        val intent: Intent = shadowOf(compose.activity).nextStartedActivity
+        assertEquals(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS, intent.action)
     }
 
     private fun showWizard(
