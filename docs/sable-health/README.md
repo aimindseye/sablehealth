@@ -17,6 +17,7 @@ This directory preserves the decisions and research accumulated across the Sable
 3. [DATA_ARCHITECTURE_AND_RECONCILIATION.md](DATA_ARCHITECTURE_AND_RECONCILIATION.md) — data flows, provenance, merge semantics, and no-loop rules.
 4. [ANALYTICS_AND_LICENSE_EVALUATION.md](ANALYTICS_AND_LICENSE_EVALUATION.md) — candidate codebases, licenses, inputs, test plan.
 5. [UX_ONBOARDING_AND_ACCESSIBILITY.md](UX_ONBOARDING_AND_ACCESSIBILITY.md) — wizard and Settings/Sources redesign requirements (no changes yet).
+   - [M1B_SETUP_SOURCES_SETTINGS_DESIGN.md](M1B_SETUP_SOURCES_SETTINGS_DESIGN.md) — TenSeven-informed six-stage first-run wizard, permission presets, Sources/Settings 2.0, phased implementation acceptance.
 6. [DELIVERY_ROADMAP_AND_ACCEPTANCE.md](DELIVERY_ROADMAP_AND_ACCEPTANCE.md) — staged milestones, exit criteria and quality gates.
 7. [SOURCES_AND_EVIDENCE_REGISTER.md](SOURCES_AND_EVIDENCE_REGISTER.md) — public source URLs, direct observations, confidence/discrepancy log.
 
