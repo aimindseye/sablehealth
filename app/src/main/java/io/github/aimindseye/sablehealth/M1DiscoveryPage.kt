@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
@@ -25,42 +26,69 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-/**
- * Isolated M1-A proof; R5.4 Sources/Settings overview remains unchanged.
- * Nothing is scanned without a deliberate user tap.
- */
+private const val DEFAULT_SELECTED_CATEGORIES = 3
+
+/** Only transient Compose state. No record values are persisted. */
+private class DiscoveryState {
+    val selected =
+        mutableStateMapOf<String, Boolean>().apply {
+            M1HealthConnectProbe.metrics.forEachIndexed { index, metric ->
+                this[metric.permission] = index < DEFAULT_SELECTED_CATEGORIES
+            }
+        }
+    var message by mutableStateOf("No scan performed")
+    var scanning by mutableStateOf(false)
+    var results by mutableStateOf<List<HealthMetricCoverage>>(emptyList())
+    var scannedAt by mutableStateOf<String?>(null)
+    var reportVisible by mutableStateOf(false)
+
+    fun clear() {
+        results = emptyList()
+        scannedAt = null
+        reportVisible = false
+    }
+
+    fun permissionResult(permissions: Set<String>) {
+        message =
+            if (permissions.isEmpty()) {
+                "No permissions granted · you can retry"
+            } else {
+                "Permission screen closed · select Scan to verify records"
+            }
+        clear()
+    }
+
+    suspend fun scan(context: Context) {
+        if (scanning) return
+        scanning = true
+        clear()
+        message = "Scanning locally · no measurements retained"
+        try {
+            val now = Instant.now()
+            results = M1HealthConnectProbe.scan(context, now)
+            scannedAt = now.toString()
+            message = "Finished · record counts are not step or sample totals"
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            message = "Scan unavailable · check Health Connect and retry"
+        } finally {
+            scanning = false
+        }
+    }
+}
+
+/** M1-A is a separate opt-in proof screen, not a redesign of R5.4 Sources. */
 @Composable
 internal fun M1DiscoveryPage() {
     val context = LocalContext.current
+    val state = remember { DiscoveryState() }
     val scope = rememberCoroutineScope()
-    val selected =
-        remember {
-            mutableStateMapOf<String, Boolean>().apply {
-                M1HealthConnectProbe.metrics.forEachIndexed { index, metric ->
-                    this[metric.permission] = index < 3
-                }
-            }
-        }
-    var message by remember { mutableStateOf("No scan performed") }
-    var scanning by remember { mutableStateOf(false) }
-    var results by remember { mutableStateOf<List<HealthMetricCoverage>>(emptyList()) }
-    var scannedAt by remember { mutableStateOf<String?>(null) }
-    var reportVisible by remember { mutableStateOf(false) }
     val permissionLauncher =
         rememberLauncherForActivityResult(
             PermissionController.createRequestPermissionResultContract(),
-        ) { permissions ->
-            message =
-                if (permissions.isEmpty()) {
-                    "No permissions granted · you can retry"
-                } else {
-                    "Permission screen closed · select Scan to verify records"
-                }
-            results = emptyList()
-            scannedAt = null
-            reportVisible = false
-        }
-    val platformAvailable =
+        ) { granted -> state.permissionResult(granted) }
+    val available =
         remember(context) {
             try {
                 M1HealthConnectProbe.platformAvailable(context)
@@ -78,31 +106,49 @@ internal fun M1DiscoveryPage() {
         "Nothing is uploaded. This does not pair with your Fitbit or import measurements into Dashboard.",
         style = MaterialTheme.typography.bodySmall,
     )
-    if (!platformAvailable) {
+    if (!available) {
         Notice("Unavailable", "Health Connect needs to be installed or updated before discovery.")
         return
     }
+    M1MetricSelector(state)
+    M1ScanActions(state, context) { permissionLauncher.launch(it) }
+    Text(state.message, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+    if (state.results.isNotEmpty()) {
+        M1ScanResults(state, context)
+    }
+}
+
+@Composable
+private fun M1MetricSelector(state: DiscoveryState) {
     Text("Select read categories", style = MaterialTheme.typography.titleSmall)
     M1HealthConnectProbe.metrics.forEach { metric ->
-        val enabled = selected[metric.permission] == true
+        val enabled = state.selected[metric.permission] == true
         CompactLinkRow(
             title = (if (enabled) "✓ " else "○ ") + metric.name,
             detail = if (enabled) "Selected · tap to remove" else "Not selected · tap to add",
-            onClick = { selected[metric.permission] = !enabled },
+            onClick = { state.selected[metric.permission] = !enabled },
         )
     }
+}
 
+@Composable
+private fun M1ScanActions(
+    state: DiscoveryState,
+    context: Context,
+    requestPermissions: (Set<String>) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
     FocusButton(
         "Request selected READ access",
         onClick = {
-            val request = selected.filterValues { it }.keys.toSet()
+            val request = state.selected.filterValues { it }.keys.toSet()
             if (request.isEmpty()) {
-                message = "Select at least one category"
+                state.message = "Select at least one category"
             } else {
                 try {
-                    permissionLauncher.launch(request)
+                    requestPermissions(request)
                 } catch (_: Exception) {
-                    message = "Permission screen unavailable · check Health Connect"
+                    state.message = "Permission screen unavailable · check Health Connect"
                 }
             }
         },
@@ -110,79 +156,68 @@ internal fun M1DiscoveryPage() {
     )
     FocusButton(
         "Scan allowed records",
-        onClick = {
-            if (!scanning) {
-                scanning = true
-                results = emptyList()
-                scannedAt = null
-                reportVisible = false
-                message = "Scanning locally · no measurements retained"
-                scope.launch {
-                    try {
-                        val now = Instant.now()
-                        results = M1HealthConnectProbe.scan(context, now)
-                        scannedAt = now.toString()
-                        message = "Finished · record counts are not step or sample totals"
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        message = "Scan unavailable · check Health Connect and retry"
-                    } finally {
-                        scanning = false
-                    }
-                }
+        onClick = { if (!state.scanning) scope.launch { state.scan(context) } },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun M1ScanResults(
+    state: DiscoveryState,
+    context: Context,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        state.results.forEach { coverage ->
+            CompactSummary(
+                coverage.type,
+                HealthCoverageContract.status(coverage),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (coverage.originPackages.isNotEmpty()) {
+                Text(
+                    "Writer apps: ${coverage.originPackages.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
+        }
+        Text(
+            "Observed UTC bounds are available in the report. Capped counts describe " +
+                "scanned records, not full history.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+    FocusButton(
+        "Review coverage report",
+        onClick = { state.reportVisible = !state.reportVisible },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (state.reportVisible) {
+        M1ReportPreview(state, context)
+    }
+}
+
+@Composable
+private fun M1ReportPreview(
+    state: DiscoveryState,
+    context: Context,
+) {
+    val report = HealthCoverageContract.redactedReport(state.results, state.scannedAt.orEmpty())
+    Text(report, style = MaterialTheme.typography.bodySmall)
+    Text(
+        "This includes timestamps and writer app names. Share only if you choose.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    FocusButton(
+        "Share reviewed report",
+        onClick = {
+            val intent =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "Sable Health M1-A coverage")
+                    putExtra(Intent.EXTRA_TEXT, report)
+                }
+            context.startActivity(Intent.createChooser(intent, "Share metadata-only coverage"))
         },
         modifier = Modifier.fillMaxWidth(),
     )
-    Text(message, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-
-    if (results.isNotEmpty()) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            results.forEach { coverage ->
-                CompactSummary(
-                    coverage.type,
-                    HealthCoverageContract.status(coverage),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (coverage.originPackages.isNotEmpty()) {
-                    Text(
-                        "Writer apps: ${coverage.originPackages.joinToString(", ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-            Text(
-                "Earliest/latest observed UTC timestamps are available in the optional report. " +
-                    "Capped counts describe scanned records, not full history.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        FocusButton(
-            "Review coverage report",
-            onClick = { reportVisible = !reportVisible },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (reportVisible) {
-            val report = HealthCoverageContract.redactedReport(results, scannedAt.orEmpty())
-            Text(report, style = MaterialTheme.typography.bodySmall)
-            Text(
-                "This includes timestamps and writer app names. Share only if you choose.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            FocusButton(
-                "Share reviewed report",
-                onClick = {
-                    val intent =
-                        Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, "Sable Health M1-A coverage")
-                            putExtra(Intent.EXTRA_TEXT, report)
-                        }
-                    context.startActivity(Intent.createChooser(intent, "Share metadata-only coverage"))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
 }
