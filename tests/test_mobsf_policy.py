@@ -112,38 +112,43 @@ class MobSFRatchetTest(unittest.TestCase):
     def test_baseline_duplicate_entry_refused(self):
         base = copy.deepcopy(BASELINE)
         base["inherited"].append(copy.deepcopy(base["inherited"][0]))
+        doc = sarif()
         with self.assertRaises(policy.ScanError):
-            policy.check(sarif(), base)
+            policy.check(doc, base)
 
     def test_baseline_larger_allowance_refused(self):
         for limit in (0, 2, True):
             with self.subTest(limit=limit):
                 base = copy.deepcopy(BASELINE)
                 base["inherited"][0]["limit"] = limit
+                doc = sarif()
                 with self.assertRaises(policy.ScanError):
-                    policy.check(sarif(), base)
+                    policy.check(doc, base)
 
     def test_baseline_invalid_fields_refused(self):
         for field in ("schema", "source_commit", "review_issue", "inherited", "tool"):
             with self.subTest(field=field):
                 base = copy.deepcopy(BASELINE)
                 base[field] = None
+                doc = sarif()
                 with self.assertRaises(policy.ScanError):
-                    policy.check(sarif(), base)
+                    policy.check(doc, base)
 
     def test_baseline_rule_severity_and_path_are_checked(self):
         for field, value in (("level", "critical"), ("ruleId", ""), ("path", ""), ("limit", 2)):
             with self.subTest(field=field):
                 base = copy.deepcopy(BASELINE)
                 base["inherited"][0][field] = value
+                doc = sarif()
                 with self.assertRaises(policy.ScanError):
-                    policy.check(sarif(), base)
+                    policy.check(doc, base)
 
     def test_baseline_extra_key_refused(self):
         base = copy.deepcopy(BASELINE)
         base["inherited"][0]["untrusted"] = True
+        doc = sarif()
         with self.assertRaises(policy.ScanError):
-            policy.check(sarif(), base)
+            policy.check(doc, base)
 
     def test_malformed_sarif_finding_refused(self):
         for field in ("ruleId", "level", "locations"):
@@ -199,6 +204,41 @@ class MobSFRatchetTest(unittest.TestCase):
             with self.assertRaises(SystemExit) as caught:
                 policy.main()
         self.assertEqual(2, caught.exception.code)
+
+    def test_malformed_nested_locations_refused(self):
+        for broken in (None, "bad", {"physicalLocation": "bad"},
+                       {"physicalLocation": {"artifactLocation": ["bad"]}},
+                       {"physicalLocation": {"artifactLocation": {"uri": None}}}):
+            with self.subTest(broken=broken):
+                doc = sarif()
+                doc["runs"][0]["results"][0]["locations"][0] = broken
+                with self.assertRaises(policy.ScanError):
+                    policy.check(doc, BASELINE)
+
+    def test_malformed_result_and_tool_structures_refused(self):
+        for broken in (None, 0, "bad"):
+            with self.subTest(broken=broken):
+                doc = sarif()
+                doc["runs"][0]["results"][0] = broken
+                with self.assertRaises(policy.ScanError):
+                    policy.check(doc, BASELINE)
+                doc = sarif()
+                doc["runs"][0]["tool"] = broken
+                with self.assertRaises(policy.ScanError):
+                    policy.check(doc, BASELINE)
+                doc = sarif()
+                doc["runs"][0]["tool"]["driver"] = broken
+                with self.assertRaises(policy.ScanError):
+                    policy.check(doc, BASELINE)
+
+    def test_bad_baseline_scanner_version_refused(self):
+        for invalid in (None, "", 21, []):
+            with self.subTest(invalid=invalid):
+                base = copy.deepcopy(BASELINE)
+                base["tool"]["version"] = invalid
+                doc = sarif()
+                with self.assertRaises(policy.ScanError):
+                    policy.check(doc, base)
 
     def test_workflow_retains_sarif_and_enforces_scan(self):
         workflow = (ROOT / ".github/workflows/security.yml").read_text(encoding="utf-8")
