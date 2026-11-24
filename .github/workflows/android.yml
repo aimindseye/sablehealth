@@ -32,7 +32,7 @@ jobs:
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build, test, lint and quality gates
         run: |
-          gradle --no-daemon --console=plain :core:test :app:assembleDebug :app:lintDebug detekt ktlintCheck
+          gradle --no-daemon --console=plain :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug detekt ktlintCheck
       - name: Verify static source contract
         run: |
           python3 tools/check-structure.py
@@ -41,6 +41,7 @@ jobs:
           python3 tools/check-r52-contract.py
           python3 tools/check-r53-contract.py
           python3 tools/check-r54-contract.py
+          python3 tools/check-m1a-contract.py
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

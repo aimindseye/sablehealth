@@ -41,6 +41,17 @@ class HealthCoverageContractTest {
     }
 
     @Test
+    fun uncappedCountAndEmptyReportRemainDistinct() {
+        val row = HealthMetricCoverage("Steps", "read.steps", CoverageState.RECORDS_FOUND, recordCount = 2)
+        assertEquals("2 records found", HealthCoverageContract.status(row))
+        val report = HealthCoverageContract.redactedReport(listOf(row), "2026-11-23T23:00:00Z")
+        assertTrue(report.contains("COUNT_IS_LOWER_BOUND=false"))
+        assertTrue(report.contains("FIRST_OBSERVED_UTC=NONE"))
+        assertTrue(report.contains("LAST_OBSERVED_UTC=NONE"))
+        assertTrue(HealthCoverageContract.redactedReport(emptyList(), "now").endsWith("END_OF_REPORT\n"))
+    }
+
+    @Test
     fun exportContainsOnlyProvenanceMetadataNotMeasurements() {
         val row =
             HealthMetricCoverage(
