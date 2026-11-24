@@ -1,19 +1,23 @@
-name: Android M0
+name: Android quality and release-candidate validation
+
+# Every PR, including stacked feature PRs; no hidden main-only gate.
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: android-${{ github.ref }}
+  group: android-quality-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
-  build:
+  qualify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -30,24 +34,17 @@ jobs:
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
           test -n "$sdkmanager"
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
-      - name: Build, test, lint and quality gates
-        run: |
-          gradle --no-daemon --console=plain :core:test :app:assembleDebug :app:lintDebug detekt ktlintCheck
-      - name: Verify static source contract
-        run: |
-          python3 tools/check-structure.py
-          python3 tools/check-r5-contract.py
-          python3 tools/check-r51-contract.py
-          python3 tools/check-r52-contract.py
-          python3 tools/check-r53-contract.py
-          python3 tools/check-r54-contract.py
-      - name: Upload reports
+      - name: Full source contracts, tests, Android quality and unsigned APK
+        run: python3 tools/quality_preflight.py --ci
+      - name: Upload quality reports and unsigned candidates
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: m0-android-reports
+          name: sablehealth-quality-reports
           path: |
             app/build/reports/
             core/build/reports/
             app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*-unsigned.apk
           if-no-files-found: ignore
+          retention-days: 14
