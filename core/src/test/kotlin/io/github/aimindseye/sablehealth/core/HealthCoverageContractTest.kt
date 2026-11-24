@@ -32,7 +32,12 @@ class HealthCoverageContractTest {
                 countIsLowerBound = true,
             )
         assertTrue(HealthCoverageContract.status(capped).startsWith("At least"))
-        assertTrue(HealthCoverageContract.redactedReport(listOf(capped), "2026-11-23T23:00:00Z").contains("COUNT_IS_LOWER_BOUND=true"))
+        val report =
+            HealthCoverageContract.redactedReport(
+                listOf(capped),
+                "2026-11-23T23:00:00Z",
+            )
+        assertTrue(report.contains("COUNT_IS_LOWER_BOUND=true"))
     }
 
     @Test
