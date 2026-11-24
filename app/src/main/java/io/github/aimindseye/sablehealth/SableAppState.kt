@@ -79,7 +79,7 @@ internal class SableAppState(
             when (page) {
                 Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY -> Page.SETTINGS
                 Page.HELP -> Page.PHONE_INPUT
-                Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY -> Page.SOURCES
+                Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY, Page.M1_DISCOVERY -> Page.SOURCES
                 Page.MAIN -> {
                     section = Section.DASHBOARD
                     Page.MAIN
