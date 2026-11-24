@@ -9,18 +9,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.aimindseye.sablehealth.core.SetupEntry
 import io.github.aimindseye.sablehealth.core.SourcesUiContract
 
 /** The only provider state verified by M0 is Health Connect platform/permission availability. */
 @Composable
 internal fun SourcesPage(state: SableAppState) {
-    CompactPageTitle("Data connections", "M0 DIAGNOSTIC")
+    CompactPageTitle("Data connections", "LOCAL")
     val dark = MaterialTheme.colorScheme.background == SablePalette.darkBase
     val availableColor = if (dark) ChartColors.darkGood else ChartColors.lightGood
     val cautionColor = if (dark) ChartColors.darkCaution else ChartColors.lightCaution
     CompactLinkRow(
         title = "Health Connect · ${state.connect.label}",
-        detail = "Record read access not requested · M0",
+        detail = state.connect.detail,
         onClick = { state.page = Page.SOURCE_DETAIL },
         statusColor = if (state.connect.label == "Available") availableColor else cautionColor,
     )
@@ -39,6 +40,11 @@ internal fun SourcesPage(state: SableAppState) {
             CompactSummary("Records imported", SourcesUiContract.IMPORTED_M0)
         }
     }
+    CompactLinkRow(
+        "Manage permissions",
+        "Review and grant missing read access",
+        { state.setupAction(SetupEntry.PERMISSIONS_ONLY) },
+    )
     CompactLinkRow("Privacy & diagnostics", "Local only · details", { state.page = Page.SOURCE_PRIVACY })
     FocusButton("Check availability again", state::refreshSources, modifier = Modifier.fillMaxWidth())
     CompactLinkRow(
@@ -55,7 +61,7 @@ internal fun SourceDetailPage(state: SableAppState) {
     Notice(
         "Metric permission access",
         "${state.connect.grantedCount?.toString() ?: "Unknown"} granted to Sable Health. " +
-            "M0 does not request or read heart rate, sleep or activity records.",
+            "Use Manage permissions to review read access.",
     )
     Notice("Imported records", "None. M0 has no data ingestion, regardless of companion syncing.")
     Notice(
@@ -82,7 +88,7 @@ internal fun SourceDetailPage(state: SableAppState) {
         modifier = Modifier.fillMaxWidth(),
     )
     Notice(
-        "Next: M1 record verification",
+        "Record verification",
         "Request read-only permissions, inspect record categories, provenance and freshness. " +
             "No Fitbit-only metric is assumed to be exported.",
     )
