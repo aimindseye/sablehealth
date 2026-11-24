@@ -101,7 +101,7 @@ private fun HealthPage(
         Page.SOURCES -> SourcesPage(state)
         Page.SOURCE_DETAIL -> SourceDetailPage(state)
         Page.SOURCE_PRIVACY -> SourcePrivacyPage()
-        Page.M1_DISCOVERY -> M1DiscoveryPage()
+        Page.M1_DISCOVERY -> M1DiscoveryPage(state.discovery, appState = state)
         Page.SETTINGS -> SettingsPage(state, profile)
         Page.WIDGETS -> WidgetPickerPage(state)
         Page.PHONE_INPUT -> PhoneInputPage(state, profile)

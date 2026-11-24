@@ -13,6 +13,7 @@ internal enum class ViewMode { TEXT, GRAPHS }
 /** A single state owner keeps callbacks and preference writes out of Compose screen functions. */
 internal class SableAppState(
     private val preferences: SharedPreferences,
+    private val newDiscovery: () -> DiscoveryState = { DiscoveryState() },
 ) {
     val dashboard = DashboardPreferenceState(preferences)
 
@@ -49,7 +50,18 @@ internal class SableAppState(
     var section by mutableStateOf(Section.DASHBOARD)
     var page by mutableStateOf(Page.MAIN)
     var diagnosticsVersion by mutableStateOf(0)
-    var connect by mutableStateOf(ConnectStatus("Checking", "Inspecting Health Connect availability"))
+    private var connection by mutableStateOf(ConnectStatus("Checking", "Inspecting Health Connect availability"))
+    var discovery by mutableStateOf(newDiscovery())
+        private set
+    var connect: ConnectStatus
+        get() = connection
+        set(value) {
+            val accessChanged = connection.granted != value.granted || connection.supported != value.supported
+            if (accessChanged || value.grantedCount == null) {
+                discovery = newDiscovery()
+            }
+            connection = value
+        }
 
     fun selectedProfile(detected: DeviceProfile): DeviceProfile =
         DeviceProfile.entries.firstOrNull { it.name == profileOverride } ?: detected

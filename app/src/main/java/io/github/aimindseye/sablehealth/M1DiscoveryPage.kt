@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import io.github.aimindseye.sablehealth.core.HealthCoverageContract
 import io.github.aimindseye.sablehealth.core.HealthMetricCoverage
+import io.github.aimindseye.sablehealth.core.SetupEntry
+import io.github.aimindseye.sablehealth.core.SourceOverview
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -72,6 +74,7 @@ internal class DiscoveryState(
             scannedAt = now.toString()
             message = "Finished · record counts are not step or sample totals"
         } catch (cancelled: CancellationException) {
+            message = "Scan cancelled · retry when ready"
             throw cancelled
         } catch (_: Exception) {
             message = "Scan unavailable · check Health Connect and retry"
@@ -81,13 +84,18 @@ internal class DiscoveryState(
     }
 }
 
-/** M1-A is a separate opt-in proof screen, not a redesign of R5.4 Sources. */
+/** The app routes to shared coverage; the isolated M1-A proof harness remains testable. */
 @Composable
 internal fun M1DiscoveryPage(
     state: DiscoveryState = remember { DiscoveryState() },
     availableOverride: Boolean? = null,
     permissionRequestOverride: ((Set<String>) -> Unit)? = null,
+    appState: SableAppState? = null,
 ) {
+    if (appState != null) {
+        SharedCoveragePage(appState)
+        return
+    }
     val context = LocalContext.current
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -123,6 +131,34 @@ internal fun M1DiscoveryPage(
     if (state.results.isNotEmpty()) {
         M1ScanResults(state, context)
     }
+}
+
+@Composable
+private fun SharedCoveragePage(app: SableAppState) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val state = app.discovery
+    CompactPageTitle("Record coverage", "READ ONLY")
+    Text(setupAccessSummary(app.connect), style = MaterialTheme.typography.bodySmall)
+    FocusButton(
+        "Manage permissions",
+        { app.setupAction(SetupEntry.PERMISSIONS_ONLY) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (app.connect.granted.isNotEmpty()) {
+        FocusButton(
+            "Scan allowed records",
+            onClick = { scope.launch { state.scan(context) } },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    Text(state.message, style = MaterialTheme.typography.bodySmall)
+    val rows = SourceOverview.visibleRows(state.results, app.connect.granted)
+    if (rows.isNotEmpty()) M1ScanResults(state, context, rows)
+    Text(
+        "Records scanned in a 30-day window. Not a companion sync or Dashboard import.",
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
 
 @Composable
@@ -176,19 +212,13 @@ private fun M1ScanActions(
 private fun M1ScanResults(
     state: DiscoveryState,
     context: Context,
+    rows: List<HealthMetricCoverage> = state.results,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        state.results.forEach { coverage ->
-            CompactSummary(
-                coverage.type,
-                HealthCoverageContract.status(coverage),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (coverage.originPackages.isNotEmpty()) {
-                Text(
-                    "Writer apps: ${coverage.originPackages.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+        rows.groupBy { SourceOverview.category(it.type) }.forEach { (category, entries) ->
+            Text(category, style = MaterialTheme.typography.titleSmall)
+            entries.forEach { coverage ->
+                CoverageDetail(coverage)
             }
         }
         Text(
@@ -203,7 +233,23 @@ private fun M1ScanResults(
         modifier = Modifier.fillMaxWidth(),
     )
     if (state.reportVisible) {
-        M1ReportPreview(state, context)
+        M1ReportPreview(state, context, rows)
+    }
+}
+
+@Composable
+private fun CoverageDetail(coverage: HealthMetricCoverage) {
+    CompactSummary(
+        coverage.type,
+        HealthCoverageContract.status(coverage),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    coverage.lastObservedUtc?.let { Text("Last observed (UTC): $it", style = MaterialTheme.typography.bodySmall) }
+    if (coverage.originPackages.isNotEmpty()) {
+        Text(
+            "Writer apps: ${coverage.originPackages.joinToString(", ")}",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
@@ -211,8 +257,9 @@ private fun M1ScanResults(
 private fun M1ReportPreview(
     state: DiscoveryState,
     context: Context,
+    rows: List<HealthMetricCoverage>,
 ) {
-    val report = HealthCoverageContract.redactedReport(state.results, state.scannedAt.orEmpty())
+    val report = HealthCoverageContract.redactedReport(rows, state.scannedAt.orEmpty())
     Text(report, style = MaterialTheme.typography.bodySmall)
     Text(
         "This includes timestamps and writer app names. Share only if you choose.",

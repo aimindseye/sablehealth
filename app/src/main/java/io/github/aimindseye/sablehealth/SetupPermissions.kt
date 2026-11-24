@@ -20,20 +20,13 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import io.github.aimindseye.sablehealth.core.HealthCoverageContract
 import io.github.aimindseye.sablehealth.core.SetupPlan
+import io.github.aimindseye.sablehealth.core.SourceOverview
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 private val recommendedNames = setOf("Steps", "Sleep sessions", "Heart rate", "Resting heart rate", "Exercise sessions")
-private val activityNames = setOf("Steps", "Exercise sessions", "Active calories")
-
-private fun metricGroup(name: String): String =
-    when (name) {
-        in activityNames -> "Activity"
-        "Sleep sessions" -> "Sleep"
-        else -> "Vitals"
-    }
 
 internal fun setupAccessSummary(status: ConnectStatus): String =
     if (status.grantedCount == null) {
@@ -156,7 +149,7 @@ private fun SetupMetricRows(
     selected: Set<String>,
     toggle: (String) -> Unit,
 ) {
-    M1HealthConnectProbe.metrics.groupBy { metricGroup(it.name) }.forEach { (group, metrics) ->
+    M1HealthConnectProbe.metrics.groupBy { SourceOverview.category(it.name) }.forEach { (group, metrics) ->
         Text(group, style = MaterialTheme.typography.titleSmall)
         metrics.forEach { metric ->
             val permission = metric.permission
@@ -207,7 +200,7 @@ internal fun openHealthConnectSettings(context: Context): String =
 @Composable
 internal fun SetupVerify(
     state: SableAppState,
-    discovery: DiscoveryState = remember(state.connect.granted) { DiscoveryState() },
+    discovery: DiscoveryState = state.discovery,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
