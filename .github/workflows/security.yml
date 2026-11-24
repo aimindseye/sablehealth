@@ -59,11 +59,14 @@ jobs:
         env:
           MOBSF_SCAN_OUTCOME: ${{ steps.mobsfscan.outcome }}
         run: |
+          set -o pipefail
           python3 tools/check_mobsf_findings.py \
-            --report mobsfscan-results.sarif \
-            --baseline config/mobsf-known-findings.json \
-            --scan-outcome "$MOBSF_SCAN_OUTCOME" \
-            --summary "$GITHUB_STEP_SUMMARY"
+            --scan-outcome "$MOBSF_SCAN_OUTCOME" | tee mobsf-gate-summary.txt
+          {
+            echo "### MobSF risk ratchet (inherited findings remain unresolved)"
+            cat mobsf-gate-summary.txt
+            echo "Security review: https://github.com/aimindseye/sablehealth/issues/6"
+          } >> "$GITHUB_STEP_SUMMARY"
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
