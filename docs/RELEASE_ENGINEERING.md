@@ -3,7 +3,7 @@
 **Status: infrastructure candidate; no key provisioned or release authorized.**  
 **Package:** `io.github.aimindseye.sablehealth` (owner reports registered in Android Developer Console).  
 **Version currently configured:** `0.1.0-m0`, versionCode `1`; this is a prototype baseline, not a public-release recommendation.  
-**Reference:** TenSeven Launcher `tools/build-release.sh`, `tools/verify-release-apks.sh`, Gradle release signing, Sonar workflow and AGENTS.md. Sable Health uses its **own** key, fingerprint and app identity.
+**Reference:** TenSeven Launcher, [Sable Games](https://github.com/aimindseye/sablegames/blob/main/tools/build-release.sh), and [Sable Watch](https://github.com/aimindseye/sable-watch/blob/main/tools/build-release.sh) interactive local signing patterns; Sonar workflow and AGENTS.md. Sable Health uses its **own** key, fingerprint and app identity.
 
 ## 1. Prerequisites and certificate identity (owner action)
 
@@ -32,45 +32,46 @@ After verifying the exact identity, add a **public one-line** `config/release-ce
 
 For a new app only (not an installed build's update) Android's debug key and owner's release key differ; `adb install -r` cannot normally update between differently signed APKs. Do not uninstall an existing test build or erase private health data without planning the migration.
 
-## 2. Local signing configuration
+## 2. Owner-only interactive signing
 
-Use **one** of these mechanisms; all four values are required.
-
-**Option A: untracked local `keystore.properties` at repo root**, which the updated `.gitignore` excludes. Protect the file with `chmod 600 keystore.properties` and ensure Mac backups are encrypted. Its contents:
-
-```properties
-storeFile=/absolute/path/outside/repository/SableHealth-release.jks
-storePassword=REPLACE_LOCALLY_NOT_IN_GIT
-keyAlias=sablehealth
-keyPassword=REPLACE_LOCALLY_NOT_IN_GIT
-```
-
-**Option B: owner-only environment** (inject from your Mac Keychain or secure password manager, not shell history):
-
-- `SABLE_HEALTH_KEYSTORE` — path
-- `SABLE_HEALTH_KEYSTORE_PASSWORD`
-- `SABLE_HEALTH_KEY_ALIAS`
-- `SABLE_HEALTH_KEY_PASSWORD`
-
-Never store a keystore, store passwords, serialized credentials, or signing env variables in GitHub, Actions logs or PR artifacts. Sable's Gradle build intentionally produces **unsigned** release candidates when no signing inputs exist. Incomplete signing config is an error, not silent fallback.
-
-## 3. Preflight and release build
+**Canonical command:**
 
 ```bash
-cd "$HOME/Documents/projects/sablehealth-m1a"   # replace with your clean release-candidate worktree
+bash tools/build-release.sh
+```
+
+There is **no `keystore.properties` file, environment password or Python release entrypoint** required. With a clean committed source checkout, pinned public registered certificate, Gradle 8.13 wrapper and Android SDK Build Tools 36.0.0, the script:
+
+1. Runs the exact local quality preflight, builds the **unsigned** APK and verifies package/minSdk/version.
+2. Prompts for **keystore location**, then **key alias**.
+3. Prompts for the hidden **keystore password**, then hidden **key password** (press Enter if it is the same).
+4. Signs with `apksigner`, passing passwords through **standard input only**, never in arguments, an environment variable, a settings file or CI.
+5. Verifies the signed APK's v2/v3 signature, single signer, package, version and matching **registered public SHA-256 certificate**.
+6. Writes to `~/Downloads/sablehealth-release/<version>/`: the APK, `.sha256`, `SOURCE_COMMIT.txt` and `REGISTERED_CERT_SHA256.txt`.
+
+No keystore path, key alias, password or signed artifact is ever written into GitHub. The temporary signed file is removed after verification and copy. **This command never pushes or publishes a GitHub Release.**
+
+### Registered certificate and shared-key option
+
+Sable Watch's [releasing documentation](https://github.com/aimindseye/sable-watch/blob/main/docs/RELEASING.md) confirms that Sable Watch, Sable Games and TenSeven Launcher use a shared registered certificate. You **may use the same existing keystore and alias** for Sable Health **if its package registration explicitly uses that identical certificate**. We do not assume it does or pin another app's fingerprint automatically.
+
+The one-line public `config/release-certificate.sha256` file must be committed before the script can sign. It is not a secret. If the private key doesn't match that digest, the APK is refused and no release asset is accepted.
+
+**No keystore/password input is needed for ordinary Gradle builds or CI.** `./gradlew :app:assembleRelease` now produces only `app-release-unsigned.apk`; the signing step is restricted to the owner-run Bash script.
+
+### Preparation and local checks
+
+```bash
+cd "$HOME/Documents/projects/sablehealth-m1b0"  # or an approved clean release worktree
 
 python3 tools/quality_preflight.py --quick
 python3 tools/quality_preflight.py
 
-# Only after commits, local quality, CI, MobSF/CodeQL, Sonar, source review and Q25 acceptance:
-python3 tools/build-release.py
+# Only after PR review, security/CI/Sonar and device acceptance, plus certificate registration:
+bash tools/build-release.sh
 ```
 
-`build-release.py` refuses dirty/untracked work, requires the committed public certificate pin, runs the full preflight again, requires Gradle's `verifyRegisteredReleaseKey` task, builds one signed release APK, and checks the result through `tools/verify-release-apk.py`.
-
-It writes under `~/Downloads/sablehealth-release/<version>/`: signed APK, `.sha256`, `SOURCE_COMMIT.txt` and `REGISTERED_CERT_SHA256.txt`. It **never** publishes automatically. The signed verifier checks package ID, minSdk, version, v2/v3 signature, exactly one signer, and the pinned certificate.
-
-Before publishing, verify a clean installation on a separate test device and update behavior on any existing release-signed installation. Review versionCode monotonicity and note that `0.1.0-m0` is a testing version.
+The script deliberately refuses dirty/untracked source or an untracked certificate pin. Running it in an uncommitted ZIP handoff review worktree will produce **HOLD**, not a signed release. Commit and approve the release source first. Do not uninstall debug-signed Q25 builds to test release signing without a data migration plan.
 
 ## 4. GitHub Releases — manual only
 
