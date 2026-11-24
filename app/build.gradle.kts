@@ -24,7 +24,13 @@ android {
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
     buildTypes {
         debug { enableUnitTestCoverage = true }
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
     }
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
