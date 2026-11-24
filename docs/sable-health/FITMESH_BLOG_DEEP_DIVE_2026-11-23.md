@@ -66,7 +66,7 @@
 
 - A device may measure HRV, SpO2 and temperature without its companion exporting all of those types. Proprietary readiness and Body Battery scores remain in origin apps unless a separate authorized interface provides them.
 - FitMesh lists Oura and Garmin data routes as conditional in its detailed matrix. Not all Oura metrics (notably temperature deviation) map to the Health Connect record type read by a given app.
-- **Publication inconsistency to resolve:** the Oura article's short TL;DR claims SpO2 export, while its detailed per-type section says Oura's Health Connect documentation **does not confirm SpO2 export**. Prefer latest official provider documentation and an actual Sable record-coverage probe over either phrasing.
+- **Publication inconsistencies:** the Oura article's TL;DR claims SpO2 export while its detailed section says **not confirmed**. In addition, its subscription discussion implies third-party access without membership, but Oura's [official Health Connect help (updated Aug 19, 2026)](https://support.ouraring.com/hc/en-us/articles/10786105824531-Health-Connect-by-Android-Integration) explicitly lists **Gen3 or later with active membership** (Gen2 separately). Oura's official export list includes steps, sleep, HR and HRV but **does not list SpO2**. We must retain these contradictions in the evidence ledger; don't assume export or subscription exemptions.
 - **Sable requirement:** compatibility records carry source URL, vendor app version, verified date, permission category, observed status and limitation.
 
 ### H. Recovery, sleep and training calculations
