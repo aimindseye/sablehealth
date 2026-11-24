@@ -66,9 +66,9 @@ internal object M1HealthConnectProbe {
             metric("Active calories", ActiveCaloriesBurnedRecord::class) { it.startTime to it.endTime },
         )
 
-    fun platformAvailable(context: Context): Boolean {
-        return HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
-    }
+    private val availableStatus = HealthConnectClient.SDK_AVAILABLE
+
+    fun platformAvailable(context: Context): Boolean = HealthConnectClient.getSdkStatus(context) == availableStatus
 
     suspend fun scan(
         context: Context,
