@@ -47,6 +47,7 @@ internal enum class Page {
     SOURCES,
     SOURCE_DETAIL,
     SOURCE_PRIVACY,
+    M1_DISCOVERY,
     SETTINGS,
     WIDGETS,
     PHONE_INPUT,
