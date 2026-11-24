@@ -16,7 +16,7 @@ import os
 print("package: name='" + os.getenv("TEST_PACKAGE", "io.github.aimindseye.sablehealth") +
       "' versionCode='" + os.getenv("TEST_CODE", "1") +
       "' versionName='" + os.getenv("TEST_NAME", "0.1.0-m0") + "'")
-print("sdkVersion:'" + os.getenv("TEST_SDK", "30") + "'")
+print(os.getenv("TEST_SDK_LABEL", "sdkVersion") + ":'" + os.getenv("TEST_SDK", "30") + "'")
 """
 SIGN = """#!/usr/bin/env python3
 import os, sys
@@ -76,6 +76,10 @@ class VerifyReleaseApkTest(unittest.TestCase):
 
     def test_signed_rejects_mismatched_package(self):
         self.assertNotEqual(0, self.run_verifier(TEST_PACKAGE="com.example.other").returncode)
+
+    def test_modern_aapt2_min_sdk_version_label(self):
+        result = self.run_verifier(signed=False, TEST_SDK_LABEL="minSdkVersion")
+        self.assertEqual(0, result.returncode, result.stderr)
 
     def test_signed_rejects_mismatched_sdk(self):
         self.assertNotEqual(0, self.run_verifier(TEST_SDK="29").returncode)
