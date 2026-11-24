@@ -5,10 +5,9 @@ plugins {
 }
 
 /**
- * Mac-owner signing only. CI receives no signing credentials and assembles unsigned release candidates.
- * No signing key/certificate fingerprint is inherited from TenSeven Launcher.
+ * Gradle produces unsigned release APKs in CI and on Mac.
+ * The owner signs only through bash tools/build-release.sh after verification.
  */
-/** CI and the Mac build produce an unsigned release APK; the owner signs with tools/build-release.sh. */
 android {
     namespace = "io.github.aimindseye.sablehealth"
     compileSdk = 36
