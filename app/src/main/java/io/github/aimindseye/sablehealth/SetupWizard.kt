@@ -39,7 +39,7 @@ internal fun SetupWizard(
 ) {
     val draft =
         rememberSaveable(saver = SetupDraft.saver) {
-            SetupDraft(state.appearance, state.demo, state.companion.confirmed)
+            SetupDraft(state.appearance, state.demo, state.companion.confirmed, state.live)
         }
     val holder = rememberSaveableStateHolder()
     var selected by rememberSaveable { mutableStateOf(SetupStage.entries.joinToString(",") { it.name }) }
@@ -185,7 +185,7 @@ private fun SetupStageContent(
         SetupStage.REVIEW -> {
             Notice("Health Connect", state.connect.label)
             Notice("Read access", setupAccessSummary(state.connect))
-            Notice("Dashboard", if (draft.demo) "Synthetic demo" else "No records imported")
+            Notice("Dashboard", draft.dataMode)
             Notice("Appearance", draft.appearance)
             Notice("Companion", if (draft.confirmed) "User confirmed" else "Not confirmed")
             Text("Finish even if access is missing; return from Settings at any time.")
@@ -218,9 +218,9 @@ private fun SetupPersonalize(draft: SetupDraft) {
     )
     CompactChoiceRow(
         "Data mode",
-        listOf("demo" to "Demo", "empty" to "No records"),
-        if (draft.demo) "demo" else "empty",
-        { draft.demo = it == "demo" },
+        listOf("real" to "Real data", "demo" to "Demo", "empty" to "No records"),
+        draft.dataMode,
+        draft::chooseDataMode,
     )
     Text("Choices save on Finish. Existing dashboard widgets are preserved.")
 }
@@ -230,22 +230,38 @@ internal class SetupDraft(
     appearance: String,
     demo: Boolean,
     confirmed: Boolean,
+    live: Boolean = false,
 ) {
     var appearance by mutableStateOf(appearance)
     var demo by mutableStateOf(demo)
+    var live by mutableStateOf(live && !demo)
+    val dataMode: String get() =
+        if (live) {
+            "real"
+        } else if (demo) {
+            "demo"
+        } else {
+            "empty"
+        }
+
+    fun chooseDataMode(value: String) {
+        demo = value == "demo"
+        live = value == "real"
+    }
+
     var confirmed by mutableStateOf(confirmed)
 
     fun applyTo(state: SableAppState) {
         if (appearance != state.appearance) state.chooseAppearance(appearance)
-        if (demo != state.demo) state.chooseDemo(demo)
+        if (dataMode != state.dataMode) state.chooseDataMode(dataMode)
         if (confirmed != state.companion.confirmed) state.companion.chooseConfirmation(confirmed)
     }
 
     companion object {
         val saver =
             listSaver<SetupDraft, String>(
-                save = { listOf(it.appearance, it.demo.toString(), it.confirmed.toString()) },
-                restore = { SetupDraft(it[0], it[1].toBoolean(), it[2].toBoolean()) },
+                save = { listOf(it.appearance, it.demo.toString(), it.confirmed.toString(), it.live.toString()) },
+                restore = { SetupDraft(it[0], it[1].toBoolean(), it[2].toBoolean(), it.getOrNull(3).toBoolean()) },
             )
     }
 }

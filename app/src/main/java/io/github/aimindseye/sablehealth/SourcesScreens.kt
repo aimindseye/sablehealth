@@ -40,6 +40,7 @@ internal fun SourcesPage(state: SableAppState) {
     )
     SourceSummaries(state)
     SourceActions(state)
+    if (state.live) LiveSleepDiagnostic(state)
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FocusButton("M1-A record coverage", { state.page = Page.M1_DISCOVERY }, modifier = Modifier.weight(1f))
         FocusButton("Privacy & diagnostics", { state.page = Page.SOURCE_PRIVACY }, modifier = Modifier.weight(1f))
@@ -138,7 +139,11 @@ private fun SourceRecordDetails(state: SableAppState) {
         "Help with sync",
         "If records are missing, check export and write access in your companion. Refresh does not force Fitbit sync.",
     )
-    CompactLinkRow("Record coverage details", "Read-only · 30-day window", { state.page = Page.M1_DISCOVERY })
+    CompactLinkRow(
+        "Record coverage details",
+        "Read-only · ${state.discovery.windowDays}-day window",
+        { state.page = Page.M1_DISCOVERY },
+    )
 }
 
 @Composable
@@ -146,7 +151,7 @@ internal fun SourcePrivacyPage() {
     SectionHeading("Privacy & diagnostics", "Local only")
     Notice(
         "Health data",
-        "Explicit local scans inspect counts, writer apps and timestamps. No measurements are retained or imported.",
+        "Coverage scans inspect metadata only. Real measurements are held in memory and never saved or uploaded.",
     )
     Notice("Network and accounts", "No Sable Health account, backend, analytics, telemetry or direct Fitbit Bluetooth.")
     Notice("Diagnostics", "Scan metadata is transient. Review the report before explicitly sharing it.")

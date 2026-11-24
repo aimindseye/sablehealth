@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.aimindseye.sablehealth"
         minSdk = 30
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.1.1-m1b1"
+        versionCode = 3
+        versionName = "0.1.2-m1c"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -81,6 +81,11 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.health.connect:connect-testing:1.0.0-alpha03") {
+        // Use the app's stable 1.1.0 client and its matching protocol dependency in tests.
+        exclude(group = "androidx.health.connect", module = "connect-client")
+        exclude(group = "androidx.health.connect", module = "connect-client-proto")
+    }
     testImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("org.robolectric:robolectric:4.16.1")

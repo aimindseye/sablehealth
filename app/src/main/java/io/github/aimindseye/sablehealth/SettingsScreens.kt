@@ -41,11 +41,12 @@ internal fun SettingsPage(
         onSelect = state::chooseAppearance,
     )
     CompactChoiceRow(
-        title = "Data mode · presentation only",
-        options = listOf("demo" to "Demo", "empty" to "No records"),
-        selected = if (state.demo) "demo" else "empty",
-        onSelect = { state.chooseDemo(it == "demo") },
+        title = "Data mode",
+        options = listOf("real" to "Real data", "demo" to "Demo", "empty" to "No records"),
+        selected = state.dataMode,
+        onSelect = state::chooseDataMode,
     )
+    if (state.live) LiveRefreshSettings(state)
     CompactLinkRow(
         "Phone & keyboard",
         "${profile.label} · profile and key controls",
@@ -81,8 +82,15 @@ internal fun PhoneInputPage(
 internal fun SettingsPrivacyPage() {
     SectionHeading("Privacy & about", "Sable Health · on-device")
     Notice("Local first", "Settings and user-confirmed companion setup are stored on this phone.")
-    Notice("Your records", "Explicit local record-coverage scans only; no measurements are stored or sent.")
-    Notice("Data mode", "Demo numbers are synthetic. No records is an empty-data preview, not a sync switch.")
+    Notice(
+        "Your records",
+        "Real data is read in the foreground and held in memory only. No measurements are saved or uploaded.",
+    )
+    Notice(
+        "Data mode",
+        "Real data uses Health Connect. Demo is synthetic. No records is an empty preview. " +
+            "Neither preview reads measurements.",
+    )
     Notice("Sable theme", "Dark Sable Blue #2E9BD6 · light accent #1A6FA0 · system default.")
     Notice("Permissions and access", "Health Connect read access is optional and can be revoked in Android settings.")
 }

@@ -27,6 +27,23 @@ internal class SableAppState(
         private set
     var demo by mutableStateOf(preferences.getBoolean("demo", true))
         private set
+    var live by mutableStateOf(preferences.getBoolean("live_data", false) && !demo)
+        private set
+    val liveHealth = LiveHealthState()
+    var liveRefreshVersion by mutableStateOf(0)
+        private set
+    var refreshMinutes by mutableStateOf(
+        validRefreshMinutes(preferences.getInt("refresh_minutes", DEFAULT_REFRESH_MINUTES)),
+    )
+        private set
+    val dataMode: String get() =
+        if (live) {
+            "real"
+        } else if (demo) {
+            "demo"
+        } else {
+            "empty"
+        }
     private val viewModes =
         mutableStateMapOf<Section, ViewMode>().apply {
             Section.entries.forEach { section ->
@@ -59,6 +76,7 @@ internal class SableAppState(
             val accessChanged = connection.granted != value.granted || connection.supported != value.supported
             if (accessChanged || value.grantedCount == null) {
                 discovery = newDiscovery()
+                liveHealth.clear()
             }
             connection = value
         }
@@ -77,41 +95,62 @@ internal class SableAppState(
     }
 
     fun chooseDemo(value: Boolean) {
-        demo = value
-        preferences.edit().putBoolean("demo", value).apply()
+        chooseDataMode(if (value) "demo" else "empty")
+    }
+
+    fun chooseDataMode(value: String) {
+        require(value in setOf("real", "demo", "empty"))
+        liveHealth.clear()
+        demo = value == "demo"
+        live = value == "real"
+        preferences
+            .edit()
+            .putBoolean("demo", demo)
+            .putBoolean("live_data", live)
+            .apply()
+        if (live) recheckPermissions()
+    }
+
+    fun chooseRefreshMinutes(value: Int) {
+        refreshMinutes = validRefreshMinutes(value)
+        preferences.edit().putInt("refresh_minutes", refreshMinutes).apply()
+    }
+
+    fun refreshLive() {
+        if (live && !liveHealth.loading && connect.label != "Checking") liveRefreshVersion++
     }
 
     fun completeOnboarding(useDemo: Boolean) {
-        chooseDemo(useDemo)
+        if (useDemo != demo) chooseDemo(useDemo)
         preferences.edit().putBoolean("onboarded", true).apply()
         onboarded = true
     }
 
-    fun back() {
-        page =
-            when (page) {
-                Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY -> Page.SETTINGS
-                Page.HELP -> Page.PHONE_INPUT
-                Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY, Page.M1_DISCOVERY -> Page.SOURCES
-                Page.MAIN -> {
-                    section = Section.DASHBOARD
-                    Page.MAIN
-                }
-                else -> Page.MAIN
-            }
-    }
-
-    fun nextTab() {
-        page = Page.MAIN
-        section = Section.entries[(section.ordinal + 1) % Section.entries.size]
-    }
-
     var setupAction: (SetupEntry) -> Unit = {}
+}
 
-    fun refreshSources() {
-        recheckPermissions()
-        page = Page.SOURCES
-    }
+internal fun SableAppState.back() {
+    page =
+        when (page) {
+            Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY -> Page.SETTINGS
+            Page.HELP -> Page.PHONE_INPUT
+            Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY, Page.M1_DISCOVERY -> Page.SOURCES
+            Page.MAIN -> {
+                section = Section.DASHBOARD
+                Page.MAIN
+            }
+            else -> Page.MAIN
+        }
+}
+
+internal fun SableAppState.nextTab() {
+    page = Page.MAIN
+    section = Section.entries[(section.ordinal + 1) % Section.entries.size]
+}
+
+internal fun SableAppState.refreshSources() {
+    recheckPermissions()
+    page = Page.SOURCES
 }
 
 internal fun SableAppState.recheckPermissions() {

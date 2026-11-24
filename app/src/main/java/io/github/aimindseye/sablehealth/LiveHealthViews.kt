@@ -1,0 +1,213 @@
+package io.github.aimindseye.sablehealth
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.github.aimindseye.sablehealth.core.DashboardWidget
+import io.github.aimindseye.sablehealth.core.LiveHealthPolicy
+import io.github.aimindseye.sablehealth.core.LiveMetric
+import io.github.aimindseye.sablehealth.core.LiveSnapshot
+import io.github.aimindseye.sablehealth.core.LiveStatus
+import io.github.aimindseye.sablehealth.core.WidgetStyle
+
+private const val WIDE_THRESHOLD = 310
+private const val LARGE_FONT = 1.3f
+private const val SLOT_THREE = 2
+private const val SLOT_FOUR = 3
+private val activityMetrics =
+    listOf(
+        LiveMetric.STEPS,
+        LiveMetric.DISTANCE,
+        LiveMetric.ACTIVE_CALORIES,
+        LiveMetric.CALORIES,
+        LiveMetric.ACTIVE_MINUTES,
+        LiveMetric.EXERCISE_SESSIONS,
+    )
+private val vitalMetrics =
+    listOf(
+        LiveMetric.HEART_RATE,
+        LiveMetric.RESTING_HR,
+        LiveMetric.HRV,
+        LiveMetric.RESPIRATORY_RATE,
+        LiveMetric.SPO2,
+        LiveMetric.BODY_TEMPERATURE,
+        LiveMetric.SKIN_TEMPERATURE,
+    )
+
+@Composable
+internal fun LiveHealthPage(state: SableAppState) {
+    LiveRefreshRow(state)
+    val snapshot = state.liveHealth.snapshot
+    if (snapshot == null) {
+        val message =
+            when {
+                state.connect.label == "Checking" -> "Checking Health Connect access"
+                state.connect.grantedCount == null -> state.connect.detail
+                state.connect.granted.isEmpty() -> "Grant read permissions in Sources"
+                state.liveHealth.failed -> "Refresh failed. Retry when ready."
+                else -> "Loading local measurements"
+            }
+        Notice("Real data", message)
+        return
+    }
+    when (state.section) {
+        Section.DASHBOARD -> LiveDashboard(state, snapshot)
+        Section.SLEEP -> LiveSleepPage(state, snapshot)
+        Section.MOVE -> LiveHistoryPage(state, snapshot, activityMetrics)
+        Section.VITALS -> LiveHistoryPage(state, snapshot, vitalMetrics)
+        Section.TRENDS -> LiveHistoryPage(state, snapshot, activityMetrics + LiveMetric.SLEEP_DURATION + vitalMetrics)
+    }
+}
+
+@Composable
+internal fun LiveRefreshRow(state: SableAppState) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.weight(1f)) {
+            val window = state.liveHealth.snapshot?.window
+            Text(
+                when {
+                    state.liveHealth.loading -> "Refreshing local data"
+                    state.liveHealth.failed -> "Refresh failed · retry"
+                    window != null -> "Checked ${localTime(window.now, window.zone)}"
+                    else -> "Not loaded"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text("Health Connect · not a tracker sync", style = MaterialTheme.typography.labelSmall)
+        }
+        FocusButton("Refresh", state::refreshLive)
+    }
+}
+
+/** Same four selected slots, with a compact fourth row. No historical charts on Dashboard. */
+@Composable
+private fun LiveDashboard(
+    state: SableAppState,
+    snapshot: LiveSnapshot,
+) {
+    val widgets = state.dashboard.widgets
+    BoxWithConstraints {
+        if (maxWidth >= WIDE_THRESHOLD.dp && LocalConfiguration.current.fontScale <= LARGE_FONT) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                widgets.take(2).forEach { widget ->
+                    Box(Modifier.weight(1f)) { LiveWidget(state, snapshot, widget, true) }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                widgets.take(2).forEach { LiveWidget(state, snapshot, it, true) }
+            }
+        }
+    }
+    LiveWidget(state, snapshot, widgets[SLOT_THREE], false)
+    DashboardCard(Modifier.fillMaxWidth()) {
+        val widget = widgets[SLOT_FOUR]
+        Row(Modifier.padding(7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(widgetTitle(widget), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+            WidgetReading(snapshot, widget)
+        }
+    }
+}
+
+@Composable
+private fun LiveWidget(
+    state: SableAppState,
+    snapshot: LiveSnapshot,
+    widget: DashboardWidget,
+    hero: Boolean,
+) {
+    DashboardCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(7.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(widgetTitle(widget), style = MaterialTheme.typography.titleSmall)
+            if (hero) LiveWidgetIcon(widget)
+            WidgetReading(snapshot, widget)
+            WidgetGraphic(snapshot, widget, state.dashboard.styleFor(widget))
+        }
+    }
+}
+
+@Composable
+private fun WidgetReading(
+    snapshot: LiveSnapshot,
+    widget: DashboardWidget,
+) {
+    val metric = widgetMetric(widget)
+    when {
+        widget == DashboardWidget.DATA_FRESHNESS -> Text(localTime(snapshot.window.now, snapshot.window.zone))
+        metric == null -> Text("Not available in M1-C", style = MaterialTheme.typography.bodySmall)
+        widget == DashboardWidget.SLEEP_SCHEDULE -> {
+            val sleep = snapshot.sleeps.lastOrNull { snapshot.window.day(it.end) == snapshot.window.today }
+            if (sleep == null) LiveMetricValue(snapshot, metric) else Text(sleepRange(sleep, snapshot.window.zone))
+        }
+        else -> LiveMetricValue(snapshot, metric)
+    }
+}
+
+@Composable
+private fun WidgetGraphic(
+    snapshot: LiveSnapshot,
+    widget: DashboardWidget,
+    style: WidgetStyle,
+) {
+    if (style != WidgetStyle.GRAPH) return
+    when (widget) {
+        DashboardWidget.STEPS -> TodayStepsChart(snapshot)
+        DashboardWidget.SLEEP_STAGES -> {
+            val sleep = snapshot.sleeps.lastOrNull { snapshot.window.day(it.end) == snapshot.window.today }
+            if (sleep != null) {
+                Text(
+                    "Latest session · ${sleepRange(sleep, snapshot.window.zone)}",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                SleepTimeline(sleep)
+            }
+        }
+        else -> Unit
+    }
+}
+
+@Composable
+private fun LiveWidgetIcon(widget: DashboardWidget) {
+    when (widget) {
+        DashboardWidget.STEPS -> Icon(painterResource(R.drawable.ic_sable_steps), null, Modifier.size(30.dp))
+        DashboardWidget.HEART_RATE, DashboardWidget.RESTING_HR ->
+            Icon(painterResource(R.drawable.ic_sable_heart), null, Modifier.size(36.dp), tint = Color.Unspecified)
+        else -> Unit
+    }
+}
+
+@Composable
+internal fun LiveMetricValue(
+    snapshot: LiveSnapshot,
+    metric: LiveMetric,
+) {
+    val series = snapshot.metrics[metric]
+    val point = LiveHealthPolicy.dashboardPoint(snapshot, metric)
+    Text(point?.let { displayValue(metric, it) } ?: "—", style = MaterialTheme.typography.titleMedium)
+    val detail =
+        when {
+            point != null -> observation(point, snapshot.window.zone)
+            series?.status == LiveStatus.AVAILABLE -> "No record today"
+            else -> series?.status?.label ?: "Not loaded"
+        }
+    Text(detail, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    if (point != null && series?.status == LiveStatus.PARTIAL) {
+        Text("Partial history", style = MaterialTheme.typography.labelSmall)
+    }
+}

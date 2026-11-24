@@ -19,10 +19,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,16 +55,7 @@ internal fun HealthAppContent(
                         .lowercase()
                         .replaceFirstChar(Char::uppercaseChar)
                 },
-            subtitle =
-                if (dashboardOnQ25) {
-                    if (state.demo) "DASHBOARD · DEMO" else "DASHBOARD · NO RECORDS"
-                } else if (profile == DeviceProfile.Q25 && state.page != Page.MAIN) {
-                    state.page.name + " · " + profile.label
-                } else if (state.demo) {
-                    "DEMO DATA · ${profile.label}"
-                } else {
-                    "NO RECORDS IMPORTED · ${profile.label}"
-                },
+            subtitle = healthSubtitle(state, profile, dashboardOnQ25),
             compactQ25 = profile == DeviceProfile.Q25,
             actions =
                 HeaderActions(
@@ -72,22 +65,63 @@ internal fun HealthAppContent(
                 ),
         )
         Box(Modifier.weight(1f)) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        if (profile == DeviceProfile.Q25) 4.dp else 7.dp,
-                    ),
-            ) {
-                HealthPage(state, profile)
-            }
+            RefreshableHealthPage(state, profile)
         }
         if (state.page == Page.MAIN) {
             BottomTabs(state.section, profile == DeviceProfile.Q25) { state.section = it }
         }
+    }
+}
+
+private fun healthSubtitle(
+    state: SableAppState,
+    profile: DeviceProfile,
+    dashboardOnQ25: Boolean,
+): String =
+    if (dashboardOnQ25) {
+        when {
+            state.live -> "DASHBOARD · REAL DATA"
+            state.demo -> "DASHBOARD · DEMO"
+            else -> "DASHBOARD · NO RECORDS"
+        }
+    } else if (profile == DeviceProfile.Q25 && state.page != Page.MAIN) {
+        state.page.name + " · " + profile.label
+    } else if (state.live) {
+        "REAL DATA · ${profile.label}"
+    } else if (state.demo) {
+        "DEMO DATA · ${profile.label}"
+    } else {
+        "NO RECORDS IMPORTED · ${profile.label}"
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RefreshableHealthPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
+    if (state.live && state.page == Page.MAIN) {
+        PullToRefreshBox(isRefreshing = state.liveHealth.loading, onRefresh = state::refreshLive) {
+            ScrollableHealthPage(state, profile)
+        }
+    } else {
+        ScrollableHealthPage(state, profile)
+    }
+}
+
+@Composable
+private fun ScrollableHealthPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
+        verticalArrangement = Arrangement.spacedBy(if (profile == DeviceProfile.Q25) 4.dp else 7.dp),
+    ) {
+        HealthPage(state, profile)
     }
 }
 
@@ -97,7 +131,7 @@ private fun HealthPage(
     profile: DeviceProfile,
 ) {
     when (state.page) {
-        Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25)
+        Page.MAIN -> if (state.live) LiveHealthPage(state) else Dashboard(state, profile == DeviceProfile.Q25)
         Page.SOURCES -> SourcesPage(state)
         Page.SOURCE_DETAIL -> SourceDetailPage(state)
         Page.SOURCE_PRIVACY -> SourcePrivacyPage()
