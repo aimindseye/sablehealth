@@ -51,3 +51,8 @@ State baseline SHA, touched tracked/untracked paths, local checks and versions, 
 
 ## 8. Preserved M0 governance
 - Pure Kotlin/Compose architecture; no server or dependency on other Sable apps. Preserve keyboard modifiers, text entry and nonrepeating confirm actions. Track provenance, timezone, partial coverage and duplicates; no clinical diagnoses or proprietary score recreation. Include Design Compliance and device matrix in each PR.
+
+## 9. Release security ratchet
+- Run full-history Gitleaks locally before every push (including after committing), using redaction; CI independently scans history. Only exact reviewed historical fingerprints may be ignored. See docs/RELEASE_ENGINEERING.md.
+- Production APK verifier accepts fixed repository-relative artifact locations only; no caller-supplied certificate trust anchor or SDK command arguments. Reject symlinked paths and test negative boundaries. Keep R8 enabled.
+- Keep Python cognitive complexity at most 15 and measured local coverage at least 85%; do not relax Sonar gates or suppress security findings.

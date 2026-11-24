@@ -118,3 +118,7 @@ The Sonar secret is used **only** in scanner/authentication steps. Fork-origin P
 
 ## Consolidation requirements
 PR #3 established 82.4% SonarCloud new-code coverage and R8 release minification. Preserve both JaCoCo reports and Python Cobertura. Seven inherited MobSF findings under issue #6 remain a public-distribution blocker. Local signed acceptance builds are not public releases.
+
+## R1 security remediation
+The two historical Gitleaks curl-auth-user matches at commit `858ecb247993bd903ce649d51bad8a2e185749ea`, lines 98 and 104 of `.github/workflows/sonar.yml`, contain only a runtime secret variable reference. The exact fingerprints in `.gitleaksignore` are approved for these findings only; no rule or path exclusions. Full-history scanning remains mandatory.
+The verifier uses fixed artifact paths and the tracked certificate pin; the signing script reserves a private build staging directory and removes it on exit. Run Gitleaks 8.30.1 (or record the installed version) before pushing, including after commit. No release publication is authorized by this correction.

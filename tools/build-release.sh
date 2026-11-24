@@ -67,7 +67,7 @@ python3 tools/quality_preflight.py ||
 unsigned=app/build/outputs/apk/release/app-release-unsigned.apk
 [[ -s "$unsigned" ]] || fail "Expected unsigned release APK is missing"
 [[ -s app/build/outputs/mapping/release/mapping.txt ]] || fail "R8 mapping missing"
-python3 tools/verify-release-apk.py --ci-unsigned "$unsigned" \
+python3 tools/verify-release-apk.py --ci-unsigned \
     --expected-code "$code" --expected-name "$version" ||
     fail "Unsigned APK metadata verification failed"
 
@@ -86,9 +86,14 @@ IFS= read -r -s -p 'Key password (hidden; Enter if same): ' key_pass || fail "Ke
 printf '\n'
 [[ -n "$key_pass" ]] || key_pass="$store_pass"
 
-stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/sablehealth-release.XXXXXXXX")" ||
-    fail "Cannot create temporary private release directory"
-signed="$stage_dir/$asset"
+for part in app app/build app/build/outputs app/build/outputs/apk app/build/outputs/apk/release; do
+    [[ ! -L "$part" ]] || fail "Symlinked release directory refused"
+done
+stage_target=app/build/outputs/apk/release/.owner-signing
+# Exclusive creation; do not remove an existing staging directory.
+mkdir -m 700 "$stage_target" || fail "Cannot reserve private signing directory"
+stage_dir="$stage_target"
+signed="$stage_dir/app-release-signed.apk"
 
 echo 'STEP_3=SIGN_UNSIGNED_APK_WITH_OWNER_KEY'
 # Both secrets provided only on stdin, never through argv, env or files.
@@ -105,7 +110,7 @@ unset store_pass key_pass
 rm -f "$signed.idsig"
 
 echo 'STEP_4=VERIFY_COMPILED_SIGNED_APK_AND_REGISTERED_CERTIFICATE'
-python3 tools/verify-release-apk.py "$signed" \
+python3 tools/verify-release-apk.py \
     --expected-code "$code" --expected-name "$version" ||
     fail "Signed APK certificate, version, package or signature validation failed"
 

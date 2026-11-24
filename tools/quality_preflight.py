@@ -38,9 +38,26 @@ def invoke(args: list[str], *, plan: bool) -> bool:
     if plan:
         return True
     start = time.monotonic()
-    result = subprocess.run(args, cwd=ROOT, check=False)
+    try:
+        result = subprocess.run(args, cwd=ROOT, check=False)
+    except OSError as error:
+        print(f"HOLD_COMMAND_UNAVAILABLE: {error}", file=sys.stderr)
+        return False
     print(f"EXIT={result.returncode} SECONDS={round(time.monotonic() - start, 1)}", flush=True)
     return result.returncode == 0
+
+
+def gradle_executable(ci: bool) -> str | None:
+    if ci:
+        runner = shutil.which("gradle")
+        if runner is None:
+            print("HOLD_CI_GRADLE_813_NOT_CONFIGURED", file=sys.stderr)
+        return runner
+    wrapper = ROOT / "gradlew"
+    if not wrapper.is_file():
+        print("HOLD: Gradle wrapper missing; run tools/bootstrap-gradle.sh and pin wrapper files.", file=sys.stderr)
+        return None
+    return str(wrapper)
 
 
 def main() -> int:
@@ -55,25 +72,15 @@ def main() -> int:
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py", "-v"],
     ]
     if not options.quick:
-        if options.ci:
-            runner = shutil.which("gradle")
-            if runner is None:
-                print("HOLD_CI_GRADLE_813_NOT_CONFIGURED", file=sys.stderr)
-                return 2
-            executable = runner
-        else:
-            wrapper = ROOT / "gradlew"
-            if not wrapper.is_file():
-                print("HOLD: Gradle wrapper missing; run tools/bootstrap-gradle.sh and pin wrapper files.", file=sys.stderr)
-                return 2
-            executable = str(wrapper)
-        commands.append([executable, "--no-daemon", "--console=plain", *GRADLE_TASKS])
-        commands.append(
-            [
-                sys.executable, "tools/verify-release-apk.py",
-                "--ci-unsigned", "app/build/outputs/apk/release/app-release-unsigned.apk",
-            ],
-        )
+        executable = gradle_executable(options.ci)
+        if executable is None:
+            return 2
+        if not options.ci:
+            commands.append(["gitleaks", "git", "--redact=100", "--no-banner", "--exit-code", "1", "."])
+        commands.extend([
+            [executable, "--no-daemon", "--console=plain", *GRADLE_TASKS],
+            [sys.executable, "tools/verify-release-apk.py", "--ci-unsigned"],
+        ])
     for command in commands:
         if not invoke(command, plan=options.plan):
             print("RESULT=HOLD_SABLE_HEALTH_QUALITY_PREFLIGHT", file=sys.stderr)

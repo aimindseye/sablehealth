@@ -53,6 +53,17 @@ class PreflightTest(unittest.TestCase):
             self.assertTrue(self.module.invoke(["fake"], plan=True))
             call.assert_not_called()
 
+    def test_local_history_scan_is_mandatory(self):
+        with patch.object(self.module, "invoke", return_value=True) as call:
+            self.assertEqual(0, self.main([]))
+        commands = [entry.args[0] for entry in call.call_args_list]
+        self.assertEqual("gitleaks", commands[-3][0])
+        self.assertIn("--redact=100", commands[-3])
+
+    def test_missing_command_fails_closed(self):
+        with patch.object(self.module.subprocess, "run", side_effect=FileNotFoundError("missing")):
+            self.assertFalse(self.module.invoke(["gitleaks"], plan=False))
+
     def test_full_ci_command_order(self):
         with patch.object(self.module.shutil, "which", return_value="/fake/gradle"):
             with patch.object(self.module, "invoke", return_value=True) as call:
