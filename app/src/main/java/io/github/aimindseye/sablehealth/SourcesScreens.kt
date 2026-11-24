@@ -41,6 +41,11 @@ internal fun SourcesPage(state: SableAppState) {
     }
     CompactLinkRow("Privacy & diagnostics", "Local only · details", { state.page = Page.SOURCE_PRIVACY })
     FocusButton("Check availability again", state::refreshSources, modifier = Modifier.fillMaxWidth())
+    CompactLinkRow(
+        "M1-A record coverage",
+        "Choose read categories · verify local records",
+        { state.page = Page.M1_DISCOVERY },
+    )
 }
 
 @Composable
