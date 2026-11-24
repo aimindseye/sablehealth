@@ -35,9 +35,35 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
+// Robolectric 4.16.1: API 30 and 34 test sandboxes, plus API 36 resources.
+// Resolve independently to avoid Gradle selecting just the newest module version.
+// These configurations are test infrastructure only, never an APK classpath.
+val robolectricSdkVersions =
+    listOf(
+        "11-robolectric-6757853-i7",
+        "14-robolectric-10818077-i7",
+        "16-robolectric-13921718-i7",
+    )
+val robolectricSdkJars =
+    robolectricSdkVersions.map { version ->
+        configurations.detachedConfiguration(
+            dependencies.create("org.robolectric:android-all-instrumented:$version@jar"),
+        ).apply {
+            isTransitive = false
+        }
+    }
+val robolectricSdkDir = layout.buildDirectory.dir("robolectric-sdks")
+val prepareRobolectricSdks by tasks.registering(Sync::class) {
+    from(robolectricSdkJars)
+    into(robolectricSdkDir)
+}
+
 tasks.withType<Test>().configureEach {
-    // Use the same Maven Central endpoint as the Gradle dependency resolver.
-    systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+    dependsOn(prepareRobolectricSdks)
+    inputs.dir(robolectricSdkDir).withPathSensitivity(PathSensitivity.RELATIVE)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricSdkDir.get().asFile.absolutePath)
+    systemProperty("robolectric.usePreinstrumentedJars", "true")
     extensions.configure<JacocoTaskExtension> {
         isIncludeNoLocationClasses = true
         excludes = listOf("jdk.internal.*")

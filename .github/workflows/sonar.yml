@@ -66,11 +66,17 @@ jobs:
           if package is None:
               raise SystemExit("HOLD_ANDROID_COVERAGE_PACKAGE_MISSING")
           for name in ("M1DiscoveryPage.kt", "M1HealthConnectProbe.kt",
-                       "M1PermissionRationaleActivity.kt", "SourcesScreens.kt"):
+                       "M1PermissionRationaleActivity.kt", "SourcesScreens.kt",
+                       "MainActivity.kt", "SetupPermissions.kt", "SetupWizard.kt"):
               entry = package.find("sourcefile[@name='" + name + "']")
               if entry is None or not any(int(line.get("ci", "0")) > 0 for line in entry.findall("line")):
                   raise SystemExit("HOLD_ANDROID_COVERAGE_MISSING_OR_ZERO: " + name)
+          core = ET.parse("core/build/reports/jacoco/test/jacocoTestReport.xml").getroot()
+          setup = core.find("./package[@name='io/github/aimindseye/sablehealth/core']/sourcefile[@name='SetupPlan.kt']")
+          if setup is None or not any(int(line.get("ci", "0")) > 0 for line in setup.findall("line")):
+              raise SystemExit("HOLD_CORE_SETUP_COVERAGE_MISSING_OR_ZERO")
           print("PASS_ANDROID_JACOCO_SOURCE_MAPPING")
+          print("PASS_CORE_SETUP_JACOCO_SOURCE_MAPPING")
           APPCOV
           test -s app/build/reports/lint-results-debug.xml
       - name: Measure Python security and contract test coverage
@@ -107,6 +113,10 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
+            -Dsonar.coverage.jacoco.xmlReportPaths=${{ github.workspace }}/core/build/reports/jacoco/test/jacocoTestReport.xml,${{ github.workspace }}/app/build/reports/coverage/test/debug/report.xml
+            -Dapp.sonar.coverage.jacoco.xmlReportPaths=${{ github.workspace }}/app/build/reports/coverage/test/debug/report.xml
+            -Dcore.sonar.coverage.jacoco.xmlReportPaths=${{ github.workspace }}/core/build/reports/jacoco/test/jacocoTestReport.xml
+            -Dapp.sonar.androidLint.reportPaths=${{ github.workspace }}/app/build/reports/lint-results-debug.xml
       - name: Print SonarCloud gate conditions and issue IDs (diagnostic only)
         if: always() && github.event_name == 'pull_request'
         env:
