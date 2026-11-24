@@ -37,20 +37,26 @@ For a new app only (not an installed build's update) Android's debug key and own
 
 ## 2. Owner-only interactive signing
 
-**Canonical command:**
+**Canonical commands (choose one):**
 
 ```bash
+bash tools/build-release.sh "$HOME/path/to/registered-key.jks" alias
+# Or prompt for the keystore path and alias interactively:
 bash tools/build-release.sh
 ```
+
+Pass exactly zero or two arguments. Only the keystore path and alias are accepted;
+passwords still require hidden terminal input. Do not provide passwords as arguments.
 
 There is **no `keystore.properties` file, environment password or Python release entrypoint** required. With a clean committed source checkout, pinned public registered certificate, Gradle 8.13 wrapper and Android SDK Build Tools 36.0.0, the script:
 
 1. Runs the exact local quality preflight, builds the **unsigned** APK and verifies package/minSdk/version.
-2. Prompts for **keystore location**, then **key alias**.
+2. Uses the supplied **keystore location** and **key alias**, or prompts for both if omitted.
 3. Prompts for the hidden **keystore password**, then hidden **key password** (press Enter if it is the same).
 4. Signs with `apksigner`, passing passwords through **standard input only**, never in arguments, an environment variable, a settings file or CI.
 5. Verifies the signed APK's v2/v3 signature, single signer, package, version and matching **registered public SHA-256 certificate**.
-6. Writes to `~/Downloads/sablehealth-release/<version>/`: the APK, `.sha256`, `SOURCE_COMMIT.txt` and `REGISTERED_CERT_SHA256.txt`.
+6. Writes to `~/Downloads/sablehealth-release/<version>/<full-source-commit>/`: the APK, `.sha256`, `SOURCE_COMMIT.txt` and `REGISTERED_CERT_SHA256.txt`.
+   Different commits can share an Android version without overwriting artifacts. Existing output directories are refused, including empty directories and symlinks. To repeat a build, choose a new, nonexistent directory with `SABLE_HEALTH_RELEASE_DIR`. This variable is not a signing credential. An incomplete output directory from a failed copy/receipt must be retained or inspected manually before retrying.
 
 No keystore path, key alias, password or signed artifact is ever written into GitHub. The temporary signed file is removed after verification and copy. **This command never pushes or publishes a GitHub Release.**
 
@@ -83,7 +89,7 @@ Once owner-approved, use GitHub Releases UI or authenticated GitHub CLI. For exa
 ```bash
 # Example only, after replacing the version/tag with the approved release.
 gh release create "v0.1.0-m0" \
-  "$HOME/Downloads/sablehealth-release/0.1.0-m0/SableHealth-0.1.0-m0-vc1.apk" \
+  "$HOME/Downloads/sablehealth-release/0.1.0-m0/<full-source-commit>/SableHealth-0.1.0-m0-vc1.apk" \
   --repo aimindseye/sablehealth \
   --draft --title "Sable Health 0.1.0-m0" \
   --notes "Prototype / device validation build. Not a medical device."

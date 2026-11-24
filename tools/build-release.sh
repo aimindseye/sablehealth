@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sable Health owner-only interactive release builder.
-# Usage: bash tools/build-release.sh
+# Usage: bash tools/build-release.sh [KEYSTORE ALIAS]
 # Derived workflow: Sable Watch/Games: unsigned Gradle APK -> apksigner stdin -> verify.
 set -u
 umask 077
@@ -22,8 +22,8 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if [[ $# != 0 ]]; then
-    echo 'Usage: bash tools/build-release.sh'
+if [[ $# != 0 && $# != 2 ]]; then
+    echo 'Usage: bash tools/build-release.sh [KEYSTORE ALIAS]' >&2
     exit 2
 fi
 [[ -t 0 ]] || fail "Interactive terminal required for owner-only signing"
@@ -43,9 +43,9 @@ version="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' app/build.gr
 code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -n1)"
 [[ "$version" =~ ^[a-zA-Z0-9._-]+$ && "$code" =~ ^[0-9]+$ ]] ||
     fail "Invalid Gradle version metadata"
-out="${SABLE_HEALTH_RELEASE_DIR:-$HOME/Downloads/sablehealth-release/$version}"
+out="${SABLE_HEALTH_RELEASE_DIR:-$HOME/Downloads/sablehealth-release/$version/$commit}"
 asset="SableHealth-$version-vc$code.apk"
-[[ ! -e "$out/$asset" ]] || fail "Release artifact already exists; refusing overwrite"
+[[ ! -e "$out" && ! -L "$out" ]] || fail "Release output directory already exists; refusing overwrite"
 
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
 apksigner="$sdk/build-tools/36.0.0/apksigner"
@@ -72,13 +72,18 @@ python3 tools/verify-release-apk.py --ci-unsigned \
     fail "Unsigned APK metadata verification failed"
 
 echo 'STEP_2=INTERACTIVE_SIGNING_INPUTS'
-printf 'Keystore location (absolute path, .jks/.keystore): '
-IFS= read -r keystore || fail "Keystore path input unavailable"
+if [[ $# == 2 ]]; then
+    keystore="$1"
+    alias_name="$2"
+else
+    printf 'Keystore location (absolute path, .jks/.keystore): '
+    IFS= read -r keystore || fail "Keystore path input unavailable"
+    printf 'Key alias: '
+    IFS= read -r alias_name || fail "Key alias input unavailable"
+fi
 keystore="${keystore/#\~/$HOME}"
+[[ -n "$alias_name" && -n "${alias_name//[[:space:]]/}" ]] || fail "Key alias must not be blank"
 [[ -f "$keystore" ]] || fail "Keystore does not exist"
-printf 'Key alias: '
-IFS= read -r alias_name || fail "Key alias input unavailable"
-[[ -n "$alias_name" ]] || fail "Key alias must not be blank"
 IFS= read -r -s -p 'Keystore password (hidden): ' store_pass || fail "Password input unavailable"
 printf '\n'
 [[ -n "$store_pass" ]] || fail "Keystore password cannot be blank"
@@ -114,17 +119,19 @@ python3 tools/verify-release-apk.py \
     --expected-code "$code" --expected-name "$version" ||
     fail "Signed APK certificate, version, package or signature validation failed"
 
-[[ ! -e "$out/$asset" ]] || fail "Target release APK exists; refusing overwrite"
-mkdir -p "$out" || fail "Cannot create output directory"
+# Create a new directory exclusively so neither APK nor receipts are overwritten.
+mkdir -p "$(dirname "$out")" || fail "Cannot create output parent"
+mkdir -m 700 "$out" || fail "Cannot reserve new release output directory; refusing overwrite"
 cp -p "$signed" "$out/$asset" || fail "Could not copy verified signed APK"
 if command -v shasum >/dev/null 2>&1; then
     checksum="$(shasum -a 256 "$out/$asset" | awk '{print $1}')"
 else
     checksum="$(sha256sum "$out/$asset" | awk '{print $1}')"
 fi
-printf '%s  %s\n' "$checksum" "$asset" > "$out/$asset.sha256"
-printf '%s\n' "$commit" > "$out/SOURCE_COMMIT.txt"
-printf '%s\n' "$expected_cert" > "$out/REGISTERED_CERT_SHA256.txt"
+[[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || fail "Unable to calculate APK checksum"
+printf '%s  %s\n' "$checksum" "$asset" > "$out/$asset.sha256" || fail "Cannot write APK checksum"
+printf '%s\n' "$commit" > "$out/SOURCE_COMMIT.txt" || fail "Cannot write source receipt"
+printf '%s\n' "$expected_cert" > "$out/REGISTERED_CERT_SHA256.txt" || fail "Cannot write certificate receipt"
 echo 'RESULT=PASS_SABLE_HEALTH_OWNER_SIGNED_RELEASE'
 printf 'APK=%s\nAPK_SHA256=%s\nSOURCE_COMMIT=%s\n' "$out/$asset" "$checksum" "$commit"
 echo 'PUBLISHED_TO_GITHUB=false'
