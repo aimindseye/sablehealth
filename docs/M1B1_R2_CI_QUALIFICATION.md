@@ -28,6 +28,11 @@ Acceptance:
   unchanged. Prior device acceptance applies to the unchanged application.
 - Do not merge on stale or missing CI evidence. Issue #6 still holds public release.
 
-If a cold Gradle dependency cache itself receives HTTP 429, fail the job rather
-than skip tests or substitute reports. A fresh rerun is acceptable; persistent
-failure requires a separate verified dependency-cache remediation.
+R2 first run: the new Gradle preparation task failed closed on HTTP 429
+from repo.maven.apache.org for the API 34 artifact. R2A restricts the Google
+Cloud-hosted Maven Central mirror to the three pinned SDK artifact versions
+in settings.gradle.kts. All other repository resolution is unchanged.
+Reference: https://docs.cloud.google.com/docs/buildpacks/java#mirror_repositories_in_gradle
+No checksum sidecars were independently retrieved in the author environment;
+the existing Gradle HTTPS dependency trust model is retained. A mirror failure
+must still fail the job; no skipped tests, fabricated reports or relaxed gate.
