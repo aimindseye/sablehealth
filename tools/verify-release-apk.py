@@ -40,7 +40,7 @@ def metadata(apk: Path) -> tuple[int, str]:
         data,
         flags=re.MULTILINE,
     )
-    sdk = re.search(r"^sdkVersion:'([0-9]+)'", data, flags=re.MULTILINE)
+    sdk = re.search(r"^(?:minSdkVersion|sdkVersion):'([0-9]+)'", data, flags=re.MULTILINE)
     if match is None or sdk is None:
         raise ValueError("Compiled APK package/minSdk identity could not be read")
     package, code, name = match.groups()
