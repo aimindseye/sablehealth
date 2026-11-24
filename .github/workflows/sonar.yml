@@ -1,7 +1,7 @@
 name: SonarCloud
 
-# Owner sets SONAR_ENABLED=true only after creating project and SONAR_TOKEN.
-# Skipped before setup is NOT an analyzed or approved quality gate.
+# SonarCloud project and SONAR_TOKEN have been configured by the owner.
+# Analyze every same-repository PR; fail closed if the token or quality gate is missing.
 on:
   pull_request:
   push:
@@ -18,9 +18,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze Kotlin/Python
-    if: >-
-      vars.SONAR_ENABLED == 'true' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
