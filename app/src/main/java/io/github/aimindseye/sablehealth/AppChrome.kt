@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,10 +115,14 @@ private fun ScrollableHealthPage(
     state: SableAppState,
     profile: DeviceProfile,
 ) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(state.page, state.section, state.modeFor(state.section)) {
+        scroll.scrollTo(0)
+    }
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
         verticalArrangement = Arrangement.spacedBy(if (profile == DeviceProfile.Q25) 4.dp else 7.dp),
     ) {

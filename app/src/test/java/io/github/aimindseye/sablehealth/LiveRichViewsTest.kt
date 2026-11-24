@@ -110,7 +110,10 @@ class LiveRichViewsTest {
         visible("2/30 days observed", substring = true)
         compose.runOnIdle { state.section = Section.TRENDS }
         visible("Historical metric")
-        compose.runOnIdle { state.section = Section.MOVE }
+        compose.runOnIdle {
+            state.section = Section.MOVE
+            state.chooseViewMode(Section.MOVE, ViewMode.TEXT)
+        }
         visible("Exercise sessions")
     }
 

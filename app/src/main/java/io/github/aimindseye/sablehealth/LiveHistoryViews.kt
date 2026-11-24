@@ -83,6 +83,17 @@ internal fun LiveHistoryPage(
     metrics: List<LiveMetric>,
 ) {
     ViewModeHeading(state.section, "Today's readings and observed history", state)
+    if (state.modeFor(state.section) == ViewMode.TEXT) {
+        DailyMetricCards(snapshot, metrics)
+    }
+    HistoryPanel(state, snapshot, metrics)
+}
+
+@Composable
+private fun DailyMetricCards(
+    snapshot: LiveSnapshot,
+    metrics: List<LiveMetric>,
+) {
     metrics.chunked(2).forEach { pair ->
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             pair.forEach { metric ->
@@ -98,7 +109,6 @@ internal fun LiveHistoryPage(
             if (pair.size == 1) Box(Modifier.weight(1f))
         }
     }
-    HistoryPanel(state, snapshot, metrics)
 }
 
 @Composable
@@ -110,6 +120,18 @@ private fun HistoryPanel(
     var days by rememberSaveable { mutableStateOf(WEEK) }
     var name by rememberSaveable { mutableStateOf(metrics.first().name) }
     val metric = metrics.firstOrNull { it.name == name } ?: metrics.first()
+    val calendar = (days - 1 downTo 0).map { snapshot.window.today.minusDays(it.toLong()) }
+    val series = snapshot.metrics[metric]
+    val points = calendar.map { series?.on(it) }
+    val graph = state.modeFor(state.section) == ViewMode.GRAPHS
+    if (graph) {
+        Text("${metric.label} · $days days", style = MaterialTheme.typography.titleSmall)
+        if (points.any { it != null }) {
+            HistoryChart(calendar, points, metric)
+        } else {
+            Text("No observations to graph", style = MaterialTheme.typography.bodySmall)
+        }
+    }
     CompactChoiceRow(
         "History",
         listOf(WEEK.toString() to "7 days", MONTH.toString() to "30 days"),
@@ -121,15 +143,13 @@ private fun HistoryPanel(
         metric.label,
         { name = metrics[(metrics.indexOf(metric) + 1) % metrics.size].name },
     )
-    val calendar = (days - 1 downTo 0).map { snapshot.window.today.minusDays(it.toLong()) }
-    val series = snapshot.metrics[metric]
-    val points = calendar.map { series?.on(it) }
     Text("${points.count { it != null }}/$days days observed · ${series?.status?.label ?: "Not loaded"}")
     ObservedAverage(points.dropLast(1), metric)
-    if (state.modeFor(state.section) == ViewMode.GRAPHS) HistoryChart(calendar, points, metric)
-    calendar.zip(points).asReversed().forEach { (day, point) ->
-        CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
-        point?.let { Text(observation(it, snapshot.window.zone), style = MaterialTheme.typography.labelSmall) }
+    if (!graph) {
+        calendar.zip(points).asReversed().forEach { (day, point) ->
+            CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
+            point?.let { Text(observation(it, snapshot.window.zone), style = MaterialTheme.typography.labelSmall) }
+        }
     }
 }
 
