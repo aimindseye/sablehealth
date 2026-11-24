@@ -32,6 +32,32 @@ class OwnerReleaseWorkflowTest(unittest.TestCase):
         self.assertIn("Interactive terminal required", result.stderr)
         self.assertNotIn("PASS_SABLE_HEALTH_OWNER_SIGNED_RELEASE", result.stdout)
 
+    def test_two_arguments_still_require_interactive_signing(self):
+        result = subprocess.run(
+            ["bash", str(RELEASE_SCRIPT), "/tmp/example key.jks", "example-alias"],
+            input="", capture_output=True, text=True, check=False, timeout=10,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("Interactive terminal required", result.stderr)
+
+    def test_wrong_argument_counts_are_refused(self):
+        for arguments in (["example.jks"], ["example.jks", "alias", "extra"]):
+            with self.subTest(count=len(arguments)):
+                result = subprocess.run(
+                    ["bash", str(RELEASE_SCRIPT), *arguments],
+                    input="", capture_output=True, text=True, check=False, timeout=10,
+                )
+                self.assertEqual(2, result.returncode)
+                self.assertIn("Usage:", result.stderr)
+                self.assertNotIn("STEP_1=", result.stdout)
+
+    def test_output_is_commit_scoped_and_exclusive(self):
+        source = RELEASE_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("sablehealth-release/$version/$commit", source)
+        self.assertIn('mkdir -m 700 "$out"', source)
+        self.assertIn('[[ ! -e "$out" && ! -L "$out" ]]', source)
+        self.assertNotIn('mkdir -p "$out"', source)
+
     def test_secrets_are_only_prompted_and_sent_to_apksigner_stdin(self):
         source = RELEASE_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("Keystore location", source)

@@ -7,74 +7,113 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.SetupEntry
+import io.github.aimindseye.sablehealth.core.SourceOverview
 import io.github.aimindseye.sablehealth.core.SourcesUiContract
+import kotlinx.coroutines.launch
+import java.time.Instant
 
-/** The only provider state verified by M0 is Health Connect platform/permission availability. */
 @Composable
 internal fun SourcesPage(state: SableAppState) {
     CompactPageTitle("Data connections", "LOCAL")
-    val dark = MaterialTheme.colorScheme.background == SablePalette.darkBase
-    val availableColor = if (dark) ChartColors.darkGood else ChartColors.lightGood
-    val cautionColor = if (dark) ChartColors.darkCaution else ChartColors.lightCaution
     CompactLinkRow(
-        title = "Health Connect · ${state.connect.label}",
-        detail = state.connect.detail,
-        onClick = { state.page = Page.SOURCE_DETAIL },
-        statusColor = if (state.connect.label == "Available") availableColor else cautionColor,
+        "Health Connect · ${state.connect.label}",
+        setupAccessSummary(state.connect),
+        { state.page = Page.SOURCE_DETAIL },
     )
+    val rows = SourceOverview.visibleRows(state.discovery.results, state.connect.granted)
+    val export =
+        if ("com.fitbit.FitbitMobile" in SourceOverview.writerApps(rows)) {
+            "Fitbit writer observed"
+        } else {
+            "Export unverified"
+        }
     val companionStatus = SourcesUiContract.companionStatus(state.companion.confirmed)
     CompactLinkRow(
-        title = "Google Health / Fitbit Air",
-        detail = "$companionStatus · export unverified",
-        onClick = { state.page = Page.SOURCE_DETAIL },
-        statusColor = cautionColor,
+        "Google Health / Fitbit Air",
+        "$companionStatus · $export",
+        { state.page = Page.SOURCE_DETAIL },
     )
+    SourceSummaries(state)
+    SourceActions(state)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FocusButton("M1-A record coverage", { state.page = Page.M1_DISCOVERY }, modifier = Modifier.weight(1f))
+        FocusButton("Privacy & diagnostics", { state.page = Page.SOURCE_PRIVACY }, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun SourceSummaries(state: SableAppState) {
+    val rows = SourceOverview.visibleRows(state.discovery.results, state.connect.granted)
+    val summary = SourceOverview.recordSummary(rows, state.discovery.scannedAt, state.discovery.scanning, Instant.now())
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.weight(1f)) {
-            CompactSummary("Permissions", state.connect.grantedCount?.let { "$it granted" } ?: "Unknown")
+            CompactSummary(
+                "Permissions",
+                SourceOverview.permissionSummary(
+                    state.connect.supported,
+                    state.connect.granted,
+                    state.connect.grantedCount != null,
+                ),
+            )
         }
         Box(Modifier.weight(1f)) {
-            CompactSummary("Records imported", SourcesUiContract.IMPORTED_M0)
+            CompactSummary("Record coverage", summary)
         }
     }
-    CompactLinkRow(
-        "Manage permissions",
-        "Review and grant missing read access",
-        { state.setupAction(SetupEntry.PERMISSIONS_ONLY) },
-    )
-    CompactLinkRow("Privacy & diagnostics", "Local only · details", { state.page = Page.SOURCE_PRIVACY })
-    FocusButton("Check availability again", state::refreshSources, modifier = Modifier.fillMaxWidth())
-    CompactLinkRow(
-        "M1-A record coverage",
-        "Choose read categories · verify local records",
-        { state.page = Page.M1_DISCOVERY },
-    )
+}
+
+@Composable
+private fun SourceActions(state: SableAppState) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val discovery = state.discovery
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FocusButton(
+            "Manage permissions",
+            { state.setupAction(SetupEntry.PERMISSIONS_ONLY) },
+            modifier = Modifier.weight(1f),
+        )
+        FocusButton(
+            "Refresh local records",
+            onClick = {
+                if (state.connect.granted.isEmpty()) {
+                    state.setupAction(SetupEntry.PERMISSIONS_ONLY)
+                } else {
+                    scope.launch { discovery.scan(context) }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Text(discovery.message, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 internal fun SourceDetailPage(state: SableAppState) {
-    SectionHeading("Connection details", "Diagnostic results · no health measurements queried")
+    SectionHeading("Connection details", "Local metadata only")
     Notice("Health Connect", "${state.connect.label} · ${state.connect.detail}")
-    Notice(
-        "Metric permission access",
-        "${state.connect.grantedCount?.toString() ?: "Unknown"} granted to Sable Health. " +
-            "Use Manage permissions to review read access.",
+    Notice("Read permissions", setupAccessSummary(state.connect))
+    FocusButton(
+        "Manage permissions",
+        { state.setupAction(SetupEntry.PERMISSIONS_ONLY) },
+        modifier = Modifier.fillMaxWidth(),
     )
-    Notice("Imported records", "None. M0 has no data ingestion, regardless of companion syncing.")
+    CompanionDetails(state)
+    SourceRecordDetails(state)
+    FocusButton("Check availability again", state::refreshSources, modifier = Modifier.fillMaxWidth())
+}
+
+@Composable
+private fun CompanionDetails(state: SableAppState) {
     Notice(
         "Google Health / Fitbit Air",
-        if (state.companion.confirmed) {
-            "You marked the official companion as paired and synced. " +
-                "Sable Health cannot verify its connection or Health Connect exports yet."
-        } else {
-            "Not confirmed within Sable Health. Pair and sync in Google Health first; " +
-                "this app does not connect to Fitbit over Bluetooth."
-        },
+        "Pair and sync in the official companion. A writer app does not identify your physical wearable.",
     )
-    Text("Companion setup confirmation", style = MaterialTheme.typography.titleMedium)
     val confirmationLabel =
         if (state.companion.confirmed) {
             "✓ Paired and synced in Google Health"
@@ -87,19 +126,29 @@ internal fun SourceDetailPage(state: SableAppState) {
         selected = state.companion.confirmed,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+@Composable
+private fun SourceRecordDetails(state: SableAppState) {
+    val rows = SourceOverview.visibleRows(state.discovery.results, state.connect.granted)
+    Notice("Writer apps", SourceOverview.writerApps(rows).joinToString().ifEmpty { "Not observed" })
+    Notice("Last observed (UTC)", SourceOverview.lastObserved(rows) ?: "Not observed")
+    Notice("Scan time (UTC)", state.discovery.scannedAt ?: "Not scanned")
     Notice(
-        "Record verification",
-        "Request read-only permissions, inspect record categories, provenance and freshness. " +
-            "No Fitbit-only metric is assumed to be exported.",
+        "Help with sync",
+        "If records are missing, check export and write access in your companion. Refresh does not force Fitbit sync.",
     )
-    FocusButton("Check availability again", state::refreshSources, modifier = Modifier.fillMaxWidth())
+    CompactLinkRow("Record coverage details", "Read-only · 30-day window", { state.page = Page.M1_DISCOVERY })
 }
 
 @Composable
 internal fun SourcePrivacyPage() {
-    SectionHeading("Privacy & diagnostics", "Local foundation · M0")
-    Notice("Health data", "No health readings are read, imported, stored or sent by M0.")
+    SectionHeading("Privacy & diagnostics", "Local only")
+    Notice(
+        "Health data",
+        "Explicit local scans inspect counts, writer apps and timestamps. No measurements are retained or imported.",
+    )
     Notice("Network and accounts", "No Sable Health account, backend, analytics, telemetry or direct Fitbit Bluetooth.")
-    Notice("Diagnostics", "Provider availability and granted permissions only; no biometric values.")
+    Notice("Diagnostics", "Scan metadata is transient. Review the report before explicitly sharing it.")
     Notice("Export status", "Google Health sync is not proof of Health Connect export to Sable Health.")
 }
