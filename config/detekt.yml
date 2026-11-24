@@ -1,0 +1,6 @@
+# Jetpack Compose functions follow the Compose naming convention (PascalCase).
+# Non-Compose function naming, complexity, length and other default rules stay enforced.
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - 'Composable'

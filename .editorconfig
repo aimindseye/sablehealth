@@ -1,0 +1,16 @@
+root = true
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+[*.{yml,yaml}]
+indent_size = 2
+
+# Kotlin Compose UI uses PascalCase component functions. KtLint's generic function
+# naming rule does not recognize @Composable; Detekt is configured to ignore only
+# annotated Compose functions and continues enforcing all ordinary method names.
+# Scope this exception to the Android UI module; core naming is fully enforced.
+[app/src/main/java/**/*.kt]
+ktlint_standard_function-naming = disabled

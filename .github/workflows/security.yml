@@ -1,0 +1,75 @@
+name: Security
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 6 * * 1'
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  codeql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@0d579ffd059c29b07949a3cce3983f0780820c98
+        with:
+          languages: java-kotlin
+          build-mode: manual
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '8.13'
+      - run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdkmanager"
+          "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+      - run: gradle --no-daemon :app:assembleDebug
+      - uses: github/codeql-action/analyze@0d579ffd059c29b07949a3cce3983f0780820c98
+  mobsf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: MobSF/mobsfscan@ec2927a8cfab6626a67f26b223be3aba52a34b70
+        continue-on-error: true # preserve evidence; next step still enforces zero findings
+        with:
+          args: '. --sarif --output mobsfscan-results.sarif --type android'
+      - name: Explain and enforce MobSF findings
+        run: |
+          python3 - <<'PYSCAN'
+          import json
+          from pathlib import Path
+          p = Path('mobsfscan-results.sarif')
+          if not p.is_file():
+              raise SystemExit('MOBSF_MISSING_REPORT: scanner did not produce a SARIF report')
+          payload = json.loads(p.read_text())
+          results = [r for run in payload.get('runs', []) for r in run.get('results', [])]
+          for finding in results:
+              rule = finding.get('ruleId', 'unknown')
+              detail = finding.get('message', {}).get('text', '')[:250]
+              print(f'MOBSF_FINDING {rule}: {detail}')
+          if results:
+              raise SystemExit(f'MOBSF_FINDINGS_BLOCK_MERGE: {len(results)} issues require review')
+          print('PASS_MOBSF_ZERO_FINDINGS')
+          PYSCAN
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mobsfscan-sarif
+          path: mobsfscan-results.sarif
+          if-no-files-found: warn
+      - if: always()
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98
+        with:
+          sarif_file: mobsfscan-results.sarif

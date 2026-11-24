@@ -1,0 +1,53 @@
+name: Android M0
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '8.13'
+      - name: Install Android API 36
+        run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdkmanager"
+          "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Build, test, lint and quality gates
+        run: |
+          gradle --no-daemon --console=plain :core:test :app:assembleDebug :app:lintDebug detekt ktlintCheck
+      - name: Verify static source contract
+        run: |
+          python3 tools/check-structure.py
+          python3 tools/check-r5-contract.py
+          python3 tools/check-r51-contract.py
+          python3 tools/check-r52-contract.py
+          python3 tools/check-r53-contract.py
+          python3 tools/check-r54-contract.py
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m0-android-reports
+          path: |
+            app/build/reports/
+            core/build/reports/
+            app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
