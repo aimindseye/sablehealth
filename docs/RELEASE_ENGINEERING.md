@@ -1,6 +1,6 @@
 # Sable Health — release signing, GitHub Releases and quality gates
 
-**Status: infrastructure candidate; no key provisioned or release authorized.**  
+**Status: owner confirmed registered Sable Health key uses the shared TenSeven / Sable Games / Sable Watch certificate; public fingerprint pinned. No private key provisioned in this repo, no signed APK built and no release authorized.**  
 **Package:** `io.github.aimindseye.sablehealth` (owner reports registered in Android Developer Console).  
 **Version currently configured:** `0.1.0-m0`, versionCode `1`; this is a prototype baseline, not a public-release recommendation.  
 **Reference:** TenSeven Launcher, [Sable Games](https://github.com/aimindseye/sablegames/blob/main/tools/build-release.sh), and [Sable Watch](https://github.com/aimindseye/sable-watch/blob/main/tools/build-release.sh) interactive local signing patterns; Sonar workflow and AGENTS.md. Sable Health uses its **own** key, fingerprint and app identity.
@@ -28,7 +28,7 @@ keytool -list -v \
 
 Read the **SHA256** certificate fingerprint from the keytool output and compare it against the certificate in Android Developer Console. Register/verify that **public certificate** for `io.github.aimindseye.sablehealth` using the developer console's supported process. If the console needs an ownership APK, create it only after the matching key is established; don't assume package name registration proves a chosen key matches. Never use TenSeven's certificate digest for Sable Health unless the console explicitly binds that same certificate.
 
-After verifying the exact identity, add a **public one-line** `config/release-certificate.sha256` (64 lowercase hex characters, no colons), e.g. via your editor. It is expected to be **tracked and reviewed in Git**. **No such certificate fingerprint is pinned by this initial implementation**: signed-release promotion must HOLD until you supply it. Keep the private keystore and backups outside GitHub.
+After verifying the exact identity, add a **public one-line** `config/release-certificate.sha256` (64 lowercase hex characters, no colons), e.g. via your editor. It is expected to be **tracked and reviewed in Git**. **Registered certificate now pinned:** `config/release-certificate.sha256` contains the owner's confirmed shared public fingerprint. The private key stays on the Mac; the script will still verify that actual signed APK matches the pinned certificate. Keep the private keystore and backups outside GitHub.
 
 For a new app only (not an installed build's update) Android's debug key and owner's release key differ; `adb install -r` cannot normally update between differently signed APKs. Do not uninstall an existing test build or erase private health data without planning the migration.
 
@@ -55,7 +55,7 @@ No keystore path, key alias, password or signed artifact is ever written into Gi
 
 Sable Watch's [releasing documentation](https://github.com/aimindseye/sable-watch/blob/main/docs/RELEASING.md) confirms that Sable Watch, Sable Games and TenSeven Launcher use a shared registered certificate. You **may use the same existing keystore and alias** for Sable Health **if its package registration explicitly uses that identical certificate**. We do not assume it does or pin another app's fingerprint automatically.
 
-The one-line public `config/release-certificate.sha256` file must be committed before the script can sign. It is not a secret. If the private key doesn't match that digest, the APK is refused and no release asset is accepted.
+The one-line public `config/release-certificate.sha256` is now tracked with SHA-256 `9b2047390e5aa77537b8e8875cdfd3c2c72d0a0715e172a7f77457fc4300f292`, confirmed by the owner for Sable Health package registration. It is not secret. If the private key doesn't match that digest, the APK is refused and no release asset is accepted.
 
 **No keystore/password input is needed for ordinary Gradle builds or CI.** `./gradlew :app:assembleRelease` now produces only `app-release-unsigned.apk`; the signing step is restricted to the owner-run Bash script.
 
@@ -92,9 +92,9 @@ Do not run that example until the actual source tag/commit, certificate, binary 
 
 1. Create/import the `aimindseye/sablehealth` project in **SonarQube Cloud**, using **CI-based analysis**, and turn off **Automatic Analysis** if enabled.
 2. Confirm that `sonar.projectKey=aimindseye_sablehealth` and `sonar.organization=aimindseye` in `sonar-project.properties` exactly match the project. Change them in a reviewed commit if Sonar generated different values.
-3. In GitHub repo **Settings → Secrets and variables → Actions → Secrets**, add `SONAR_TOKEN` (Sonar token). Do not paste the token in chat.
-4. In **Variables**, set existing `SONAR_ENABLED=true`. Until set, scanner job is intentionally **SKIPPED / NOT RUN**. A skipped Sonar workflow never satisfies a release quality gate.
-5. Re-run the workflow on the intended PR. The scanner waits for Sonar's actual quality gate. Verify project binding/new-code policy/coverage and check that PR decoration works.
+3. Owner confirmed the GitHub Actions secret `SONAR_TOKEN` is installed. Do not paste the token in chat or expose it in CI logs.
+4. The SonarCloud workflow now runs for all same-repository pull requests and `main` pushes **without any `SONAR_ENABLED` variable**. Missing credentials cause a failing job, not a skipped one. Fork-origin PRs still receive no secret.
+5. Re-run the workflow on the intended PR. The scanner waits for the real SonarCloud quality gate. Verify project key and organization binding, new-code policy/coverage and PR decoration. `sonar.projectKey=aimindseye_sablehealth` / `sonar.organization=aimindseye` are current repository values and must match the newly created SonarCloud project.
 6. Do not change Sonar coverage/quality thresholds to force green. `core:jacocoTestReport` generates genuine core JVM coverage; Compose/Android UI needs separate physical/instrumented test work, not a blanket coverage exclusion.
 
 The Sonar secret is used **only** in scanner/authentication steps. Fork-origin PRs do not receive it. The workflow handles both feature-to-feature stacked PRs and PRs to main when Sonar is enabled.
@@ -106,9 +106,9 @@ The Sonar secret is used **only** in scanner/authentication steps. Fork-origin P
 | Local `quality_preflight.py` | After last source edit, before every push | Required PASS before PR |
 | Android quality | Every PR, push main | Required PASS: contracts, unit, JaCoCo, both builds/lints, Detekt, ktlint, unsigned identity |
 | Security | Every PR, push main | CodeQL/Gitleaks + existing MobSF gate; preexisting failures remain HOLD until triaged |
-| SonarCloud | Every PR when enabled | Until configured NOT RUN; afterward actual Sonar quality gate must PASS |
+| SonarCloud | Every same-repo PR and push main | Runs after owner setup; actual Sonar quality gate must PASS, missing token is FAILURE |
 | Release identity | Owner's Mac only | Missing public cert pin, wrong key, unsigned APK or wrong version => fail closed |
 | Physical Q25/Titan 2 | Features and release | Owner acceptance required; not implied by CI |
 | GitHub Release | Owner manually, post approval | No automatic publish; verifies source SHA, cert and APK sha256 |
 
-**No signing key was created, supplied, registered or installed by this PR.** The app remains development-only until owner validates release identity.
+**No private signing key was created or supplied by this PR.** Owner confirmed shared public certificate registration and pin; the app remains development-only until signed APK, security/Sonar CI and physical device release gates pass.
