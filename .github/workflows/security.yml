@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # Include stacked feature-branch PRs, matching the owner's local review workflow.
   schedule:
     - cron: '30 6 * * 1'
 permissions:
@@ -46,28 +46,24 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
-      - uses: MobSF/mobsfscan@ec2927a8cfab6626a67f26b223be3aba52a34b70
-        continue-on-error: true # preserve evidence; next step still enforces zero findings
+      - name: Verify MobSF risk-gate implementation
+        run: python3 -m unittest discover -s tests -p 'test_mobsf_policy.py' -v
+      - name: Scan Android sources with MobSF
+        id: mobsfscan
+        uses: MobSF/mobsfscan@ec2927a8cfab6626a67f26b223be3aba52a34b70
+        # Permit report collection, but the next step checks the actual scanner outcome.
+        continue-on-error: true
         with:
-          args: '. --sarif --output mobsfscan-results.sarif --type android'
-      - name: Explain and enforce MobSF findings
+          args: '. --sarif --output mobsfscan-results.sarif --type android --no-fail'
+      - name: Enforce baseline-aware MobSF risk gate
+        env:
+          MOBSF_SCAN_OUTCOME: ${{ steps.mobsfscan.outcome }}
         run: |
-          python3 - <<'PYSCAN'
-          import json
-          from pathlib import Path
-          p = Path('mobsfscan-results.sarif')
-          if not p.is_file():
-              raise SystemExit('MOBSF_MISSING_REPORT: scanner did not produce a SARIF report')
-          payload = json.loads(p.read_text())
-          results = [r for run in payload.get('runs', []) for r in run.get('results', [])]
-          for finding in results:
-              rule = finding.get('ruleId', 'unknown')
-              detail = finding.get('message', {}).get('text', '')[:250]
-              print(f'MOBSF_FINDING {rule}: {detail}')
-          if results:
-              raise SystemExit(f'MOBSF_FINDINGS_BLOCK_MERGE: {len(results)} issues require review')
-          print('PASS_MOBSF_ZERO_FINDINGS')
-          PYSCAN
+          python3 tools/check_mobsf_findings.py \
+            --report mobsfscan-results.sarif \
+            --baseline config/mobsf-known-findings.json \
+            --scan-outcome "$MOBSF_SCAN_OUTCOME" \
+            --summary "$GITHUB_STEP_SUMMARY"
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

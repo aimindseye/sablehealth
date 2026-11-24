@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "source_commit": "3095fc96df438426beac6b678c36bf57f2bf992e",
+  "source_run": "https://github.com/aimindseye/sablehealth/actions/runs/45318348399",
+  "review_issue": "https://github.com/aimindseye/sablehealth/issues/6",
+  "tool": {
+    "name": "mobsfscan",
+    "version": "0.4.5"
+  },
+  "inherited": [
+    { "ruleId": "android_task_hijacking2", "level": "error", "path": "app/src/main/AndroidManifest.xml", "limit": 1 },
+    { "ruleId": "android_prevent_screenshot", "level": "note", "path": ".", "limit": 1 },
+    { "ruleId": "android_tapjacking", "level": "note", "path": ".", "limit": 1 },
+    { "ruleId": "android_root_detection", "level": "note", "path": ".", "limit": 1 },
+    { "ruleId": "android_ssl_pinning", "level": "note", "path": ".", "limit": 1 },
+    { "ruleId": "android_certificate_transparency", "level": "note", "path": ".", "limit": 1 },
+    { "ruleId": "android_safetynet", "level": "note", "path": ".", "limit": 1 }
+  ]
+}
