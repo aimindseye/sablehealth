@@ -32,6 +32,8 @@ import kotlin.reflect.KClass
  * Never access measurement values, IDs, device identifiers or record payload logs.
  */
 internal object M1HealthConnectProbe {
+    private const val RECORDS_PER_PAGE = 100
+
     internal class Metric(
         val name: String,
         val permission: String,
@@ -45,7 +47,7 @@ internal object M1HealthConnectProbe {
     ): Metric {
         val permission = HealthPermission.getReadPermission(type)
         return Metric(label, permission) { client, time ->
-            readCoverage(client, type, label, permission, time, times)
+            readCoverage(client, type, label, time, times)
         }
     }
 
@@ -95,7 +97,6 @@ internal object M1HealthConnectProbe {
         client: HealthConnectClient,
         type: KClass<T>,
         label: String,
-        permission: String,
         now: Instant,
         times: (T) -> Pair<Instant, Instant>,
     ): HealthMetricCoverage {
@@ -113,7 +114,7 @@ internal object M1HealthConnectProbe {
                         recordType = type,
                         timeRangeFilter = TimeRangeFilter.between(from, now),
                         ascendingOrder = false,
-                        pageSize = min(100, HealthCoverageContract.MAX_RECORDS_PER_TYPE - count),
+                        pageSize = min(RECORDS_PER_PAGE, HealthCoverageContract.MAX_RECORDS_PER_TYPE - count),
                         pageToken = token,
                     ),
                 )
@@ -133,7 +134,7 @@ internal object M1HealthConnectProbe {
 
         return HealthMetricCoverage(
             type = label,
-            permission = permission,
+            permission = HealthPermission.getReadPermission(type),
             state = if (count == 0) CoverageState.NO_RECORDS else CoverageState.RECORDS_FOUND,
             recordCount = count,
             firstObservedUtc = first?.toString(),
