@@ -2,6 +2,8 @@ package io.github.aimindseye.sablehealth
 
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +36,7 @@ class MainActivityLifecycleCoverageTest {
         compose.onNodeWithText("Finish").performClick()
         compose.waitForIdle()
         assertTrue(preferences.getBoolean("onboarded", false))
-        compose.onNodeWithText("Dashboard").assertIsDisplayed()
+        compose.onNode(hasText("Dashboard") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithText("Finish").assertDoesNotExist()
     }
 }

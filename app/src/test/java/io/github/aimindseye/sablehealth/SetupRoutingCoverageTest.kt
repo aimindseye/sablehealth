@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -36,7 +38,8 @@ class SetupRoutingCoverageTest {
         visible("Review")
         click("Finish")
         assertTrue(preferences.getBoolean("onboarded", false))
-        visible("Dashboard")
+        compose.onNode(hasText("Dashboard") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithText("Finish").assertDoesNotExist()
     }
 
     @Test
@@ -65,7 +68,8 @@ class SetupRoutingCoverageTest {
         click("Finish")
         visible("Data connections")
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        visible("Dashboard")
+        compose.onNode(hasText("Dashboard") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithText("Finish").assertDoesNotExist()
     }
 
     @Test
