@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERIFIER = ROOT / "tools/verify-release-apk.py"
@@ -53,7 +54,10 @@ class VerifyReleaseApkTest(unittest.TestCase):
         args = [sys.executable, str(VERIFIER)]
         if not signed:
             apk = self.root / "app-release-unsigned.apk"
-            apk.write_bytes(b"synthetic unsigned, never distribute")
+            with zipfile.ZipFile(apk, "w") as archive:
+                archive.writestr("AndroidManifest.xml", b"synthetic")
+                if environment.pop("TEST_V1", "0") == "1":
+                    archive.writestr("META-INF/CERT.RSA", b"synthetic")
             args += ["--ci-unsigned"]
         args += ["--certificate", str(self.cert), str(apk)]
         env = {**os.environ, "ANDROID_HOME": str(self.root), **environment}
@@ -91,6 +95,9 @@ class VerifyReleaseApkTest(unittest.TestCase):
     def test_unsigned_mode_requires_unsigned_name(self):
         self.assertEqual(0, self.run_verifier(signed=False).returncode)
         self.assertNotEqual(0, self.run_verifier(signed=False, TEST_PACKAGE="bad").returncode)
+
+    def test_unsigned_rejects_v1_signature(self):
+        self.assertNotEqual(0, self.run_verifier(signed=False, TEST_V1="1").returncode)
 
     def test_version_metadata_contract(self):
         args = [sys.executable, str(VERIFIER), "--expected-code", "1",

@@ -1,13 +1,11 @@
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+
 plugins {
+    jacoco
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-
-/**
- * Gradle produces unsigned release APKs in CI and on Mac.
- * The owner signs only through bash tools/build-release.sh after verification.
- */
 android {
     namespace = "io.github.aimindseye.sablehealth"
     compileSdk = 36
@@ -25,9 +23,22 @@ android {
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
     buildTypes {
+        debug { enableUnitTestCoverage = true }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
+    }
+    testOptions { unitTests.isIncludeAndroidResources = true }
+}
+
+tasks.withType<Test>().configureEach {
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
     }
 }
 
@@ -41,4 +52,8 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    testImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

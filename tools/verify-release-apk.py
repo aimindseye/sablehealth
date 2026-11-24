@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import zipfile
 
 EXPECTED_PACKAGE = "io.github.aimindseye.sablehealth"
 MIN_SDK = 30
@@ -86,6 +87,27 @@ def verify_signature(apk: Path, certificate: Path) -> None:
     print(f"PASS_SIGNING_IDENTITY_SHA256={expected}")
 
 
+def verify_unsigned(apk: Path) -> None:
+    """Reject ZIP signature entries and APK Signing Blocks; do not trust filename."""
+    with zipfile.ZipFile(apk) as archive:
+        if "AndroidManifest.xml" not in archive.namelist():
+            raise ValueError("Missing APK manifest")
+        for name in archive.namelist():
+            upper = name.upper()
+            if upper.startswith("META-INF/") and (
+                upper.endswith((".SF", ".RSA", ".DSA", ".EC"))
+                or upper.split("/")[-1].startswith("SIG-")
+            ):
+                raise ValueError("Unsigned APK contains signature entries")
+        offset = archive.start_dir
+        if offset < 16:
+            raise ValueError("Invalid APK central directory")
+        with apk.open("rb") as stream:
+            stream.seek(offset - 16)
+            if stream.read(16) == b"APK Sig Block 42":
+                raise ValueError("Unsigned APK contains APK Signing Block")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("apk", type=Path)
@@ -108,6 +130,7 @@ def main() -> int:
     if args.expected_name is not None and name != args.expected_name:
         raise ValueError("APK versionName does not match expected release")
     if args.ci_unsigned:
+        verify_unsigned(args.apk)
         print("RESULT=PASS_SABLE_HEALTH_UNSIGNED_APK_METADATA_ONLY")
         print("SIGNATURE_VERIFIED=false")
     else:
@@ -123,6 +146,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (OSError, ValueError, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
         print(f"HOLD_SABLE_HEALTH_APK_VERIFIER: {error}", file=sys.stderr)
         sys.exit(2)

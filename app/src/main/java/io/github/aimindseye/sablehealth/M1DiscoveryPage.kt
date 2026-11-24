@@ -28,7 +28,11 @@ import java.time.Instant
 private const val DEFAULT_SELECTED_CATEGORIES = 3
 
 /** Only transient Compose state. No record values are persisted. */
-private class DiscoveryState {
+internal class DiscoveryState(
+    private val scanRecords: suspend (Context, Instant) -> List<HealthMetricCoverage> = { context, now ->
+        M1HealthConnectProbe.scan(context, now)
+    },
+) {
     val selected =
         mutableStateMapOf<String, Boolean>().apply {
             M1HealthConnectProbe.metrics.forEachIndexed { index, metric ->
@@ -64,7 +68,7 @@ private class DiscoveryState {
         message = "Scanning locally · no measurements retained"
         try {
             val now = Instant.now()
-            results = M1HealthConnectProbe.scan(context, now)
+            results = scanRecords(context, now)
             scannedAt = now.toString()
             message = "Finished · record counts are not step or sample totals"
         } catch (cancelled: CancellationException) {
@@ -79,15 +83,18 @@ private class DiscoveryState {
 
 /** M1-A is a separate opt-in proof screen, not a redesign of R5.4 Sources. */
 @Composable
-internal fun M1DiscoveryPage() {
+internal fun M1DiscoveryPage(
+    state: DiscoveryState = remember { DiscoveryState() },
+    availableOverride: Boolean? = null,
+    permissionRequestOverride: ((Set<String>) -> Unit)? = null,
+) {
     val context = LocalContext.current
-    val state = remember { DiscoveryState() }
     val permissionLauncher =
         rememberLauncherForActivityResult(
             PermissionController.createRequestPermissionResultContract(),
         ) { granted -> state.permissionResult(granted) }
     val available =
-        remember(context) {
+        availableOverride ?: remember(context) {
             try {
                 M1HealthConnectProbe.platformAvailable(context)
             } catch (_: Exception) {
@@ -109,7 +116,9 @@ internal fun M1DiscoveryPage() {
         return
     }
     M1MetricSelector(state)
-    M1ScanActions(state, context) { permissionLauncher.launch(it) }
+    M1ScanActions(state, context) {
+        if (permissionRequestOverride != null) permissionRequestOverride(it) else permissionLauncher.launch(it)
+    }
     Text(state.message, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
     if (state.results.isNotEmpty()) {
         M1ScanResults(state, context)

@@ -1,11 +1,12 @@
-name: SonarCloud
+name: SonarCloud mainline and PR quality
 
-# SonarCloud project and SONAR_TOKEN have been configured by the owner.
-# Analyze every same-repository PR; fail closed if the token or quality gate is missing.
+# First successful main push establishes the baseline for new-code comparisons.
+# Do not skip when token is absent: missing setup is an actionable failure.
 on:
-  pull_request:
   push:
     branches: [main]
+  # Scan stacked PRs too, not only PRs targeting main.
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -20,12 +21,12 @@ jobs:
     name: Analyze Kotlin/Python
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 50
     permissions:
       contents: read
       pull-requests: read
     steps:
-      - name: Full history for correct PR new-code detection
+      - name: Full history for branch/new-code detection
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
@@ -37,12 +38,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
         with:
           gradle-version: '8.13'
-      - name: Validate SonarCloud token
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - name: Verify SonarCloud token presence
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "$SONAR_TOKEN" ]; then
-            echo 'HOLD: SONAR_TOKEN missing. Configure repository secret before enabling SonarCloud.'
+            echo 'HOLD: SonarCloud token is absent'
             exit 2
           fi
       - name: Install Android SDK 36
@@ -50,10 +54,52 @@ jobs:
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
           test -n "$sdkmanager"
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
-      - name: Build authentic core JaCoCo coverage and Android lint reports
+      - name: Build real coverage and Android lint inputs
         run: |
-          gradle --no-daemon --console=plain :core:test :core:jacocoTestReport :app:assembleDebug :app:lintDebug
-      - name: Analyze and wait for SonarCloud quality gate
+          gradle --no-daemon --console=plain :core:test :core:jacocoTestReport :app:createDebugUnitTestCoverageReport :app:assembleDebug :app:lintDebug
+          test -s core/build/reports/jacoco/test/jacocoTestReport.xml
+          test -s app/build/reports/coverage/test/debug/report.xml
+          python3 - <<'APPCOV'
+          from xml.etree import ElementTree as ET
+          report = ET.parse("app/build/reports/coverage/test/debug/report.xml").getroot()
+          package = report.find("./package[@name='io/github/aimindseye/sablehealth']")
+          if package is None:
+              raise SystemExit("HOLD_ANDROID_COVERAGE_PACKAGE_MISSING")
+          for name in ("M1DiscoveryPage.kt", "M1HealthConnectProbe.kt",
+                       "M1PermissionRationaleActivity.kt", "SourcesScreens.kt"):
+              entry = package.find("sourcefile[@name='" + name + "']")
+              if entry is None or not any(int(line.get("ci", "0")) > 0 for line in entry.findall("line")):
+                  raise SystemExit("HOLD_ANDROID_COVERAGE_MISSING_OR_ZERO: " + name)
+          print("PASS_ANDROID_JACOCO_SOURCE_MAPPING")
+          APPCOV
+          test -s app/build/reports/lint-results-debug.xml
+      - name: Measure Python security and contract test coverage
+        run: |
+          python3 -m pip install --disable-pip-version-check --only-binary :all: 'coverage==7.13.3'
+          python3 -m coverage run -m unittest discover -s tests -v
+          python3 -m coverage combine
+          python3 -m coverage report --fail-under=85
+          python3 -m coverage xml -o python-coverage.xml
+          test -s python-coverage.xml
+          python3 - <<'PYCOV'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          root = ET.parse(Path("python-coverage.xml")).getroot()
+          files = root.findall(".//class")
+          required = {
+              "tools/check_mobsf_findings.py", "tools/check-m1a-contract.py",
+              "tools/check-r5-contract.py", "tools/check-structure.py",
+              "tools/quality_preflight.py", "tools/verify-release-apk.py",
+          }
+          for name in sorted(required):
+              matches = [item for item in files if item.get("filename") == name]
+              if len(matches) != 1 or float(matches[0].get("line-rate", "0")) < 0.85:
+                  raise SystemExit("HOLD_PYTHON_COVERAGE_SOURCE_MAPPING_OR_LOW: " + name)
+          if float(root.get("line-rate", "0")) < 0.85:
+              raise SystemExit("HOLD_PYTHON_COVERAGE_LOW: executed source coverage is below 85%")
+          print("PASS_PYTHON_COBERTURA_SOURCE_MAPPING")
+          PYCOV
+      - name: Analyze and enforce actual SonarCloud quality gate
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -61,12 +107,34 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
-      - name: Upload analysis inputs
+      - name: Print SonarCloud gate conditions and issue IDs (diagnostic only)
+        if: always() && github.event_name == 'pull_request'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Read-only API calls. This step never changes the gate, issues or configuration.
+          echo 'SONAR_DIAGNOSTIC_QUALITY_GATE_BEGIN'
+          (
+            curl --fail --silent --show-error -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=aimindseye_sablehealth&pullRequest=$PR_NUMBER" \
+              | jq -c '{status: .projectStatus.status, conditions: [.projectStatus.conditions[]? | {metricKey, status, actualValue, errorThreshold}]}'
+          ) || echo 'SONAR_DIAGNOSTIC_GATE_QUERY_UNAVAILABLE'
+          echo 'SONAR_DIAGNOSTIC_ISSUES_BEGIN'
+          (
+            curl --fail --silent --show-error -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/issues/search?componentKeys=aimindseye_sablehealth&pullRequest=$PR_NUMBER&ps=100" \
+              | jq -c '{total, issues: [.issues[]? | {rule, severity, type, component, line, message}]}'
+          ) || echo 'SONAR_DIAGNOSTIC_ISSUES_QUERY_UNAVAILABLE'
+      - name: Upload analysis input reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: sablehealth-sonar-evidence
+          name: sablehealth-main-sonar-inputs
           path: |
             core/build/reports/jacoco/
+            app/build/reports/coverage/test/debug/
+            app/build/test-results/testDebugUnitTest/
             app/build/reports/lint-results-debug.xml
+            python-coverage.xml
           if-no-files-found: ignore

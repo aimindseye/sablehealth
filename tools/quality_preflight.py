@@ -23,6 +23,7 @@ CONTRACTS = (
 GRADLE_TASKS = (
     ":core:test",
     ":core:jacocoTestReport",
+    ":app:createDebugUnitTestCoverageReport",
     ":app:assembleDebug",
     ":app:assembleRelease",
     ":app:lintDebug",
@@ -67,13 +68,12 @@ def main() -> int:
                 return 2
             executable = str(wrapper)
         commands.append([executable, "--no-daemon", "--console=plain", *GRADLE_TASKS])
-        if options.ci:
-            commands.append(
-                [
-                    sys.executable, "tools/verify-release-apk.py",
-                    "--ci-unsigned", "app/build/outputs/apk/release/app-release-unsigned.apk",
-                ],
-            )
+        commands.append(
+            [
+                sys.executable, "tools/verify-release-apk.py",
+                "--ci-unsigned", "app/build/outputs/apk/release/app-release-unsigned.apk",
+            ],
+        )
     for command in commands:
         if not invoke(command, plan=options.plan):
             print("RESULT=HOLD_SABLE_HEALTH_QUALITY_PREFLIGHT", file=sys.stderr)

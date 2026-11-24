@@ -1,9 +1,12 @@
 # Sable Health — release signing, GitHub Releases and quality gates
 
-**Status: owner confirmed registered Sable Health key uses the shared TenSeven / Sable Games / Sable Watch certificate; public fingerprint pinned. No private key provisioned in this repo, no signed APK built and no release authorized.**  
-**Package:** `io.github.aimindseye.sablehealth` (owner reports registered in Android Developer Console).  
-**Version currently configured:** `0.1.0-m0`, versionCode `1`; this is a prototype baseline, not a public-release recommendation.  
-**Reference:** TenSeven Launcher, [Sable Games](https://github.com/aimindseye/sablegames/blob/main/tools/build-release.sh), and [Sable Watch](https://github.com/aimindseye/sable-watch/blob/main/tools/build-release.sh) interactive local signing patterns; Sonar workflow and AGENTS.md. Sable Health uses its **own** key, fingerprint and app identity.
+**Status: owner confirmed registered Sable Health key uses the shared TenSeven / Sable Games / Sable Watch certificate; public fingerprint pinned. No private key provisioned in this repo, no signed APK built and no release authorized.**
+
+**Package:** `io.github.aimindseye.sablehealth` (owner reports registered in Android Developer Console).
+
+**Version currently configured:** `0.1.0-m0`, versionCode `1`; this is a prototype baseline, not a public-release recommendation.
+
+**Reference:** TenSeven Launcher, [Sable Games](https://github.com/aimindseye/sablegames/blob/main/tools/build-release.sh), and [Sable Watch](https://github.com/aimindseye/sable-watch/blob/main/tools/build-release.sh) interactive local signing patterns; Sonar workflow and AGENTS.md. Sable Health uses its own app identity and the owner-confirmed shared registered certificate.
 
 ## 1. Prerequisites and certificate identity (owner action)
 
@@ -112,3 +115,6 @@ The Sonar secret is used **only** in scanner/authentication steps. Fork-origin P
 | GitHub Release | Owner manually, post approval | No automatic publish; verifies source SHA, cert and APK sha256 |
 
 **No private signing key was created or supplied by this PR.** Owner confirmed shared public certificate registration and pin; the app remains development-only until signed APK, security/Sonar CI and physical device release gates pass.
+
+## Consolidation requirements
+PR #3 established 82.4% SonarCloud new-code coverage and R8 release minification. Preserve both JaCoCo reports and Python Cobertura. Seven inherited MobSF findings under issue #6 remain a public-distribution blocker. Local signed acceptance builds are not public releases.

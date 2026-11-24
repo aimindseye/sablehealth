@@ -34,10 +34,50 @@ import kotlin.reflect.KClass
 internal object M1HealthConnectProbe {
     private const val RECORDS_PER_PAGE = 100
 
+    internal data class RecordBounds(
+        val start: Instant,
+        val end: Instant,
+        val origin: String,
+    )
+
+    internal data class MetadataPage(
+        val records: List<RecordBounds>,
+        val pageToken: String?,
+    )
+
+    internal interface Reader {
+        suspend fun granted(): Set<String>
+
+        suspend fun <T : Record> read(
+            request: ReadRecordsRequest<T>,
+            times: (T) -> Pair<Instant, Instant>,
+        ): MetadataPage
+    }
+
+    private class PlatformReader(
+        private val client: HealthConnectClient,
+    ) : Reader {
+        override suspend fun granted(): Set<String> = client.permissionController.getGrantedPermissions()
+
+        override suspend fun <T : Record> read(
+            request: ReadRecordsRequest<T>,
+            times: (T) -> Pair<Instant, Instant>,
+        ): MetadataPage {
+            val response = client.readRecords(request)
+            return MetadataPage(
+                response.records.map { record ->
+                    val (start, end) = times(record)
+                    RecordBounds(start, end, record.metadata.dataOrigin.packageName)
+                },
+                response.pageToken,
+            )
+        }
+    }
+
     internal class Metric(
         val name: String,
         val permission: String,
-        val inspect: suspend (HealthConnectClient, Instant) -> HealthMetricCoverage,
+        val inspect: suspend (Reader, Instant) -> HealthMetricCoverage,
     )
 
     private fun <T : Record> metric(
@@ -75,8 +115,14 @@ internal object M1HealthConnectProbe {
         at: Instant = Instant.now(),
     ): List<HealthMetricCoverage> {
         check(platformAvailable(context)) { "Health Connect unavailable" }
-        val client = HealthConnectClient.getOrCreate(context)
-        val granted = client.permissionController.getGrantedPermissions()
+        return scan(PlatformReader(HealthConnectClient.getOrCreate(context)), at)
+    }
+
+    internal suspend fun scan(
+        client: Reader,
+        at: Instant,
+    ): List<HealthMetricCoverage> {
+        val granted = client.granted()
         return metrics.map { metric ->
             if (metric.permission !in granted) {
                 HealthMetricCoverage(metric.name, metric.permission, CoverageState.NOT_GRANTED)
@@ -95,7 +141,7 @@ internal object M1HealthConnectProbe {
     }
 
     private suspend fun <T : Record> readCoverage(
-        client: HealthConnectClient,
+        client: Reader,
         type: KClass<T>,
         label: String,
         now: Instant,
@@ -110,7 +156,7 @@ internal object M1HealthConnectProbe {
         val origins = sortedSetOf<String>()
         do {
             val response =
-                client.readRecords(
+                client.read(
                     ReadRecordsRequest(
                         recordType = type,
                         timeRangeFilter = TimeRangeFilter.between(from, now),
@@ -118,12 +164,13 @@ internal object M1HealthConnectProbe {
                         pageSize = min(RECORDS_PER_PAGE, HealthCoverageContract.MAX_RECORDS_PER_TYPE - count),
                         pageToken = token,
                     ),
+                    times,
                 )
             for (record in response.records) {
-                val (start, end) = times(record)
+                val (start, end, origin) = record
                 if (first == null || start.isBefore(first)) first = start
                 if (last == null || end.isAfter(last)) last = end
-                origins.add(record.metadata.dataOrigin.packageName)
+                origins.add(origin)
                 count++
             }
             token = response.pageToken

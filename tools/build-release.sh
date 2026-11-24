@@ -66,6 +66,7 @@ python3 tools/quality_preflight.py ||
     fail "Quality preflight failed"
 unsigned=app/build/outputs/apk/release/app-release-unsigned.apk
 [[ -s "$unsigned" ]] || fail "Expected unsigned release APK is missing"
+[[ -s app/build/outputs/mapping/release/mapping.txt ]] || fail "R8 mapping missing"
 python3 tools/verify-release-apk.py --ci-unsigned "$unsigned" \
     --expected-code "$code" --expected-name "$version" ||
     fail "Unsigned APK metadata verification failed"

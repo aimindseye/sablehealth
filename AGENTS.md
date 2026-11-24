@@ -35,7 +35,7 @@ python3 tools/quality_preflight.py
 - `.github/workflows/android.yml`: all PR bases including stacked branches; runs `python3 tools/quality_preflight.py --ci`, checks release candidate is **unsigned**.
 - `.github/workflows/security.yml`: CodeQL, MobSF and Gitleaks on all PRs. Existing unresolved MobSF findings must be triaged, **not** disabled to get green.
 - `.github/workflows/sonar.yml`: the owner confirmed SonarCloud project setup and `SONAR_TOKEN`. Analysis now runs on each same-repo PR and push to main without a `SONAR_ENABLED` toggle; a missing token or failing quality gate is a **FAILURE**, not a skip. Never print the token.
-- Sonar uses authentic `core:jacocoTestReport` and Android Lint XML. The JVM report does not replace Android UI coverage; no blanket production exclusions to inflate scores. Sonar's quality gate remains independent.
+- Sonar uses authentic core and Android JaCoCo, Python Cobertura and Android Lint XML. Release APKs must retain R8 minification and obfuscation. Seven inherited MobSF findings remain unresolved under issue #6; no public distribution until release security closure. The JVM report does not replace Android UI coverage; no blanket production exclusions to inflate scores. Sonar's quality gate remains independent.
 - Never relax thresholds, patch workflows to bypass gates or use broad suppressions. If legacy findings block merging, record them and request targeted review.
 
 ## 6. Owner-only release signing
@@ -48,3 +48,6 @@ python3 tools/quality_preflight.py
 
 ## 7. Completion receipt
 State baseline SHA, touched tracked/untracked paths, local checks and versions, CI/Sonar/MobSF/Gitleaks results, certificate and version identity where relevant, physical-device outcomes, unresolved risks and explicit HOLD or READY FOR OWNER REVIEW. Never represent successful compilation as release certification.
+
+## 8. Preserved M0 governance
+- Pure Kotlin/Compose architecture; no server or dependency on other Sable apps. Preserve keyboard modifiers, text entry and nonrepeating confirm actions. Track provenance, timezone, partial coverage and duplicates; no clinical diagnoses or proprietary score recreation. Include Design Compliance and device matrix in each PR.

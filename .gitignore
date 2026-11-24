@@ -16,3 +16,9 @@ keystore.properties
 *.p12
 *.pfx
 release-private/
+
+# Local coverage and Python cache outputs
+.coverage
+.coverage.*
+python-coverage.xml
+__pycache__/
