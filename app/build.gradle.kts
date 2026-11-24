@@ -85,10 +85,13 @@ val verifyRegisteredReleaseKey by tasks.registering {
         check(keyStoreFile.isFile) { "Configured release keystore does not exist." }
         val store = KeyStore.getInstance(keyStoreFile, signingStorePassword!!.toCharArray())
         check(store.isKeyEntry(signingAlias!!)) { "Release alias is not a private-key entry." }
-        val certificate = store.getCertificate(signingAlias!!)
-            ?: error("Registered release key certificate not found.")
+        val certificate =
+            store.getCertificate(signingAlias!!)
+                ?: error("Registered release key certificate not found.")
         val actual =
-            MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+            MessageDigest
+                .getInstance("SHA-256")
+                .digest(certificate.encoded)
                 .joinToString("") { "%02x".format(it.toInt() and 0xff) }
         check(actual == expected) {
             "Release signing certificate does not match the registered public certificate fingerprint."
@@ -100,7 +103,8 @@ val verifyRegisteredReleaseKey by tasks.registering {
 // Fail before signing/packaging whenever a signing configuration is supplied.
 // CI without credentials builds the release candidate unsigned and verifies that status independently.
 if (releaseSigned) {
-    tasks.matching { it.name in setOf("assembleRelease", "packageRelease", "bundleRelease", "signReleaseBundle") }
+    tasks
+        .matching { it.name in setOf("assembleRelease", "packageRelease", "bundleRelease", "signReleaseBundle") }
         .configureEach {
             dependsOn(verifyRegisteredReleaseKey)
         }
