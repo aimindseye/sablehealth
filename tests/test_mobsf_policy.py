@@ -109,6 +109,14 @@ class MobSFRatchetTest(unittest.TestCase):
             self.assertIn("MOBSF_INHERITED_UNRESOLVED=7", result_pass.stdout)
             self.assertIn("PASS_MOBSF_BASELINE_AWARE_GATE", result_pass.stdout)
 
+    def test_workflow_uses_no_fail_and_still_enforces_report(self):
+        workflow = (ROOT / ".github/workflows/security.yml").read_text(encoding="utf-8")
+        self.assertIn("--type android --no-fail", workflow)
+        self.assertIn("--scan-outcome", workflow)
+        self.assertIn("steps.mobsfscan.outcome", workflow)
+        self.assertIn("--baseline config/mobsf-known-findings.json", workflow)
+        self.assertIn("sarif_file: mobsfscan-results.sarif", workflow)
+
     def test_report_missing_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             baseline = Path(temp) / "baseline.json"
