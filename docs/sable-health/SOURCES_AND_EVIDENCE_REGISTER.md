@@ -75,7 +75,7 @@ No upstream has been pinned, tested or integrated by this documentation PR. Lice
 
 | ID | Finding | Status | Required next action |
 |---|---|---|---|
-| E01 | Oura FitMesh blog TL;DR implies SpO2 export; detailed section says NOT confirmed | CONFLICT | Prefer official Oura documentation and live HC record probe |
+| E01 | Oura FitMesh blog TL;DR implies SpO2 export, but detailed section does not confirm | CONFLICT / OFFICIAL CHECK | Oura official Aug 19 help lists export of activity, sleep, HR, HRV; **not SpO2**; live records still needed |
 | E02 | FitMesh compiled `self-host` label vs published self-hosting limitations | RESOLVED AS LIMITATION | Not a full self-host; keep Sable homelab independent |
 | E03 | FitMesh main integration counts and per-provider marketing may change | OPEN | Do not hard-code vendor claims; maintain dated per-metric matrix |
 | E04 | Fitbit Air Google Health export might omit certain measured types | OPEN | Q25 permissioned record-coverage probe |
@@ -86,7 +86,7 @@ No upstream has been pinned, tested or integrated by this documentation PR. Lice
 | E09 | Remote provider APIs may duplicate same HC observations | OPEN | Design route lineage and idempotent import |
 | E10 | Pulse/GenieMax algorithm applicability with Q25 data | OPEN | Check real inputs and license, then golden-vector tests |
 | E11 | Existing R5.4 code merge/security quality | HOLD | Owner acceptance and unresolved findings triage |
-| E12 | FitMesh source parser or API metadata proves real feature functionality | NOT PROVEN | Require runtime, avoid speculative implementation claim |
+| E12 | FitMesh source parser or API metadata proves real feature functionality | NOT PROVEN | Require runtime, avoid speculative implementation claim |\n| E13 | Oura blog implies subscription-free data, official Oura HC help requires active membership for Gen3+ | CONFLICT / OFFICIAL CHECK | Treat Gen3+ membership requirement as documented; verify on relevant device before promising access |
 
 ## Maintenance convention
 
