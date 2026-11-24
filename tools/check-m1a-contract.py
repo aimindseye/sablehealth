@@ -45,7 +45,7 @@ for file in APP.glob("*.kt"):
     if file.name != "M1HealthConnectProbe.kt":
         assert "readRecords(" not in file.read_text(), f"Record read outside M1 probe: {file.name}"
 ui = (APP / "M1DiscoveryPage.kt").read_text()
-assert "permissionLauncher.launch(request)" in ui
+assert "permissionLauncher.launch(it)" in ui
 assert "M1HealthConnectProbe.scan(context, now)" in ui
 assert "ACTION_SEND" in ui and "createChooser" in ui
 assert "M1_DISCOVERY" in (APP / "AppChrome.kt").read_text()
