@@ -10,6 +10,28 @@ permissions:
   contents: read
   security-events: write
 jobs:
+  gitleaks:
+    name: Secret leakage (history)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download and verify Gitleaks 8.30.1
+        run: |
+          set -eu
+          v=8.30.1
+          cd "$RUNNER_TEMP"
+          curl --proto '=https' --tlsv1.2 -sSfL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_linux_x64.tar.gz"
+          curl --proto '=https' --tlsv1.2 -sSfL -o sums.txt "https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_checksums.txt"
+          grep " gitleaks_${v}_linux_x64.tar.gz$" sums.txt | sed "s/gitleaks_${v}_linux_x64.tar.gz/gl.tgz/" | sha256sum -c -
+          tar -xzf gl.tgz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+      - name: Fail on tracked secrets
+        run: gitleaks git --redact --no-banner --exit-code 1 .
+
   codeql:
     runs-on: ubuntu-24.04
     timeout-minutes: 60

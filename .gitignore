@@ -10,3 +10,15 @@ local.properties
 private/
 *.apk
 docs/screenshots/
+
+# Owner-only release signing secrets (never commit)
+keystore.properties
+*.p12
+*.pfx
+release-private/
+
+# Local coverage and Python cache outputs
+.coverage
+.coverage.*
+python-coverage.xml
+__pycache__/
