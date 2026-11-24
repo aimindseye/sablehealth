@@ -32,7 +32,12 @@ jobs:
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
           test -n "$sdkmanager"
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
-      - run: gradle --no-daemon :app:assembleDebug
+      - name: Force Kotlin compilation for CodeQL extraction
+        # Cached compileKotlin/compileDebugKotlin tasks produce no compiler trace.
+        # Manual CodeQL requires actual builds after its init action; disabling
+        # the build cache and rerunning tasks is intentional for this job only.
+        run: |
+          gradle --no-daemon --console=plain --no-build-cache --rerun-tasks :app:assembleDebug
       - uses: github/codeql-action/analyze@0d579ffd059c29b07949a3cce3983f0780820c98
   mobsf:
     runs-on: ubuntu-24.04
