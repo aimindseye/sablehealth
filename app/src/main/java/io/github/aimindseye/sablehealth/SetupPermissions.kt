@@ -49,7 +49,11 @@ internal fun SetupPermissions(
     inspect: suspend (Context) -> ConnectStatus = ::inspectHealthConnect,
     requestOverride: ((Set<String>) -> Unit)? = null,
 ) {
-    val recommended = M1HealthConnectProbe.metrics.filter { it.name in recommendedNames }.map { it.permission }.toSet()
+    val recommended =
+        M1HealthConnectProbe.metrics
+            .filter { it.name in recommendedNames }
+            .map { it.permission }
+            .toSet()
     var selection by rememberSaveable { mutableStateOf(recommended.joinToString(",")) }
     val selected = selection.split(",").filter { it.isNotEmpty() }.toSet()
     Text(setupAccessSummary(state.connect), style = MaterialTheme.typography.bodyMedium)

@@ -215,7 +215,10 @@ internal suspend fun inspectHealthConnect(context: Context): ConnectStatus =
                     client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
                         HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
                 val supported =
-                    M1HealthConnectProbe.metrics.map { it.permission }.filter { it != skin || skinAvailable }.toSet()
+                    M1HealthConnectProbe.metrics
+                        .map { it.permission }
+                        .filter { it != skin || skinAvailable }
+                        .toSet()
                 val granted = client.permissionController.getGrantedPermissions().intersect(supported)
                 ConnectStatus("Available", "Read access checked · no records queried", granted.size, granted, supported)
             }
