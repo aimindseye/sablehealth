@@ -29,6 +29,7 @@ This baseline is **not** a security certification, mitigation, waiver, or releas
 - **PASS (CI only):** scanner actually succeeded; SARIF was valid and from the expected scanner/version; all `error`/`warning` results were among the pinned inherited fingerprints; newly found `note`/`none` results remain visible for human review.
 - **FAIL:** scanner action fails/skips; SARIF missing, malformed, wrong version/tool, or missing result schema; baseline duplicates/broad allowances; any **new** `error` or `warning` result (including a second occurrence or changed location of an inherited error).
 - **NOT ACCEPTED:** even when CI passes, the seven inherited results remain tracked as unresolved. A passing ratchet is not permission to publish a signed health-data app.
+- The pinned MobSF 0.4.5 CLI is invoked with `--no-fail` because finding-only reports otherwise produce exit code 1; that switch does **not** filter or suppress SARIF. The independent Python gate still checks `steps.mobsfscan.outcome`, scanner identity/version, every original result and new warning/error regressions. Runtime scanner failures remain blocking.
 - The full `mobsfscan-results.sarif` is uploaded to GitHub Code Scanning and as a workflow artifact. CodeQL/Gitleaks/Sonar remain independent, with no thresholds relaxed.
 - Changes to the scanner version, baseline, or severity policy require an explicit scoped PR reviewing the new SARIF and tests; do not update the baseline just to clear a failure.
 
