@@ -1,7 +1,5 @@
 package io.github.aimindseye.sablehealth
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
@@ -47,6 +45,10 @@ internal fun HealthAppContent(
     val dashboardOnQ25 =
         profile == DeviceProfile.Q25 && state.page == Page.MAIN && state.section == Section.DASHBOARD
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        if (state.page != Page.MAIN) {
+            R7aSubscreen(state, profile)
+            return@Column
+        }
         HealthHeader(
             title =
                 if (profile == DeviceProfile.Q25 || state.page == Page.MAIN) {
@@ -125,12 +127,18 @@ private fun RefreshableHealthPage(
 }
 
 @Composable
-private fun ScrollableHealthPage(
+internal fun ScrollableHealthPage(
     state: SableAppState,
     profile: DeviceProfile,
 ) {
     val scroll = rememberScrollState()
-    LaunchedEffect(state.page, state.section, state.modeFor(state.section), state.r6.detailMetric(state.section)) {
+    LaunchedEffect(
+        state.page,
+        state.section,
+        state.modeFor(state.section),
+        state.r6.detailMetric(state.section),
+        state.widgetBrowsing,
+    ) {
         scroll.scrollTo(0)
     }
     Column(
@@ -165,6 +173,7 @@ private fun HealthPage(
         Page.PHONE_INPUT -> PhoneInputPage(state, profile)
         Page.SETTINGS_PRIVACY -> SettingsPrivacyPage()
         Page.HELP -> HelpPage(profile, state::back)
+        else -> R7aAdditionalPage(state)
     }
 }
 
@@ -258,12 +267,11 @@ internal fun FocusButton(
             modifier
                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small)
+                .then(r7FocusOutline(focused, colors.primary, MaterialTheme.shapes.small))
                 .clickable(onClick = onClick)
                 .focusable(),
         color = if (selected) colors.surfaceVariant else colors.surface,
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, colors.outlineVariant),
     ) {
         Box(
             Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
@@ -307,10 +315,9 @@ private fun Q25ChromeButton(
                 Modifier
                     .fillMaxWidth()
                     .height(Q25_VISUAL_HEIGHT_DP.dp)
-                    .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small),
+                    .then(r7FocusOutline(focused, colors.primary, MaterialTheme.shapes.small)),
             shape = MaterialTheme.shapes.small,
             color = if (selected) colors.surfaceVariant else colors.surface,
-            border = BorderStroke(1.dp, colors.outlineVariant),
         ) {
             Box(Modifier.padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
                 Text(

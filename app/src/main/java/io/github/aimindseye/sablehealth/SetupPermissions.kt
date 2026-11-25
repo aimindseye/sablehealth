@@ -49,22 +49,37 @@ internal fun SetupPermissions(
             .toSet()
     var selection by rememberSaveable { mutableStateOf(recommended.joinToString(",")) }
     val selected = selection.split(",").filter { it.isNotEmpty() }.toSet()
-    Text(setupAccessSummary(state.connect), style = MaterialTheme.typography.bodyMedium)
-    SetupRequestControls(state, selected, inspect, requestOverride)
-    ManageAndroidPermissions()
-    CompactChoiceRow(
-        "Select read categories",
-        listOf("recommended" to "Recommended", "all" to "All supported"),
-        when {
-            selected == recommended -> "recommended"
-            selected.isNotEmpty() && selected == state.connect.supported -> "all"
-            else -> ""
-        },
-        { selection = (if (it == "recommended") recommended else state.connect.supported).joinToString(",") },
-    )
-    SetupMetricRows(state.connect, selected) {
-        selection = (if (it in selected) selected - it else selected + it).joinToString(",")
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    R7aGroup("", r7MetricSurface(null)) {
+        Text("Connect health data", style = MaterialTheme.typography.titleMedium)
+        R7aNote("Allow read-only access to selected health measurements.")
     }
+    R7aGroup("Health Connect") {
+        R7aRow("Availability", state.connect.label, detail = setupAccessSummary(state.connect))
+        R7aRule()
+        R7aRow("Review permissions", action = { expanded = !expanded }, chosen = expanded)
+        R7aRule()
+        R7aRow("Recheck permissions", action = state::recheckPermissions)
+    }
+    if (expanded) {
+        R7aGroup("Read categories") {
+            val current =
+                when {
+                    selected == recommended -> "Recommended"
+                    selected.isNotEmpty() && selected == state.connect.supported -> "All supported"
+                    else -> "Custom"
+                }
+            R7aChoiceRow("Selection", current, listOf("Recommended", "All supported")) { value ->
+                selection = (if (value == "Recommended") recommended else state.connect.supported).joinToString(",")
+            }
+        }
+        SetupRequestControls(state, selected, inspect, requestOverride)
+        ManageAndroidPermissions()
+        SetupMetricRows(state.connect, selected) {
+            selection = (if (it in selected) selected - it else selected + it).joinToString(",")
+        }
+    }
+    R7aNote("Android requests access only after your action.")
 }
 
 @Composable
@@ -82,9 +97,9 @@ private fun SetupRequestControls(
             request.finished()
             state.recheckPermissions()
         }
-    FocusButton(
+    R7aAction(
         "Grant missing selected",
-        onClick = {
+        action = {
             if (!request.busy) {
                 request.busy = true
                 scope.launch {
@@ -101,7 +116,6 @@ private fun SetupRequestControls(
         },
         modifier = Modifier.fillMaxWidth(),
     )
-    FocusButton("Recheck permissions", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
     if (request.busy) Text("Waiting for Android permissions")
     if (request.message.isNotEmpty()) Text(request.message, style = MaterialTheme.typography.bodySmall)
 }
@@ -150,14 +164,17 @@ private fun SetupMetricRows(
     toggle: (String) -> Unit,
 ) {
     M1HealthConnectProbe.metrics.groupBy { SourceOverview.category(it.name) }.forEach { (group, metrics) ->
-        Text(group, style = MaterialTheme.typography.titleSmall)
-        metrics.forEach { metric ->
-            val permission = metric.permission
-            CompactLinkRow(
-                metric.name,
-                (if (permission in selected) "Selected" else "Not selected") + " · " + metricAccess(status, permission),
-                { toggle(permission) },
-            )
+        R7aGroup(group) {
+            metrics.forEach { metric ->
+                val permission = metric.permission
+                R7aRow(
+                    metric.name,
+                    value = metricAccess(status, permission),
+                    chosen = permission in selected,
+                    action = { toggle(permission) },
+                )
+                R7aRule()
+            }
         }
     }
 }
@@ -177,9 +194,9 @@ private fun metricAccess(
 private fun ManageAndroidPermissions() {
     val context = LocalContext.current
     var message by remember { mutableStateOf("") }
-    FocusButton(
+    R7aAction(
         "Manage Android permissions",
-        onClick = {
+        action = {
             message = openHealthConnectSettings(context)
         },
         modifier = Modifier.fillMaxWidth(),
@@ -204,23 +221,27 @@ internal fun SetupVerify(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    Notice("Read access", setupAccessSummary(state.connect))
-    FocusButton("Recheck permissions", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
-    if (state.connect.granted.isNotEmpty()) {
-        FocusButton(
-            "Scan allowed records",
-            onClick = { scope.launch { discovery.scan(context) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    } else {
-        Text("Grant read access before scanning.")
+    R7aGroup("Read access") {
+        R7aRow("Allowed categories", detail = setupAccessSummary(state.connect))
+        R7aRow("Recheck permissions", action = state::recheckPermissions)
+        if (state.connect.granted.isNotEmpty()) {
+            R7aRow("Scan allowed records", action = { scope.launch { discovery.scan(context) } })
+        } else {
+            R7aNote("Grant read access before scanning.")
+        }
+        R7aNote(discovery.message)
     }
-    Text(discovery.message, style = MaterialTheme.typography.bodySmall)
-    discovery.results.forEach { coverage ->
-        CompactSummary(coverage.type, HealthCoverageContract.status(coverage))
-        coverage.lastObservedUtc?.let { Text("Last observed (UTC): $it", style = MaterialTheme.typography.bodySmall) }
-        if (coverage.originPackages.isNotEmpty()) {
-            Text("Writer apps: ${coverage.originPackages.joinToString()}", style = MaterialTheme.typography.bodySmall)
+    val rows = SourceOverview.visibleRows(discovery.results, state.connect.granted)
+    rows.groupBy { SourceOverview.category(it.type) }.forEach { (category, entries) ->
+        R7aGroup(category) {
+            entries.forEach { coverage ->
+                R7aRow(coverage.type, detail = HealthCoverageContract.status(coverage))
+                coverage.lastObservedUtc?.let { R7aNote("Last observed (UTC): $it") }
+                if (coverage.originPackages.isNotEmpty()) {
+                    R7aNote("Writer apps: ${coverage.originPackages.joinToString()}")
+                }
+                R7aRule()
+            }
         }
     }
     Text("Record coverage is not proof of wearable pairing or current sync.")

@@ -49,12 +49,14 @@ import java.time.format.DateTimeFormatter
 internal val stageLabels = listOf("Awake", "REM", "Light", "Deep", "Other")
 private const val SECONDS_PER_MINUTE = 60L
 private const val LABEL_WIDTH = 49f
-private const val LABEL_TOP = 27f
-private const val LABEL_BOTTOM = 24f
+private const val LABEL_TOP = 34f
+private const val LABEL_BOTTOM = 18f
 private const val ALL_STAGE_WIDTH = 88
 private const val FULL_CIRCLE = 360f
-private const val LABEL_MIN_SPACING = 58f
 private const val MAX_TIMELINE_DP = 5000
+private const val TIMELINE_HEIGHT_DP = 124
+private const val LABEL_ROW_DP = 16
+private const val GUIDE_ALPHA = .48f
 private const val MIN_TIMELINE_DP = 340
 private const val AWAKE_START_ANGLE = -90f
 private const val REM_COLOR = 0xFFAA92D9
@@ -111,12 +113,6 @@ private fun SleepTransitionChart(
     val pattern = if (DateFormat.is24HourFormat(LocalContext.current)) "HH:mm" else "h:mm a"
     val formatter = DateTimeFormatter.ofPattern(pattern)
     val format: (Instant) -> String = { formatter.format(it.atZone(zone)) }
-    R6Choice(
-        "Transition labels",
-        labels,
-        listOf("Key times", "All times", "Selected"),
-        preferences::chooseTransitionLabels,
-    )
     val all = labels == "All times"
     val chart: @Composable (Modifier) -> Unit = { modifier ->
         SleepPlot(session, stages, palette, SleepSelection(selected, labels, format) { selected = it }, modifier)
@@ -135,12 +131,14 @@ private fun SleepTransitionChart(
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         R6IconButton("Previous stage", R.drawable.ic_r6_back, { selected = (selected - 1).coerceAtLeast(0) })
         Column(Modifier.weight(1f)) {
-            Text(stage.type, style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stage.type, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${Duration.between(stage.start, stage.end).seconds / SECONDS_PER_MINUTE} min",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             Text("${format(stage.start)} – ${format(stage.end)}", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                "${Duration.between(stage.start, stage.end).seconds / SECONDS_PER_MINUTE} min",
-                style = MaterialTheme.typography.labelSmall,
-            )
         }
         R6IconButton("Next stage", R.drawable.ic_r6_next, { selected = (selected + 1).coerceAtMost(stages.lastIndex) })
     }
@@ -149,6 +147,12 @@ private fun SleepTransitionChart(
     val before = previous?.takeIf { SleepPlotPolicy.contiguous(it, stage) }?.type ?: "Start / gap"
     val after = next?.takeIf { SleepPlotPolicy.contiguous(stage, it) }?.type ?: "End / gap"
     Text("$before → ${stage.type} → $after", style = MaterialTheme.typography.labelSmall)
+    R6Choice(
+        "Transition labels",
+        labels,
+        listOf("Key times", "All times", "Selected"),
+        preferences::chooseTransitionLabels,
+    )
 }
 
 private data class SleepSelection(
@@ -163,10 +167,11 @@ private data class SleepPlotLayout(
     val top: Float,
     val width: Float,
     val row: Float,
+    val labels: List<String>,
 ) {
-    fun y(type: String): Float = top + stageLabels.indexOf(plotStage(type)) * row + row / 2
+    fun y(type: String): Float = top + labels.indexOf(plotStage(type)) * row + row / 2
 
-    val bottom: Float get() = top + stageLabels.size * row
+    val bottom: Float get() = top + labels.size * row
 }
 
 @Composable
@@ -181,7 +186,7 @@ private fun SleepPlot(
     val colors = MaterialTheme.colorScheme
     Canvas(
         modifier
-            .height(166.dp)
+            .height(TIMELINE_HEIGHT_DP.dp)
             .semantics { contentDescription = "Sleep stage transitions with recorded times" }
             .pointerInput(session) {
                 detectTapGestures { offset ->
@@ -197,12 +202,14 @@ private fun SleepPlot(
                 }
             },
     ) {
+        val labels = if (stages.any { plotStage(it.type) == "Other" }) stageLabels else stageLabels.dropLast(1)
         val layout =
             SleepPlotLayout(
                 LABEL_WIDTH.dp.toPx(),
                 LABEL_TOP.dp.toPx(),
                 (size.width - LABEL_WIDTH.dp.toPx() - 6.dp.toPx()).coerceAtLeast(1f),
-                (size.height - LABEL_TOP.dp.toPx() - LABEL_BOTTOM.dp.toPx()) / stageLabels.size,
+                (size.height - LABEL_TOP.dp.toPx() - LABEL_BOTTOM.dp.toPx()) / labels.size,
+                labels,
             )
         val x: (Instant) -> Float = { layout.left + SleepPlotPolicy.fraction(session, it) * layout.width }
         drawSleepGuides(layout, text, colors)
@@ -244,13 +251,13 @@ private fun DrawScope.drawSleepStages(
         }
         drawRoundRect(
             color,
-            Offset(start, y - 4.dp.toPx()),
-            Size((end - start).coerceAtLeast(1f), 8.dp.toPx()),
+            Offset(start, y - 3.dp.toPx()),
+            Size((end - start).coerceAtLeast(1f), 6.dp.toPx()),
             CornerRadius(2.dp.toPx()),
         )
         if (index == selected) {
             listOf(start, end).forEach { at ->
-                drawLine(ink.marker, Offset(at, 17.dp.toPx()), Offset(at, layout.bottom), 1.dp.toPx())
+                drawLine(ink.marker, Offset(at, layout.top), Offset(at, layout.bottom), 1.dp.toPx())
             }
         }
     }
@@ -263,20 +270,21 @@ private fun DrawScope.drawTransitionLabels(
     text: TextMeasurer,
     color: Color,
 ) {
-    var last = Float.NEGATIVE_INFINITY
-    stages.forEachIndexed { index, stage ->
-        val at = x(stage.start)
-        val key = index == 0 || plotStage(stage.type) == "Awake"
-        val show = selection.labels == "All times" || selection.labels == "Key times" && key
-        if (show && at - last > LABEL_MIN_SPACING.dp.toPx()) {
-            sleepLabel(text, selection.format(stage.start), at, 0f, color)
-            last = at
+    val chosen = stages[selection.index]
+    val range = "${selection.format(chosen.start)} – ${selection.format(chosen.end)}"
+    val center = (x(chosen.start) + x(chosen.end)) / 2f
+    sleepLabel(text, range, center, LABEL_ROW_DP.dp.toPx(), color)
+    val candidates =
+        stages.mapIndexedNotNull { index, stage ->
+            val key = index == 0 || plotStage(stage.type) == "Awake"
+            val show = selection.labels == "All times" || selection.labels == "Key times" && key
+            if (show && stage.start != chosen.start && stage.start != chosen.end) {
+                R7TimelineLabels.Label(selection.format(stage.start), x(stage.start))
+            } else {
+                null
+            }
         }
-    }
-    val stage = stages[selection.index]
-    // Use separate rows for the selected boundaries: even a one-minute stage has two readable times.
-    sleepLabel(text, selection.format(stage.start), x(stage.start), 10.dp.toPx(), color)
-    sleepLabel(text, selection.format(stage.end), x(stage.end), 19.dp.toPx(), color)
+    drawR7TimeLabels(candidates, text, color)
 }
 
 internal fun DrawScope.sleepLabel(
@@ -340,9 +348,14 @@ private fun DrawScope.drawSleepGuides(
     text: TextMeasurer,
     colors: ColorScheme,
 ) {
-    stageLabels.forEach { label ->
+    layout.labels.forEach { label ->
         val y = layout.y(label)
-        drawLine(colors.outlineVariant, Offset(layout.left, y), Offset(layout.left + layout.width, y), 6.dp.toPx())
+        drawLine(
+            colors.onSurfaceVariant.copy(alpha = GUIDE_ALPHA),
+            Offset(layout.left, y),
+            Offset(layout.left + layout.width, y),
+            1.dp.toPx(),
+        )
         drawText(
             text,
             label,

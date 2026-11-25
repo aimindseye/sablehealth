@@ -45,9 +45,9 @@ internal fun R6GoalSetting(state: SableAppState) {
     val goal = state.r6.stepGoal
     val label = if (goal == 0) "No goal" else formatNumber(goal.toDouble())
     val options = stepGoalChoices.map { if (it == 0) "No goal" else formatNumber(it.toDouble()) }
-    R6Choice("Daily step goal", label, options, { choice ->
+    R7aChoiceRow("Daily step goal", label, options) { choice ->
         state.r6.chooseStepGoal(stepGoalChoices[options.indexOf(choice)])
-    })
+    }
 }
 
 @Composable
@@ -58,7 +58,7 @@ internal fun R6StepRing(
     val fraction = (steps / goal).coerceAtLeast(0.0)
     val colors = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Canvas(Modifier.fillMaxWidth().height(38.dp).semantics { contentDescription = "Step goal progress" }) {
+        Canvas(Modifier.fillMaxWidth().height(32.dp).semantics { contentDescription = "Step goal progress" }) {
             val stroke = 5.dp.toPx()
             val diameter = (minOf(size.width, size.height) - stroke).coerceAtLeast(1f)
             val start = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)

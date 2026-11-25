@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,8 +31,8 @@ private val activityMetrics =
     listOf(
         LiveMetric.STEPS,
         LiveMetric.DISTANCE,
-        LiveMetric.ACTIVE_CALORIES,
         LiveMetric.CALORIES,
+        LiveMetric.ACTIVE_CALORIES,
         LiveMetric.ACTIVE_MINUTES,
         LiveMetric.EXERCISE_SESSIONS,
     )
@@ -96,7 +95,7 @@ internal fun LiveRefreshRow(state: SableAppState) {
     }
 }
 
-/** Same four selected slots, with a compact fourth row. No historical charts on Dashboard. */
+/** Four selected daily slots. No historical charts on Dashboard. */
 @Composable
 private fun LiveDashboard(
     state: SableAppState,
@@ -130,13 +129,16 @@ private fun LiveWidget(
     widget: DashboardWidget,
     hero: Boolean,
 ) {
-    R6Card {
-        Column(Modifier.fillMaxWidth().padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(widgetTitle(widget), style = MaterialTheme.typography.titleSmall)
+    R6Card(
+        modifier = Modifier.testTag("r7-widget-${widget.name}"),
+        color = r7MetricSurface(widgetMetric(widget)),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(widgetTitle(widget), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             if (hero) LiveWidgetIcon(widget)
-            WidgetReading(snapshot, widget)
-            WidgetGraphic(state, snapshot, widget, state.dashboard.styleFor(widget))
         }
+        WidgetReading(snapshot, widget)
+        WidgetGraphic(state, snapshot, widget, state.dashboard.styleFor(widget))
     }
 }
 
@@ -149,11 +151,16 @@ private fun WidgetReading(
     when {
         widget == DashboardWidget.DATA_FRESHNESS -> Text(localTime(snapshot.window.now, snapshot.window.zone))
         metric == null -> Text("Not available in M1-C", style = MaterialTheme.typography.bodySmall)
+        widget == DashboardWidget.SLEEP_STAGES -> R7SleepWidgetReading(snapshot, metric)
         widget == DashboardWidget.SLEEP_SCHEDULE -> {
             val sleep = snapshot.sleeps.lastOrNull { snapshot.window.day(it.end) == snapshot.window.today }
-            if (sleep == null) LiveMetricValue(snapshot, metric) else Text(sleepRange(sleep, snapshot.window.zone))
+            if (sleep == null) {
+                LiveMetricValue(snapshot, metric, prominent = true)
+            } else {
+                Text(sleepRange(sleep, snapshot.window.zone))
+            }
         }
-        else -> LiveMetricValue(snapshot, metric)
+        else -> LiveMetricValue(snapshot, metric, prominent = true)
     }
 }
 
@@ -177,11 +184,7 @@ private fun WidgetGraphic(
         DashboardWidget.SLEEP_STAGES -> {
             val sleep = snapshot.sleeps.lastOrNull { snapshot.window.day(it.end) == snapshot.window.today }
             if (sleep != null) {
-                Text(
-                    "Latest session · ${sleepRange(sleep, snapshot.window.zone)}",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                SleepTimeline(sleep)
+                R7DashboardSleepStrip(sleep)
             }
         }
         else -> Unit
@@ -191,9 +194,9 @@ private fun WidgetGraphic(
 @Composable
 private fun LiveWidgetIcon(widget: DashboardWidget) {
     when (widget) {
-        DashboardWidget.STEPS -> Icon(painterResource(R.drawable.ic_sable_steps), null, Modifier.size(30.dp))
+        DashboardWidget.STEPS -> Icon(painterResource(R.drawable.ic_sable_steps), null, Modifier.size(20.dp))
         DashboardWidget.HEART_RATE, DashboardWidget.RESTING_HR ->
-            Icon(painterResource(R.drawable.ic_sable_heart), null, Modifier.size(36.dp), tint = Color.Unspecified)
+            Icon(painterResource(R.drawable.ic_sable_heart), null, Modifier.size(22.dp), tint = Color.Unspecified)
         else -> Unit
     }
 }
@@ -202,10 +205,12 @@ private fun LiveWidgetIcon(widget: DashboardWidget) {
 internal fun LiveMetricValue(
     snapshot: LiveSnapshot,
     metric: LiveMetric,
+    prominent: Boolean = false,
 ) {
     val series = snapshot.metrics[metric]
     val point = LiveHealthPolicy.dashboardPoint(snapshot, metric)
-    Text(point?.let { displayValue(metric, it) } ?: "—", style = MaterialTheme.typography.titleMedium)
+    val style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium
+    Text(point?.let { displayValue(metric, it) } ?: "—", style = style)
     val detail =
         when {
             point != null -> point.observedAt?.let { localTime(it, snapshot.window.zone) } ?: point.day.toString()

@@ -104,7 +104,7 @@ class R6PresentationTest {
         compose.runOnIdle { check(state.r6.transitionLabels == "All times") }
         click("Timeline")
         compose.onNodeWithText("Donut").performClick()
-        visible("Unrecorded: 10 min")
+        visible("Unrecorded: 0h 10m")
         click("Donut")
         compose.onNodeWithText("Stacked").performClick()
         compose

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -53,20 +54,23 @@ class SetupRoutingCoverageTest {
         compose.setContent { SableApp() }
         compose.onNodeWithText("Welcome").assertDoesNotExist()
         click("Settings")
+        click("Permissions & setup", scroll = true)
         click("Run complete setup", scroll = true)
         visible("Welcome")
         click("Back")
-        visible("Customize experience")
+        visible("Permissions & setup")
         click("Choose setup steps", scroll = true)
         click("Skip")
-        visible("Customize experience")
+        visible("Permissions & setup")
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
         click("Sources")
-        click("Manage permissions", scroll = true)
+        click("Health permissions", scroll = true)
         visible("Read permissions")
         click("Next")
         click("Next")
         click("Finish")
-        visible("Data connections")
+        visible("Sources")
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNode(hasText("Dashboard") and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithText("Finish").assertDoesNotExist()
@@ -89,6 +93,7 @@ class SetupRoutingCoverageTest {
             }
         }
         click("Settings")
+        click("Permissions & setup", scroll = true)
         click("Check permissions", scroll = true)
         visible("1/1 allowed · 0 not granted")
         compose.runOnIdle {
@@ -107,7 +112,8 @@ class SetupRoutingCoverageTest {
         val restoration = StateRestorationTester(compose)
         restoration.setContent { SableApp() }
         repeat(4) { click("Next") }
-        click("Dark", scroll = true)
+        compose.onNodeWithContentDescription("Appearance").performScrollTo().performClick()
+        click("Dark")
         restoration.emulateSavedInstanceStateRestore()
         visible("Personalize")
         click("Next")

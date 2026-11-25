@@ -97,7 +97,8 @@ class LiveForegroundRefreshTest {
         }
         compose.onNodeWithText("DASHBOARD · DEMO").assertIsDisplayed()
         compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithText("Real data").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Data mode").performScrollTo().performClick()
+        compose.onNodeWithText("Real data").performClick()
         compose.onNodeWithText("Foreground refresh").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             check(state.live)
@@ -108,7 +109,10 @@ class LiveForegroundRefreshTest {
         compose.onNodeWithContentDescription("Refresh").assertIsDisplayed()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
         compose.onNodeWithContentDescription("Sources").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Sync diagnostics").performScrollTo().performClick()
         compose.onNodeWithText("Sleep data diagnostics").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Sleep data diagnostics").performClick()
+        compose.runOnIdle { check(state.page == Page.SLEEP_DIAGNOSTICS) }
         compose.runOnIdle {
             state.chooseDataMode("empty")
             state.page = Page.MAIN

@@ -66,6 +66,10 @@ internal class SableAppState(
     }
 
     var section by mutableStateOf(Section.DASHBOARD)
+    var widgetBrowsing by mutableStateOf(false)
+    var coverageCategory by mutableStateOf("Sleep")
+    var coverageReturn by mutableStateOf(Page.SOURCES)
+    var reportReturn by mutableStateOf(Page.M1_DISCOVERY)
     var page by mutableStateOf(Page.MAIN)
     var diagnosticsVersion by mutableStateOf(0)
     private var connection by mutableStateOf(ConnectStatus("Checking", "Inspecting Health Connect availability"))
@@ -131,11 +135,19 @@ internal class SableAppState(
 }
 
 internal fun SableAppState.back() {
+    if (page == Page.WIDGETS && widgetBrowsing) {
+        widgetBrowsing = false
+        return
+    }
     page =
         when (page) {
-            Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY -> Page.SETTINGS
+            Page.WIDGETS, Page.PHONE_INPUT, Page.SETTINGS_PRIVACY, Page.SETTINGS_SETUP -> Page.SETTINGS
             Page.HELP -> Page.PHONE_INPUT
-            Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY, Page.M1_DISCOVERY -> Page.SOURCES
+            Page.SOURCE_DETAIL, Page.SOURCE_COMPANION, Page.SOURCE_DIAGNOSTICS -> Page.SOURCES
+            Page.SOURCE_PRIVACY, Page.SLEEP_DIAGNOSTICS -> Page.SOURCE_DIAGNOSTICS
+            Page.M1_DISCOVERY -> coverageReturn
+            Page.SOURCE_COVERAGE -> Page.M1_DISCOVERY
+            Page.SOURCE_REPORT -> reportReturn
             Page.MAIN -> {
                 if (live && r6.detailMetric(section) != null) {
                     r6.chooseMetric(section, null)

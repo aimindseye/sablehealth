@@ -51,7 +51,8 @@ private const val AXIS_BOTTOM = 19f
 private const val BAR_FRACTION = .64f
 private const val WEEK = 7
 private const val FULL_CHART_DP = 112
-private const val MINI_CHART_DP = 78
+private const val MINI_CHART_DP = 32
+private const val MINI_INSET_DP = 4f
 private const val CELL_CENTER = .5f
 private const val SELECTION_ALPHA = .35f
 private const val AREA_ALPHA = .18f
@@ -107,35 +108,7 @@ internal fun R6Plot(
         } else {
             colors.primary
         }
-    val interactive =
-        if (compact) {
-            Modifier
-        } else {
-            Modifier
-                .onPreviewKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyDown) {
-                        false
-                    } else {
-                        when (event.key) {
-                            Key.DirectionLeft -> {
-                                select((selected - 1).coerceAtLeast(0))
-                                true
-                            }
-                            Key.DirectionRight -> {
-                                select((selected + 1).coerceAtMost(data.days.lastIndex))
-                                true
-                            }
-                            else -> false
-                        }
-                    }
-                }.focusable()
-                .pointerInput(data.metric, data.days) {
-                    detectTapGestures { offset ->
-                        val width = (size.width - AXIS_LEFT.dp.toPx() - AXIS_RIGHT.dp.toPx()).coerceAtLeast(1f)
-                        select(ChartPolicy.indexAt((offset.x - AXIS_LEFT.dp.toPx()) / width, data.days.size))
-                    }
-                }
-        }
+    val interactive = if (compact) Modifier else plotInteraction(data, selected, select)
     Canvas(
         Modifier
             .fillMaxWidth()
@@ -143,19 +116,53 @@ internal fun R6Plot(
             .semantics { contentDescription = description }
             .then(interactive),
     ) {
+        val left = if (compact) MINI_INSET_DP.dp.toPx() else AXIS_LEFT.dp.toPx()
+        val right = if (compact) MINI_INSET_DP.dp.toPx() else AXIS_RIGHT.dp.toPx()
+        val top = if (compact) MINI_INSET_DP.dp.toPx() else AXIS_TOP.dp.toPx()
+        val bottom = if (compact) MINI_INSET_DP.dp.toPx() else AXIS_BOTTOM.dp.toPx()
         val layout =
             PlotLayout(
-                AXIS_LEFT.dp.toPx(),
-                AXIS_TOP.dp.toPx(),
-                (size.width - AXIS_LEFT.dp.toPx() - AXIS_RIGHT.dp.toPx()).coerceAtLeast(1f),
-                (size.height - AXIS_TOP.dp.toPx() - AXIS_BOTTOM.dp.toPx()).coerceAtLeast(1f),
+                left,
+                top,
+                (size.width - left - right).coerceAtLeast(1f),
+                (size.height - top - bottom).coerceAtLeast(1f),
                 ChartPolicy.bounds(data.values, data.kind),
                 data.days.size,
             )
-        plotAxes(layout, text, colors.onSurfaceVariant, colors.outlineVariant)
-        plotValues(data, layout, PlotInk(accent, colors.onSurface, text), selected)
+        if (!compact) plotAxes(layout, text, colors.onSurfaceVariant, colors.outlineVariant)
+        plotValues(data, layout, PlotInk(accent, colors.onSurface, text, compact), selected)
     }
 }
+
+private fun plotInteraction(
+    data: PlotData,
+    selected: Int,
+    select: (Int) -> Unit,
+): Modifier =
+    Modifier
+        .onPreviewKeyEvent { event ->
+            if (event.type != KeyEventType.KeyDown) {
+                false
+            } else {
+                when (event.key) {
+                    Key.DirectionLeft -> {
+                        select((selected - 1).coerceAtLeast(0))
+                        true
+                    }
+                    Key.DirectionRight -> {
+                        select((selected + 1).coerceAtMost(data.days.lastIndex))
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }.focusable()
+        .pointerInput(data.metric, data.days) {
+            detectTapGestures { offset ->
+                val width = (size.width - AXIS_LEFT.dp.toPx() - AXIS_RIGHT.dp.toPx()).coerceAtLeast(1f)
+                select(ChartPolicy.indexAt((offset.x - AXIS_LEFT.dp.toPx()) / width, data.days.size))
+            }
+        }
 
 private data class PlotLayout(
     val left: Float,
@@ -181,6 +188,7 @@ private data class PlotInk(
     val accent: Color,
     val label: Color,
     val text: TextMeasurer,
+    val compact: Boolean,
 )
 
 private fun DrawScope.plotAxes(
@@ -226,7 +234,7 @@ private fun DrawScope.plotValues(
             val before = previous?.let { Offset(layout.x(index - 1), layout.y(it)) }
             drawSample(data.kind, layout, ink.accent, here, before)
             val labelsFit = data.days.size <= WEEK && layout.cell > 38.dp.toPx()
-            if (index == selected || labelsFit) {
+            if (!ink.compact && (index == selected || labelsFit)) {
                 val measured =
                     ink.text.measure(
                         formatNumber(value),
@@ -241,7 +249,8 @@ private fun DrawScope.plotValues(
             }
         }
         val weeklyTick = index % WEEK == 0 && index < data.days.lastIndex - 2
-        if (data.days.size <= WEEK || index == data.days.lastIndex || weeklyTick) {
+        val showDayLabel = data.days.size <= WEEK || index == data.days.lastIndex || weeklyTick
+        if (!ink.compact && showDayLabel) {
             val label = data.days[index].dayOfMonth.toString()
             drawText(
                 ink.text,

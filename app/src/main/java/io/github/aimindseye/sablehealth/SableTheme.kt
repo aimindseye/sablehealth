@@ -86,6 +86,7 @@ internal fun SableHealthTheme(
 private fun sableDarkColors() =
     darkColorScheme(
         primary = SablePalette.blue,
+        tertiary = Color(DARK_TERTIARY_ARGB),
         onPrimary = Color.Black,
         background = SablePalette.darkBase,
         onBackground = Color.White,
@@ -104,6 +105,7 @@ private fun sableDarkColors() =
 private fun sableLightColors() =
     lightColorScheme(
         primary = SablePalette.blueLightSurface,
+        tertiary = Color(LIGHT_TERTIARY_ARGB),
         onPrimary = Color.White,
         background = SablePalette.lightBase,
         onBackground = SablePalette.lightText,
@@ -118,3 +120,6 @@ private fun sableLightColors() =
         error = SablePalette.lightError,
         surfaceTint = Color.Transparent,
     )
+
+private const val DARK_TERTIARY_ARGB = 0xFFEDA6A2
+private const val LIGHT_TERTIARY_ARGB = 0xFFAF345D

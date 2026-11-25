@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -54,7 +55,7 @@ class SetupWizardCoverageTest {
         click("Next")
         visible("Verify")
         click("Next")
-        click("No records")
+        choose("Data mode", "No records")
         assertTrue(state.demo)
         click("Next")
         visible("Review")
@@ -98,17 +99,18 @@ class SetupWizardCoverageTest {
                 }
             }
         }
+        click("Review permissions")
         click("Grant missing selected")
         assertEquals(4, requests.size)
         assertFalse(steps in requests)
-        click("All supported")
+        choose("Selection", "All supported")
         click("Grant missing selected")
         assertEquals(supported - steps, requests)
         click("Steps")
-        click("Recommended")
+        choose("Selection", "Recommended")
         click("Grant missing selected")
         assertEquals(4, requests.size)
-        click("All supported")
+        choose("Selection", "All supported")
         actual = actual.copy(grantedCount = supported.size, granted = supported)
         requests = emptySet()
         click("Grant missing selected")
@@ -128,6 +130,7 @@ class SetupWizardCoverageTest {
                 }
             }
         }
+        click("Review permissions")
         click("Grant missing selected")
         visible("Permission screen unavailable. Recheck and retry.")
         click("Grant missing selected")
@@ -143,6 +146,7 @@ class SetupWizardCoverageTest {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     SettingsPage(state, DeviceProfile.Q25)
+                    R7aSetupSettings(state)
                     SourcesPage(state)
                 }
             }
@@ -153,7 +157,7 @@ class SetupWizardCoverageTest {
         assertEquals(SetupEntry.REVIEW_ALL, entry)
         click("Choose setup steps")
         assertEquals(SetupEntry.SELECTED_STEPS, entry)
-        click("Manage permissions")
+        click("Health permissions")
         assertEquals(SetupEntry.PERMISSIONS_ONLY, entry)
     }
 
@@ -223,6 +227,7 @@ class SetupWizardCoverageTest {
                 }
             }
         }
+        click("Review permissions")
         click("Manage Android permissions")
         val intent: Intent = shadowOf(compose.activity).nextStartedActivity
         assertEquals(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS, intent.action)
@@ -242,6 +247,15 @@ class SetupWizardCoverageTest {
         val node = compose.onNodeWithText(text)
         if (text !in setOf("Next", "Back", "Skip", "Finish")) node.performScrollTo()
         node.performClick()
+        compose.waitForIdle()
+    }
+
+    private fun choose(
+        label: String,
+        value: String,
+    ) {
+        compose.onNodeWithContentDescription(label).performScrollTo().performClick()
+        compose.onNodeWithText(value).performClick()
         compose.waitForIdle()
     }
 

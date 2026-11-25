@@ -10,16 +10,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun R6Card(content: @Composable () -> Unit) {
+internal fun R6Card(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surface,
+    verticalPadding: Dp = 6.dp,
+    content: @Composable () -> Unit,
+) {
     Surface(
-        Modifier.fillMaxWidth(),
+        modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f),
+        color = color,
     ) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) { content() }
+        Column(
+            Modifier.padding(horizontal = 6.dp, vertical = verticalPadding),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) { content() }
     }
 }
 

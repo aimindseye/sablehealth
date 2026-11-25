@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import io.github.aimindseye.sablehealth.core.HealthCoverageContract
 import io.github.aimindseye.sablehealth.core.HealthMetricCoverage
-import io.github.aimindseye.sablehealth.core.SetupEntry
 import io.github.aimindseye.sablehealth.core.SourceOverview
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -50,7 +49,13 @@ internal class DiscoveryState(
     fun nextWindow() {
         if (!scanning) {
             val choices = HealthCoverageContract.SCAN_WINDOWS
-            windowDays = choices[(choices.indexOf(windowDays) + 1) % choices.size]
+            chooseWindow(choices[(choices.indexOf(windowDays) + 1) % choices.size])
+        }
+    }
+
+    fun chooseWindow(days: Long) {
+        if (!scanning && days in HealthCoverageContract.SCAN_WINDOWS && days != windowDays) {
+            windowDays = days
             clear()
             message = "Window changed · scan again"
         }
@@ -148,36 +153,7 @@ internal fun M1DiscoveryPage(
 
 @Composable
 private fun SharedCoveragePage(app: SableAppState) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val state = app.discovery
-    CompactPageTitle("Record coverage", "READ ONLY")
-    Text(setupAccessSummary(app.connect), style = MaterialTheme.typography.bodySmall)
-    CompactLinkRow("Scan period", "Last ${state.windowDays} days · change", state::nextWindow)
-    state.scannedAt?.let {
-        val end = Instant.parse(it)
-        val start = end.minus(state.windowDays, java.time.temporal.ChronoUnit.DAYS)
-        Text("UTC: $start – $end", style = MaterialTheme.typography.bodySmall)
-    }
-    FocusButton(
-        "Manage permissions",
-        { app.setupAction(SetupEntry.PERMISSIONS_ONLY) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    if (app.connect.granted.isNotEmpty()) {
-        FocusButton(
-            "Scan allowed records",
-            onClick = { scope.launch { state.scan(context) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-    Text(state.message, style = MaterialTheme.typography.bodySmall)
-    val rows = SourceOverview.visibleRows(state.results, app.connect.granted)
-    if (rows.isNotEmpty()) M1ScanResults(state, context, rows)
-    Text(
-        "Metadata only · ${state.windowDays}-day window. Real data refresh is separate from this scan.",
-        style = MaterialTheme.typography.bodySmall,
-    )
+    R7aCoveragePage(app)
 }
 
 @Composable

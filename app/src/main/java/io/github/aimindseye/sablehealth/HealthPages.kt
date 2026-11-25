@@ -19,15 +19,22 @@ internal fun HelpPage(
     profile: DeviceProfile,
     back: () -> Unit,
 ) {
-    SectionHeading("Keyboard controls", profile.label)
-    Notice(
-        "Move focus",
-        if (profile.letterNavigation) "I / J / K / L or DPAD arrows" else "Trackpad / DPAD arrows",
-    )
-    Notice("Open / return", "Enter, Space or trackpad click · Escape / Back returns")
-    Notice("Global shortcuts", "T next tab · R source diagnostic · ? help")
-    Notice("Text input", "Input fields retain native letter keys and system shortcuts")
-    FocusButton("Back", back)
+    R7aGroup("Navigation · ${profile.label}") {
+        R7aRow("Move focus", detail = if (profile.letterNavigation) "I / J / K / L or DPAD" else "Trackpad / DPAD")
+        R7aRule()
+        R7aRow("Open", "Enter / Space / click")
+        R7aRule()
+        R7aRow("Return", "Escape / Back")
+    }
+    R7aGroup("Shortcuts") {
+        R7aRow("Next main tab", "T")
+        R7aRule()
+        R7aRow("Refresh diagnostics", "R")
+        R7aRule()
+        R7aRow("Help", "?")
+    }
+    R7aNote("Text input keeps native keys and shortcuts.")
+    R7aAction("Back", back)
 }
 
 @Composable

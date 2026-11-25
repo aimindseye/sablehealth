@@ -26,7 +26,7 @@ assert 'preferences.edit()' in (app / 'DashboardPreferenceState.kt').read_text()
 assert 'DashboardWidgetSelection.toggle' in picker
 assert 'DashboardWidgetSelection.isValid' in picker
 assert 'Restore four defaults' in picker and 'Cancel · back to Settings' in picker
-assert 'Page.WIDGETS' in chrome and 'Customize widgets' in (app / 'SettingsScreens.kt').read_text()
+assert 'Page.WIDGETS' in chrome and 'Dashboard widgets' in (app / 'SettingsScreens.kt').read_text()
 assert 'val defaults =' in widget and 'listOf(' in widget and 'const val COUNT = 4' in widget
 assert 'SPO2(' in widget and 'READINESS(' in widget and 'DATA_FRESHNESS(' in widget
 assert 'No live data imported' in home

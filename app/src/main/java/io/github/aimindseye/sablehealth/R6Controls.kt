@@ -1,6 +1,5 @@
 package io.github.aimindseye.sablehealth
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -47,9 +47,10 @@ internal fun R6IconButton(
         onClick = action,
         modifier =
             modifier
+                .testTag("r7-icon-$label")
                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small)
+                .then(r7FocusOutline(focused, colors.primary, MaterialTheme.shapes.small))
                 .semantics { selected = active },
     ) {
         Icon(
@@ -83,9 +84,10 @@ internal fun R6Choice(
             contentPadding = PaddingValues(horizontal = 6.dp),
             modifier =
                 Modifier
+                    .testTag("r7-choice-$label")
                     .sizeIn(minHeight = 48.dp)
                     .onFocusChanged { focused = it.isFocused }
-                    .border(if (focused) 2.dp else 0.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                    .then(r7FocusOutline(focused, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
                     .semantics { contentDescription = label },
         ) {
             Text(current, modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -1,53 +1,44 @@
 package io.github.aimindseye.sablehealth
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import io.github.aimindseye.sablehealth.core.LiveMetric
 
 @Composable
 internal fun LiveRefreshSettings(state: SableAppState) {
-    CompactLinkRow(
-        "Foreground refresh",
-        if (state.refreshMinutes == 0) "Off · tap to change" else "Every ${state.refreshMinutes} min · tap to change",
-        {
-            val index = refreshChoices.indexOf(state.refreshMinutes)
-            state.chooseRefreshMinutes(refreshChoices[(index + 1) % refreshChoices.size])
-        },
-    )
-    LiveRefreshRow(state)
-    Text(
-        "Launch, resume and date changes refresh automatically. No background collection.",
-        style = MaterialTheme.typography.bodySmall,
-    )
+    R7aGroup("Health data") {
+        R7aRefreshChoice(state)
+        LiveRefreshRow(state)
+        R7aNote("Launch, resume and date changes refresh automatically. No background collection.")
+    }
 }
 
 @Composable
 internal fun LiveSleepDiagnostic(state: SableAppState) {
     val snapshot = state.liveHealth.snapshot
     val series = snapshot?.metrics?.get(LiveMetric.SLEEP_DURATION)
-    Notice("Sleep data diagnostics", series?.status?.label ?: "Not loaded")
-    if (snapshot != null) {
-        Text(
-            "Window: ${snapshot.window.sleepStart} – ${snapshot.window.now}",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            "Sessions: ${snapshot.sleeps.size} · Zone: ${snapshot.window.zone}",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        val writers =
-            snapshot.sleeps
-                .map { it.writer }
-                .distinct()
-                .joinToString()
-                .ifEmpty { "Not observed" }
-        Text("Writers: $writers", style = MaterialTheme.typography.bodySmall)
-        val withStages = snapshot.sleeps.count { it.stages.isNotEmpty() }
-        Text("Sessions with stages: $withStages", style = MaterialTheme.typography.bodySmall)
+    R7aGroup("Current read window") {
+        R7aRow("Status", series?.status?.label ?: "Not loaded")
+        if (snapshot != null) {
+            R7aRule()
+            R7aRow("Sessions", snapshot.sleeps.size.toString())
+            R7aRule()
+            R7aRow("Sessions with stages", snapshot.sleeps.count { it.stages.isNotEmpty() }.toString())
+            R7aRule()
+            val writers =
+                snapshot.sleeps
+                    .map { it.writer }
+                    .distinct()
+                    .joinToString()
+                    .ifEmpty { "Not observed" }
+            R7aRow("Writer", detail = writers)
+        }
     }
-    Text("No sleep records? Check Health Connect and Google Health export.", style = MaterialTheme.typography.bodySmall)
-    FocusButton("Refresh measurements", state::refreshLive, modifier = Modifier.fillMaxWidth())
+    if (snapshot != null) {
+        R7aGroup("Query details") {
+            R7aRow("Time zone", detail = snapshot.window.zone.toString())
+            R7aRow("Read window", detail = "${snapshot.window.sleepStart} – ${snapshot.window.now}")
+        }
+    }
+    R7aAction("Refresh measurements", state::refreshLive, primary = true)
+    R7aNote("Missing stages are never inferred. No sleep records? Check Health Connect and Google Health export.")
 }

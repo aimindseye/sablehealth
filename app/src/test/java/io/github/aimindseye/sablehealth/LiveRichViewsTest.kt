@@ -9,9 +9,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -56,17 +59,20 @@ class LiveRichViewsTest {
             LiveRefreshSettings(state)
             LiveSleepDiagnostic(state)
         }
-        visible("Sleep data diagnostics")
-        visible("Every 5 min", substring = true)
+        visible("CURRENT READ WINDOW")
+        visible("5 min")
         for (minutes in listOf(15, 30, 0, 1, 5)) {
-            click("Foreground refresh")
+            compose.onNodeWithContentDescription("Foreground refresh").performScrollTo().performClick()
+            compose.onNodeWithText(if (minutes == 0) "Off" else "$minutes min").performClick()
             compose.runOnIdle { check(state.refreshMinutes == minutes) }
         }
         compose.runOnIdle { load(state, LiveSnapshot(window, emptyMap(), emptyList())) }
-        visible("Writers: Not observed")
+        visible("Not observed")
         compose.runOnIdle { load(state, richSnapshot()) }
-        visible("Writers: fixture.writer")
-        visible("Sessions with stages: 1")
+        visible("fixture.writer")
+        visible("Sessions with stages")
+        val row = compose.onNodeWithTag("r7a-row-Sessions with stages")
+        row.performScrollTo().assertIsDisplayed().assert(hasText("1"))
         click("Refresh measurements")
         compose.runOnIdle { check(state.liveRefreshVersion == 1) }
     }
