@@ -46,7 +46,11 @@ internal fun SettingsPage(
         selected = state.dataMode,
         onSelect = state::chooseDataMode,
     )
-    if (state.live) LiveRefreshSettings(state)
+    if (state.live) {
+        Text("Daily step goal", style = MaterialTheme.typography.titleSmall)
+        R6GoalSetting(state)
+        LiveRefreshSettings(state)
+    }
     CompactLinkRow(
         "Phone & keyboard",
         "${profile.label} · profile and key controls",

@@ -16,6 +16,7 @@ internal class SableAppState(
     private val newDiscovery: () -> DiscoveryState = { DiscoveryState() },
 ) {
     val dashboard = DashboardPreferenceState(preferences)
+    val r6 = R6Preferences(preferences)
 
     val companion = CompanionSyncPreferenceState(preferences)
 
@@ -136,7 +137,11 @@ internal fun SableAppState.back() {
             Page.HELP -> Page.PHONE_INPUT
             Page.SOURCE_DETAIL, Page.SOURCE_PRIVACY, Page.M1_DISCOVERY -> Page.SOURCES
             Page.MAIN -> {
-                section = Section.DASHBOARD
+                if (live && r6.detailMetric(section) != null) {
+                    r6.chooseMetric(section, null)
+                } else {
+                    section = Section.DASHBOARD
+                }
                 Page.MAIN
             }
             else -> Page.MAIN

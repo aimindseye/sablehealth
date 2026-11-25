@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -103,8 +104,10 @@ class LiveForegroundRefreshTest {
             state.connect = ConnectStatus("Available", "fixture", 0)
             state.page = Page.MAIN
         }
-        compose.onNodeWithText("DASHBOARD · REAL DATA").assertIsDisplayed()
-        compose.onNodeWithText("Sources").performClick()
+        compose.onNodeWithText("Real data · Not loaded").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Refresh").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Sources").assertIsDisplayed().performClick()
         compose.onNodeWithText("Sleep data diagnostics").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             state.chooseDataMode("empty")

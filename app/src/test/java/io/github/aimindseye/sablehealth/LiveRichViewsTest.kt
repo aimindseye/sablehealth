@@ -84,7 +84,8 @@ class LiveRichViewsTest {
         compose.runOnIdle { state.chooseViewMode(Section.SLEEP, ViewMode.TEXT) }
         visible("No stages exported")
         visible("Deep · 60 min")
-        click("30 days")
+        click("7D")
+        compose.onNodeWithText("30D").performClick()
         visible("2/30 days observed", substring = true)
         compose.runOnIdle {
             val old = richSnapshot()
@@ -100,16 +101,19 @@ class LiveRichViewsTest {
         state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
         load(state, richSnapshot())
         show { LiveHealthPage(state) }
+        click("Heart rate")
         visible("Observed mean (excl. today): 20 bpm")
         visible("2/7 days observed", substring = true)
-        click("Historical metric")
+        click("Heart rate")
+        click("Resting heart rate")
         visible("Observed mean (excl. today): 20 bpm")
-        click("30 days")
+        click("7D")
+        click("30D")
         visible("2/30 days observed", substring = true)
         compose.runOnIdle { state.chooseViewMode(Section.VITALS, ViewMode.TEXT) }
         visible("2/30 days observed", substring = true)
         compose.runOnIdle { state.section = Section.TRENDS }
-        visible("Historical metric")
+        visible("Steps")
         compose.runOnIdle {
             state.section = Section.MOVE
             state.chooseViewMode(Section.MOVE, ViewMode.TEXT)

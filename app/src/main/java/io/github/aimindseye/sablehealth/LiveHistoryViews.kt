@@ -1,80 +1,17 @@
 package io.github.aimindseye.sablehealth
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import io.github.aimindseye.sablehealth.core.ChartPolicy
 import io.github.aimindseye.sablehealth.core.LiveMetric
 import io.github.aimindseye.sablehealth.core.LivePoint
-import io.github.aimindseye.sablehealth.core.LiveSleep
 import io.github.aimindseye.sablehealth.core.LiveSnapshot
-import java.time.Duration
-import java.time.ZoneId
-
-private const val WEEK = 7
-private const val MONTH = 30
-private const val SECONDS_PER_MINUTE = 60L
-
-@Composable
-internal fun LiveSleepPage(
-    state: SableAppState,
-    snapshot: LiveSnapshot,
-) {
-    ViewModeHeading(Section.SLEEP, "Sessions by wake-up date · not time asleep", state)
-    val series = snapshot.metrics[LiveMetric.SLEEP_DURATION]
-    if (series?.on(snapshot.window.today) == null) {
-        Notice(
-            "Sleep",
-            if (series?.points.isNullOrEmpty()) series?.status?.label ?: "Not loaded" else "No session today",
-        )
-        Text("If Health Connect has no sessions, check Google Health export. Refresh cannot force tracker sync.")
-    }
-    snapshot.sleeps.filter { snapshot.window.day(it.end) == snapshot.window.today }.forEach { session ->
-        SleepSessionCard(session, snapshot.window.zone, state.modeFor(Section.SLEEP) == ViewMode.GRAPHS)
-    }
-    HistoryPanel(state, snapshot, listOf(LiveMetric.SLEEP_DURATION))
-}
-
-@Composable
-private fun SleepSessionCard(
-    session: LiveSleep,
-    zone: ZoneId,
-    graph: Boolean,
-) {
-    DashboardCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(8.dp)) {
-            Text(sleepRange(session, zone))
-            Text("Session: ${formatNumber(session.minutes)} min · ${session.writer}")
-            if (graph) {
-                SleepTimeline(session)
-            } else if (session.stages.isEmpty()) {
-                Text("No stages exported")
-            }
-            if (session.stages.isNotEmpty()) {
-                val seconds =
-                    session.stages.groupBy { it.type }.mapValues { (_, stages) ->
-                        stages.sumOf { Duration.between(it.start, it.end).seconds }
-                    }
-                val asleep = seconds.filterKeys { it in asleepStageNames }.values.sum()
-                Text("Recorded asleep: ${asleep / SECONDS_PER_MINUTE} min · gaps unknown")
-                seconds.forEach { (name, duration) -> Text("$name · ${duration / SECONDS_PER_MINUTE} min") }
-            }
-        }
-    }
-}
-
-private val asleepStageNames = setOf("Asleep (unspecified)", "Light", "Deep", "REM")
+import java.time.LocalDate
 
 @Composable
 internal fun LiveHistoryPage(
@@ -82,73 +19,83 @@ internal fun LiveHistoryPage(
     snapshot: LiveSnapshot,
     metrics: List<LiveMetric>,
 ) {
-    ViewModeHeading(state.section, "Today's readings and observed history", state)
-    if (state.modeFor(state.section) == ViewMode.TEXT) {
-        DailyMetricCards(snapshot, metrics)
+    val selected = state.r6.detailMetric(state.section)
+    val metric = metrics.firstOrNull { it == selected } ?: metrics.first()
+    val graph = state.modeFor(state.section) == ViewMode.GRAPHS
+    if (graph && selected == null) {
+        R6ModeHeading(state, period = {
+            PeriodChoice(state.r6.period(state.section)) { state.r6.choosePeriod(state.section, it) }
+        })
+        MetricOverview(state, snapshot, metrics) { state.r6.chooseMetric(state.section, it) }
+    } else {
+        R6ModeHeading(
+            state,
+            onOverview =
+                if (graph) {
+                    { state.r6.chooseMetric(state.section, null) }
+                } else {
+                    null
+                },
+        )
+        if (!graph) DailyMetricCards(snapshot, metrics)
+        HistoryPanel(state, snapshot, metrics, metric) { state.r6.chooseMetric(state.section, it) }
     }
-    HistoryPanel(state, snapshot, metrics)
 }
 
 @Composable
-private fun DailyMetricCards(
-    snapshot: LiveSnapshot,
-    metrics: List<LiveMetric>,
+internal fun PeriodChoice(
+    days: Int,
+    choose: (Int) -> Unit,
 ) {
-    metrics.chunked(2).forEach { pair ->
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            pair.forEach { metric ->
-                Box(Modifier.weight(1f)) {
-                    DashboardCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(6.dp)) {
-                            Text(metric.label, style = MaterialTheme.typography.titleSmall)
-                            LiveMetricValue(snapshot, metric)
-                        }
-                    }
-                }
-            }
-            if (pair.size == 1) Box(Modifier.weight(1f))
-        }
-    }
+    R6Choice("History period", "${days}D", listOf("7D", "30D"), { choose(it.dropLast(1).toInt()) })
 }
 
+internal fun calendar(
+    snapshot: LiveSnapshot,
+    days: Int,
+): List<LocalDate> = (days - 1 downTo 0).map { snapshot.window.today.minusDays(it.toLong()) }
+
 @Composable
-private fun HistoryPanel(
+internal fun HistoryPanel(
     state: SableAppState,
     snapshot: LiveSnapshot,
     metrics: List<LiveMetric>,
+    metric: LiveMetric,
+    choose: (LiveMetric) -> Unit,
 ) {
-    var days by rememberSaveable { mutableStateOf(WEEK) }
-    var name by rememberSaveable { mutableStateOf(metrics.first().name) }
-    val metric = metrics.firstOrNull { it.name == name } ?: metrics.first()
-    val calendar = (days - 1 downTo 0).map { snapshot.window.today.minusDays(it.toLong()) }
+    val days = state.r6.period(state.section)
+    val calendar = calendar(snapshot, days)
     val series = snapshot.metrics[metric]
     val points = calendar.map { series?.on(it) }
     val graph = state.modeFor(state.section) == ViewMode.GRAPHS
-    if (graph) {
-        Text("${metric.label} · $days days", style = MaterialTheme.typography.titleSmall)
-        if (points.any { it != null }) {
-            HistoryChart(calendar, points, metric)
-        } else {
-            Text("No observations to graph", style = MaterialTheme.typography.bodySmall)
+    val kind = state.r6.chart(metric)
+    R6Card {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            R6Choice("Historical metric", metric.label, metrics.map { it.label }, { label ->
+                choose(metrics.first { it.label == label })
+            }, Modifier.weight(1f))
+            PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
+            if (graph) {
+                R6Choice("Graph type", kind.label, ChartPolicy.options(metric).map { it.label }, { label ->
+                    state.r6.chooseChart(metric, ChartPolicy.options(metric).first { it.label == label })
+                })
+            }
         }
-    }
-    CompactChoiceRow(
-        "History",
-        listOf(WEEK.toString() to "7 days", MONTH.toString() to "30 days"),
-        days.toString(),
-        { days = it.toInt() },
-    )
-    CompactLinkRow(
-        "Historical metric",
-        metric.label,
-        { name = metrics[(metrics.indexOf(metric) + 1) % metrics.size].name },
-    )
-    Text("${points.count { it != null }}/$days days observed · ${series?.status?.label ?: "Not loaded"}")
-    ObservedAverage(points.dropLast(1), metric)
-    if (!graph) {
-        calendar.zip(points).asReversed().forEach { (day, point) ->
-            CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
-            point?.let { Text(observation(it, snapshot.window.zone), style = MaterialTheme.typography.labelSmall) }
+        if (graph) {
+            if (points.any { it != null }) {
+                R6HistoryChart(calendar, points, metric, kind)
+            } else {
+                Text("No observations to graph", style = MaterialTheme.typography.titleSmall)
+                Text(series?.status?.label ?: "No records received", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { state.page = Page.SOURCES }) { Text("View data sources") }
+            }
+        }
+        Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
+        ObservedAverage(points.dropLast(1), metric)
+        if (!graph) {
+            calendar.zip(points).asReversed().forEach { (day, point) ->
+                CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
+            }
         }
     }
 }
@@ -160,6 +107,7 @@ private fun ObservedAverage(
 ) {
     val values = completedDays.mapNotNull { it?.value }
     if (values.isNotEmpty()) {
-        Text("Observed mean (excl. today): ${formatNumber(values.average())} ${metric.unit}")
+        val mean = formatNumber(values.average())
+        Text("Observed mean (excl. today): $mean ${metric.unit}", style = MaterialTheme.typography.labelSmall)
     }
 }

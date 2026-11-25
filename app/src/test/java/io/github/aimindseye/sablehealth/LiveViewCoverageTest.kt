@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -58,7 +59,7 @@ class LiveViewCoverageTest {
                 Column(Modifier.verticalScroll(rememberScrollState())) { LiveHealthPage(state) }
             }
         }
-        compose.onNodeWithText("Refresh").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Refresh").assertIsDisplayed().performClick()
         compose.runOnIdle {
             check(state.liveRefreshVersion == 1)
             state.section = Section.SLEEP
@@ -67,8 +68,9 @@ class LiveViewCoverageTest {
             .onNodeWithText("If Health Connect has no sessions", substring = true)
             .performScrollTo()
             .assertIsDisplayed()
-        compose.onNodeWithText("30 days").performScrollTo().performClick()
+        compose.onNodeWithText("7D").performScrollTo().performClick()
+        compose.onNodeWithText("30D").performClick()
         compose.runOnIdle { state.section = Section.MOVE }
-        compose.onNodeWithText("Historical metric").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Steps").performScrollTo().assertIsDisplayed()
     }
 }

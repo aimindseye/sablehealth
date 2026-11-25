@@ -63,13 +63,15 @@ internal fun HealthAppContent(
                     onBack = if (state.page == Page.MAIN) null else state::back,
                     onSources = { state.page = Page.SOURCES },
                     onSettings = { state.page = Page.SETTINGS },
+                    onRefresh = if (state.live && state.page == Page.MAIN) state::refreshLive else null,
+                    iconChrome = state.live,
                 ),
         )
         Box(Modifier.weight(1f)) {
             RefreshableHealthPage(state, profile)
         }
         if (state.page == Page.MAIN) {
-            BottomTabs(state.section, profile == DeviceProfile.Q25) { state.section = it }
+            BottomTabs(state.section, profile == DeviceProfile.Q25, state.live) { state.section = it }
         }
     }
 }
@@ -79,7 +81,9 @@ private fun healthSubtitle(
     profile: DeviceProfile,
     dashboardOnQ25: Boolean,
 ): String =
-    if (dashboardOnQ25) {
+    if (state.live && state.page == Page.MAIN) {
+        liveHeaderStatus(state)
+    } else if (dashboardOnQ25) {
         when {
             state.live -> "DASHBOARD · REAL DATA"
             state.demo -> "DASHBOARD · DEMO"
@@ -94,6 +98,16 @@ private fun healthSubtitle(
     } else {
         "NO RECORDS IMPORTED · ${profile.label}"
     }
+
+private fun liveHeaderStatus(state: SableAppState): String {
+    val window = state.liveHealth.snapshot?.window
+    return when {
+        state.liveHealth.loading -> "Real data · Refreshing"
+        state.liveHealth.failed -> "Refresh failed · Prior data if available"
+        window != null -> "Real data · Checked ${localTime(window.now, window.zone)}"
+        else -> "Real data · Not loaded"
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +130,7 @@ private fun ScrollableHealthPage(
     profile: DeviceProfile,
 ) {
     val scroll = rememberScrollState()
-    LaunchedEffect(state.page, state.section, state.modeFor(state.section)) {
+    LaunchedEffect(state.page, state.section, state.modeFor(state.section), state.r6.detailMetric(state.section)) {
         scroll.scrollTo(0)
     }
     Column(
@@ -136,7 +150,12 @@ private fun HealthPage(
     profile: DeviceProfile,
 ) {
     when (state.page) {
-        Page.MAIN -> if (state.live) LiveHealthPage(state) else Dashboard(state, profile == DeviceProfile.Q25)
+        Page.MAIN ->
+            if (state.live) {
+                LiveHealthPage(state, showRefresh = false)
+            } else {
+                Dashboard(state, profile == DeviceProfile.Q25)
+            }
         Page.SOURCES -> SourcesPage(state)
         Page.SOURCE_DETAIL -> SourceDetailPage(state)
         Page.SOURCE_PRIVACY -> SourcePrivacyPage()
@@ -153,6 +172,8 @@ internal data class HeaderActions(
     val onBack: (() -> Unit)?,
     val onSources: () -> Unit,
     val onSettings: () -> Unit,
+    val onRefresh: (() -> Unit)? = null,
+    val iconChrome: Boolean = false,
 )
 
 @Composable
@@ -176,7 +197,11 @@ internal fun HealthHeader(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             actions.onBack?.let { goBack ->
-                FocusButton("←", goBack, modifier = Modifier.width(48.dp))
+                if (actions.iconChrome) {
+                    R6IconButton("Back", R.drawable.ic_r6_back, goBack)
+                } else {
+                    FocusButton("←", goBack, modifier = Modifier.width(48.dp))
+                }
             }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -193,7 +218,11 @@ internal fun HealthHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (compactQ25) {
+            if (actions.iconChrome) {
+                actions.onRefresh?.let { R6IconButton("Refresh", R.drawable.ic_r6_refresh, it) }
+                R6IconButton("Sources", R.drawable.ic_r6_sources, actions.onSources)
+                R6IconButton("Settings", R.drawable.ic_r6_settings, actions.onSettings)
+            } else if (compactQ25) {
                 // Constrain the row's actions before measuring the weighted brand column.
                 // A full-width child in an unbounded Row used to hide the brand and Settings.
                 Q25ChromeButton(
@@ -300,8 +329,13 @@ private fun Q25ChromeButton(
 private fun BottomTabs(
     active: Section,
     compactQ25: Boolean,
+    iconChrome: Boolean,
     onClick: (Section) -> Unit,
 ) {
+    if (iconChrome) {
+        R6BottomTabs(active, onClick)
+        return
+    }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     BoxWithConstraints {
         val compact = maxWidth < 310.dp

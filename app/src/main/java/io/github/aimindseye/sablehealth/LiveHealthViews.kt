@@ -28,8 +28,6 @@ import io.github.aimindseye.sablehealth.core.WidgetStyle
 
 private const val WIDE_THRESHOLD = 310
 private const val LARGE_FONT = 1.3f
-private const val SLOT_THREE = 2
-private const val SLOT_FOUR = 3
 private val activityMetrics =
     listOf(
         LiveMetric.STEPS,
@@ -51,8 +49,11 @@ private val vitalMetrics =
     )
 
 @Composable
-internal fun LiveHealthPage(state: SableAppState) {
-    LiveRefreshRow(state)
+internal fun LiveHealthPage(
+    state: SableAppState,
+    showRefresh: Boolean = true,
+) {
+    if (showRefresh) LiveRefreshRow(state)
     val snapshot = state.liveHealth.snapshot
     if (snapshot == null) {
         val message =
@@ -91,7 +92,7 @@ internal fun LiveRefreshRow(state: SableAppState) {
             )
             Text("Health Connect · not a tracker sync", style = MaterialTheme.typography.labelSmall)
         }
-        FocusButton("Refresh", state::refreshLive)
+        R6IconButton("Refresh", R.drawable.ic_r6_refresh, state::refreshLive)
     }
 }
 
@@ -101,26 +102,23 @@ private fun LiveDashboard(
     state: SableAppState,
     snapshot: LiveSnapshot,
 ) {
+    Text("Dashboard", style = MaterialTheme.typography.titleLarge)
     val widgets = state.dashboard.widgets
     BoxWithConstraints {
         if (maxWidth >= WIDE_THRESHOLD.dp && LocalConfiguration.current.fontScale <= LARGE_FONT) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                widgets.take(2).forEach { widget ->
-                    Box(Modifier.weight(1f)) { LiveWidget(state, snapshot, widget, true) }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                widgets.chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        pair.forEach { widget ->
+                            Box(Modifier.weight(1f)) { LiveWidget(state, snapshot, widget, true) }
+                        }
+                    }
                 }
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                widgets.take(2).forEach { LiveWidget(state, snapshot, it, true) }
+                widgets.forEach { LiveWidget(state, snapshot, it, true) }
             }
-        }
-    }
-    LiveWidget(state, snapshot, widgets[SLOT_THREE], false)
-    DashboardCard(Modifier.fillMaxWidth()) {
-        val widget = widgets[SLOT_FOUR]
-        Row(Modifier.padding(7.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(widgetTitle(widget), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            WidgetReading(snapshot, widget)
         }
     }
 }
@@ -132,12 +130,12 @@ private fun LiveWidget(
     widget: DashboardWidget,
     hero: Boolean,
 ) {
-    DashboardCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(7.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    R6Card {
+        Column(Modifier.fillMaxWidth().padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(widgetTitle(widget), style = MaterialTheme.typography.titleSmall)
             if (hero) LiveWidgetIcon(widget)
             WidgetReading(snapshot, widget)
-            WidgetGraphic(snapshot, widget, state.dashboard.styleFor(widget))
+            WidgetGraphic(state, snapshot, widget, state.dashboard.styleFor(widget))
         }
     }
 }
@@ -161,13 +159,21 @@ private fun WidgetReading(
 
 @Composable
 private fun WidgetGraphic(
+    state: SableAppState,
     snapshot: LiveSnapshot,
     widget: DashboardWidget,
     style: WidgetStyle,
 ) {
     if (style != WidgetStyle.GRAPH) return
     when (widget) {
-        DashboardWidget.STEPS -> TodayStepsChart(snapshot)
+        DashboardWidget.STEPS -> {
+            val steps = snapshot.metrics[LiveMetric.STEPS]?.on(snapshot.window.today)?.value
+            if (steps != null && state.r6.stepGoal > 0) {
+                R6StepRing(steps, state.r6.stepGoal)
+            } else {
+                TodayStepsChart(snapshot)
+            }
+        }
         DashboardWidget.SLEEP_STAGES -> {
             val sleep = snapshot.sleeps.lastOrNull { snapshot.window.day(it.end) == snapshot.window.today }
             if (sleep != null) {
@@ -202,7 +208,7 @@ internal fun LiveMetricValue(
     Text(point?.let { displayValue(metric, it) } ?: "—", style = MaterialTheme.typography.titleMedium)
     val detail =
         when {
-            point != null -> observation(point, snapshot.window.zone)
+            point != null -> point.observedAt?.let { localTime(it, snapshot.window.zone) } ?: point.day.toString()
             series?.status == LiveStatus.AVAILABLE -> "No record today"
             else -> series?.status?.label ?: "Not loaded"
         }

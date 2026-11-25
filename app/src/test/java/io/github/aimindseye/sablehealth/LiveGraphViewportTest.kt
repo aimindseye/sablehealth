@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import io.github.aimindseye.sablehealth.core.ChartKind
 import io.github.aimindseye.sablehealth.core.DeviceProfile
 import io.github.aimindseye.sablehealth.core.LiveMetric
 import io.github.aimindseye.sablehealth.core.LivePoint
@@ -34,25 +37,34 @@ class LiveGraphViewportTest {
     private val access = ConnectStatus("Available", "fixture", 1, setOf("read.steps"), setOf("read.steps"))
 
     @Test
-    fun graphIsVisibleWithoutScrollingAndTextKeepsAllReadings() {
+    fun overviewAndDetailChartAreVisibleWithoutScrolling() {
         val state = state()
         state.section = Section.MOVE
         state.chooseViewMode(Section.MOVE, ViewMode.GRAPHS)
         load(state, snapshot())
         show(state)
-        visibleChart("Steps", 7)
-        compose.onNodeWithText("Exercise sessions").assertDoesNotExist()
-        compose.onNodeWithText("30 days").performScrollTo().performClick()
-        compose.onNodeWithText("Steps · 30 days").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Text").performScrollTo().performClick()
+        chart("Steps", 7).assertIsDisplayed()
+        compose.onNodeWithText("Steps").performClick()
+        chart("Steps", 7).assertIsDisplayed()
+        val density = compose.activity.resources.displayMetrics.density
+        check(chart("Steps", 7).fetchSemanticsNode().boundsInRoot.height >= 100f * density - 1f)
+        compose.onNodeWithText("7D").performClick()
+        compose.onNodeWithText("30D").performClick()
+        chart("Steps", 30).assertIsDisplayed()
+        compose.onNodeWithText("Bar").performClick()
+        compose.onNodeWithText("Area").performClick()
+        compose.runOnIdle { check(state.r6.chart(LiveMetric.STEPS) == ChartKind.AREA) }
+        chart("Steps", 30).performTouchInput { click(center) }
+        compose.onNodeWithText("No record").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Text").performClick()
         compose.onNodeWithText("Exercise sessions").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Steps, 30 days; gaps are missing data").assertDoesNotExist()
+        chart("Steps", 30).assertDoesNotExist()
         compose.runOnIdle { state.chooseViewMode(Section.MOVE, ViewMode.GRAPHS) }
-        visibleChart("Steps", 30)
+        chart("Steps", 30).assertIsDisplayed()
     }
 
     @Test
-    fun changingSectionAfterScrollingRevealsNewChartWithoutScrolling() {
+    fun switchingSectionsAfterScrollingShowsNewOverview() {
         val state = state()
         state.section = Section.TRENDS
         state.chooseViewMode(Section.TRENDS, ViewMode.TEXT)
@@ -63,27 +75,30 @@ class LiveGraphViewportTest {
             state.section = Section.VITALS
             state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
         }
-        visibleChart("Heart rate", 7)
+        chart("Heart rate", 7).assertIsDisplayed()
         compose.runOnIdle {
             state.section = Section.TRENDS
             state.chooseViewMode(Section.TRENDS, ViewMode.GRAPHS)
         }
-        visibleChart("Steps", 7)
+        chart("Steps", 7).assertIsDisplayed()
     }
 
     @Test
-    fun emptyHistoryShowsExplicitMessageInsteadOfBlankChart() {
+    fun missingHistoryShowsContextualCardAndNoFalseChart() {
         val state = state()
         state.section = Section.MOVE
         state.chooseViewMode(Section.MOVE, ViewMode.GRAPHS)
         load(state, LiveSnapshot(window, emptyMap(), emptyList()))
         show(state)
+        compose.onNodeWithText("Steps").performClick()
         compose.onNodeWithText("No observations to graph").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Steps, 7 days; gaps are missing data").assertDoesNotExist()
+        chart("Steps", 7).assertDoesNotExist()
+        compose.onNodeWithText("View data sources").performScrollTo().performClick()
+        compose.runOnIdle { check(state.page == Page.SOURCES) }
     }
 
     private fun state(): SableAppState {
-        val preferences = compose.activity.getSharedPreferences("graph-viewport", Context.MODE_PRIVATE)
+        val preferences = compose.activity.getSharedPreferences("r6-viewport", Context.MODE_PRIVATE)
         preferences.edit().clear().commit()
         return SableAppState(preferences).also {
             it.chooseDataMode("real")
@@ -106,20 +121,14 @@ class LiveGraphViewportTest {
     }
 
     private fun show(state: SableAppState) {
-        compose.setContent {
-            MaterialTheme { HealthAppContent(state, DeviceProfile.Q25) }
-        }
+        compose.setContent { MaterialTheme { HealthAppContent(state, DeviceProfile.Q25) } }
     }
 
-    private fun visibleChart(
+    private fun chart(
         metric: String,
         days: Int,
-    ) {
-        val chart = compose.onNodeWithContentDescription("$metric, $days days; gaps are missing data")
-        chart.assertIsDisplayed()
-        val density = compose.activity.resources.displayMetrics.density
-        check(chart.fetchSemanticsNode().boundsInRoot.height >= 72f * density - 1f) {
-            "Chart must be fully visible without a scroll action"
-        }
-    }
+    ) = compose.onNodeWithContentDescription(
+        "$metric, $days days; gaps are missing data",
+        useUnmergedTree = true,
+    )
 }
