@@ -5,6 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyTemperatureRecord
+import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
@@ -15,6 +16,7 @@ import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import io.github.aimindseye.sablehealth.core.CoverageState
@@ -77,7 +79,7 @@ internal object M1HealthConnectProbe {
     internal class Metric(
         val name: String,
         val permission: String,
-        val inspect: suspend (Reader, Instant) -> HealthMetricCoverage,
+        val inspect: suspend (Reader, Instant, Long) -> HealthMetricCoverage,
     )
 
     private fun <T : Record> metric(
@@ -86,8 +88,8 @@ internal object M1HealthConnectProbe {
         times: (T) -> Pair<Instant, Instant>,
     ): Metric {
         val permission = HealthPermission.getReadPermission(type)
-        return Metric(label, permission) { client, time ->
-            readCoverage(client, type, label, time, times)
+        return Metric(label, permission) { client, time, days ->
+            readCoverage(client, type, label, ScanPeriod(time, days), times)
         }
     }
 
@@ -104,6 +106,8 @@ internal object M1HealthConnectProbe {
             metric("Body temperature", BodyTemperatureRecord::class) { it.time to it.time },
             metric("Skin temperature", SkinTemperatureRecord::class) { it.startTime to it.endTime },
             metric("Active calories", ActiveCaloriesBurnedRecord::class) { it.startTime to it.endTime },
+            metric("Distance", DistanceRecord::class) { it.startTime to it.endTime },
+            metric("Total calories", TotalCaloriesBurnedRecord::class) { it.startTime to it.endTime },
         )
 
     private val availableStatus = HealthConnectClient.SDK_AVAILABLE
@@ -113,22 +117,25 @@ internal object M1HealthConnectProbe {
     suspend fun scan(
         context: Context,
         at: Instant = Instant.now(),
+        windowDays: Long = HealthCoverageContract.WINDOW_DAYS,
     ): List<HealthMetricCoverage> {
         check(platformAvailable(context)) { "Health Connect unavailable" }
-        return scan(PlatformReader(HealthConnectClient.getOrCreate(context)), at)
+        return scan(PlatformReader(HealthConnectClient.getOrCreate(context)), at, windowDays)
     }
 
     internal suspend fun scan(
         client: Reader,
         at: Instant,
+        windowDays: Long = HealthCoverageContract.WINDOW_DAYS,
     ): List<HealthMetricCoverage> {
+        require(windowDays in HealthCoverageContract.SCAN_WINDOWS)
         val granted = client.granted()
         return metrics.map { metric ->
             if (metric.permission !in granted) {
                 HealthMetricCoverage(metric.name, metric.permission, CoverageState.NOT_GRANTED)
             } else {
                 try {
-                    metric.inspect(client, at)
+                    metric.inspect(client, at, windowDays)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: SecurityException) {
@@ -140,14 +147,20 @@ internal object M1HealthConnectProbe {
         }
     }
 
+    private data class ScanPeriod(
+        val now: Instant,
+        val days: Long,
+    )
+
     private suspend fun <T : Record> readCoverage(
         client: Reader,
         type: KClass<T>,
         label: String,
-        now: Instant,
+        period: ScanPeriod,
         times: (T) -> Pair<Instant, Instant>,
     ): HealthMetricCoverage {
-        val from = now.minus(HealthCoverageContract.WINDOW_DAYS, ChronoUnit.DAYS)
+        val now = period.now
+        val from = now.minus(period.days, ChronoUnit.DAYS)
         var token: String? = null
         var count = 0
         var first: Instant? = null

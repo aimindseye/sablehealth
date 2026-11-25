@@ -22,6 +22,10 @@ enum class CoverageState {
 object HealthCoverageContract {
     const val WINDOW_DAYS = 30L
     const val MAX_RECORDS_PER_TYPE = 500
+    private const val THREE_DAY_WINDOW = 3L
+    private const val WEEK_WINDOW = 7L
+    private const val TWO_WEEK_WINDOW = 14L
+    val SCAN_WINDOWS = listOf(1L, THREE_DAY_WINDOW, WEEK_WINDOW, TWO_WEEK_WINDOW, WINDOW_DAYS)
 
     fun status(coverage: HealthMetricCoverage): String =
         when (coverage.state) {
@@ -40,10 +44,11 @@ object HealthCoverageContract {
     fun redactedReport(
         rows: List<HealthMetricCoverage>,
         scannedAtUtc: String,
+        windowDays: Long = WINDOW_DAYS,
     ): String =
         buildString {
             appendLine("SABLE_HEALTH_M1A_COVERAGE_V1")
-            appendLine("SCOPE=Recent ${WINDOW_DAYS}-day Health Connect window")
+            appendLine("SCOPE=Recent $windowDays-day Health Connect window")
             appendLine("SCAN_TIME_UTC=$scannedAtUtc")
             appendLine("RECORD_MEASUREMENT_VALUES_INCLUDED=false")
             appendLine("IDENTIFIERS_INCLUDED=false")

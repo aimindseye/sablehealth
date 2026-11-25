@@ -38,10 +38,10 @@ private fun M1PermissionRationale(close: () -> Unit) {
             Text("Sable Health · Health Connect privacy", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Sable Health requests only the read categories you select. " +
-                    "The M1-A check counts recent records and checks timestamps and writer apps.",
+                    "Real data reads permitted records locally. Coverage scans check timestamps and writer apps.",
             )
             Text(
-                "The app does not store health measurements, send them to a server, " +
+                "The app does not persist health measurements, send them to a server, " +
                     "connect to a wearable over Bluetooth, sell data or run background collection.",
             )
             Text(
@@ -51,7 +51,7 @@ private fun M1PermissionRationale(close: () -> Unit) {
             )
             Text(
                 "Health Connect permissions can be revoked in Android Settings at any time. " +
-                    "The Dashboard remains synthetic or empty during M1-A.",
+                    "Real data is optional. Demo and No records do not read measurements.",
             )
             FocusButton("Close", close)
         }

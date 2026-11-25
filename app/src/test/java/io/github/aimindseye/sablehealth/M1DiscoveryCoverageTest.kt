@@ -99,12 +99,13 @@ class M1DiscoveryCoverageTest {
     @Test
     fun sourcesCoverageLinkNavigatesAndBackReturns() {
         val state = SableAppState(compose.activity.getSharedPreferences("coverage-test", Context.MODE_PRIVATE))
+        state.page = Page.SOURCES
         compose.setContent {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) { SourcesPage(state) }
             }
         }
-        click("M1-A record coverage")
+        click("Check data availability")
         compose.runOnIdle {
             assertEquals(Page.M1_DISCOVERY, state.page)
             state.back()

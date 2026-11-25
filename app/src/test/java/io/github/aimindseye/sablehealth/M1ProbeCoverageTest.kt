@@ -49,7 +49,7 @@ class M1ProbeCoverageTest {
         runBlocking {
             reader.permissions = M1HealthConnectProbe.metrics.map { it.permission }.toSet()
             val rows = M1HealthConnectProbe.scan(reader, now)
-            assertEquals(11, rows.map { it.type }.distinct().size)
+            assertEquals(13, rows.map { it.type }.distinct().size)
             assertTrue(rows.all { it.state == CoverageState.NO_RECORDS })
         }
 

@@ -55,6 +55,12 @@ internal enum class Page {
     MAIN,
     SOURCES,
     SOURCE_DETAIL,
+    SOURCE_COMPANION,
+    SOURCE_DIAGNOSTICS,
+    SLEEP_DIAGNOSTICS,
+    SOURCE_COVERAGE,
+    SOURCE_REPORT,
+    SETTINGS_SETUP,
     SOURCE_PRIVACY,
     M1_DISCOVERY,
     SETTINGS,
@@ -74,21 +80,29 @@ internal data class ConnectStatus(
 
 class MainActivity : ComponentActivity() {
     private var resumeVersion by mutableStateOf(0)
+    private var foreground by mutableStateOf(false)
 
     override fun onResume() {
         super.onResume()
         resumeVersion++
+        foreground = true
+    }
+
+    override fun onPause() {
+        foreground = false
+        super.onPause()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { SableApp(resumeVersion) }
+        setContent { SableApp(resumeVersion, foreground = foreground) }
     }
 }
 
 @Composable
 internal fun SableApp(
     resumeVersion: Int = 0,
+    foreground: Boolean = true,
     inspect: suspend (Context) -> ConnectStatus = ::inspectHealthConnect,
 ) {
     val context = LocalContext.current
@@ -116,6 +130,8 @@ internal fun SableApp(
         state.connect = ConnectStatus("Checking", "Checking Health Connect permissions")
         state.connect = inspect(context)
     }
+
+    LiveRefreshEffect(state, context, foreground, entry.isNotEmpty(), inspect)
 
     SableHealthTheme(state.appearance) {
         BackHandler(enabled = entry.isEmpty() && (state.page != Page.MAIN || state.section != Section.DASHBOARD)) {
@@ -194,7 +210,7 @@ internal fun handleDeviceKey(
                 true
             }
             UiAction.REFRESH -> {
-                state.refreshSources()
+                refreshFromKeyboard(state)
                 true
             }
             UiAction.HELP -> {
@@ -204,6 +220,14 @@ internal fun handleDeviceKey(
             // A focused Compose clickable handles Enter / Space without double activation.
             UiAction.CONFIRM, null -> false
         }
+    }
+}
+
+private fun refreshFromKeyboard(state: SableAppState) {
+    if (state.live && state.page == Page.MAIN) {
+        state.refreshLive()
+    } else {
+        state.refreshSources()
     }
 }
 

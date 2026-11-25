@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -39,7 +40,7 @@ internal fun SetupWizard(
 ) {
     val draft =
         rememberSaveable(saver = SetupDraft.saver) {
-            SetupDraft(state.appearance, state.demo, state.companion.confirmed)
+            SetupDraft(state.appearance, state.demo, state.companion.confirmed, state.live)
         }
     val holder = rememberSaveableStateHolder()
     var selected by rememberSaveable { mutableStateOf(SetupStage.entries.joinToString(",") { it.name }) }
@@ -73,7 +74,7 @@ internal fun SetupWizard(
             next = advance,
             skip = { if (choosing) close(false) else advance() },
         )
-    SetupFrame(setupProgress(choosing, index, stages.size), actions) {
+    SetupFrame(SetupFrameProgress(setupProgress(choosing, index, stages.size), index, stages.size, choosing), actions) {
         holder.SaveableStateProvider(if (choosing) "picker" else stage.name) {
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -108,9 +109,16 @@ private data class SetupActions(
     val skip: () -> Unit,
 )
 
+private data class SetupFrameProgress(
+    val label: String,
+    val index: Int,
+    val count: Int,
+    val choosing: Boolean,
+)
+
 @Composable
 private fun SetupFrame(
-    progress: String,
+    progress: SetupFrameProgress,
     actions: SetupActions,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -118,6 +126,7 @@ private fun SetupFrame(
     Column(
         Modifier
             .fillMaxSize()
+            .background(r7aBackground())
             .safeDrawingPadding()
             .padding(8.dp)
             .onPreviewKeyEvent {
@@ -131,7 +140,8 @@ private fun SetupFrame(
             },
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        CompactPageTitle("Sable Health", progress)
+        CompactPageTitle("Sable Health setup", progress.label)
+        if (!progress.choosing) R7aSetupProgress(progress.index, progress.count)
         content()
         SetupFooter(actions)
     }
@@ -143,26 +153,27 @@ private fun SetupStagePicker(
     onSelect: (String) -> Unit,
 ) {
     Text("Choose setup steps", style = MaterialTheme.typography.titleLarge)
-    SetupStage.entries.filter { it != SetupStage.REVIEW }.forEach { stage ->
-        val names = selected.split(",").toSet()
-        CompactLinkRow(
-            stage.title,
-            if (stage.name in names) "Selected" else "Not selected",
-            {
+    R7aGroup("Select steps") {
+        SetupStage.entries.filter { it != SetupStage.REVIEW }.forEach { stage ->
+            val names = selected.split(",").toSet()
+            R7aRow(stage.title, chosen = stage.name in names, action = {
                 val next = if (stage.name in names) names - stage.name else names + stage.name
                 onSelect(next.joinToString(","))
-            },
-        )
+            })
+            R7aRule()
+        }
     }
-    Text("Review is always included.", style = MaterialTheme.typography.bodySmall)
+    R7aNote("Review is always included.")
 }
 
 @Composable
 private fun SetupFooter(actions: SetupActions) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        FocusButton("Back", actions.back, modifier = Modifier.weight(1f))
-        FocusButton("Skip", actions.skip, modifier = Modifier.weight(1f))
-        FocusButton(actions.nextLabel, actions.next, modifier = Modifier.weight(1f))
+        R7aAction("Back", actions.back, modifier = Modifier.weight(1f))
+        if (actions.nextLabel != "Finish") {
+            R7aAction("Skip", actions.skip, modifier = Modifier.weight(1f))
+        }
+        R7aAction(actions.nextLabel, actions.next, modifier = Modifier.weight(1f), primary = true)
     }
 }
 
@@ -175,22 +186,45 @@ private fun SetupStageContent(
 ) {
     when (stage) {
         SetupStage.WELCOME -> {
-            Notice("Local-first wellness", "No cloud, account or background access.")
-            Notice("Phone detected", profile.label)
+            R7aGroup("", r7MetricSurface(null)) {
+                Text("Local-first wellness", style = MaterialTheme.typography.titleMedium)
+                R7aNote("No cloud, account or background access. Use your health records on this phone.")
+            }
+            R7aGroup("Phone detected") { R7aRow("Current device", profile.label) }
+            R7aNote("Permissions are optional.")
         }
         SetupStage.SOURCES -> SetupSources(state, draft)
         SetupStage.PERMISSIONS -> SetupPermissions(state)
         SetupStage.VERIFY -> SetupVerify(state)
         SetupStage.PERSONALIZE -> SetupPersonalize(draft)
-        SetupStage.REVIEW -> {
-            Notice("Health Connect", state.connect.label)
-            Notice("Read access", setupAccessSummary(state.connect))
-            Notice("Dashboard", if (draft.demo) "Synthetic demo" else "No records imported")
-            Notice("Appearance", draft.appearance)
-            Notice("Companion", if (draft.confirmed) "User confirmed" else "Not confirmed")
-            Text("Finish even if access is missing; return from Settings at any time.")
-        }
+        SetupStage.REVIEW -> SetupReview(state, draft)
     }
+}
+
+@Composable
+private fun SetupReview(
+    state: SableAppState,
+    draft: SetupDraft,
+) {
+    R7aGroup("Health data") {
+        R7aRow("Health Connect", state.connect.label)
+        R7aRule()
+        R7aRow("Read access", value = setupAccessSummary(state.connect))
+        R7aRule()
+        R7aRow("Companion", if (draft.confirmed) "User confirmed" else "Not confirmed")
+    }
+    R7aGroup("Preferences") {
+        val mode =
+            when (draft.dataMode) {
+                "real" -> "Real data"
+                "demo" -> "Demo"
+                else -> "No records"
+            }
+        R7aRow("Dashboard", mode)
+        R7aRule()
+        R7aRow("Appearance", draft.appearance.replaceFirstChar(Char::uppercaseChar))
+    }
+    R7aNote("Finish even if access is missing; return from Settings at any time.")
 }
 
 @Composable
@@ -198,31 +232,29 @@ private fun SetupSources(
     state: SableAppState,
     draft: SetupDraft,
 ) {
-    Notice("Health Connect", state.connect.detail)
-    FocusButton("Check availability", state::recheckPermissions, modifier = Modifier.fillMaxWidth())
-    Notice("Fitbit Air", "Pair and sync in Google Health. Sable Health cannot verify pairing.")
-    CompactLinkRow(
-        "Companion setup",
-        if (draft.confirmed) "User confirmed" else "Not confirmed",
-        { draft.confirmed = !draft.confirmed },
-    )
+    R7aGroup("Health Connect") {
+        R7aRow("Availability", state.connect.label, detail = state.connect.detail)
+        R7aRule()
+        R7aRow("Check availability", action = state::recheckPermissions)
+    }
+    R7aGroup("Google Health / Fitbit Air") {
+        R7aRow("Companion setup", chosen = draft.confirmed, action = { draft.confirmed = !draft.confirmed })
+        R7aNote("Pair and sync in Google Health. Sable Health cannot verify pairing.")
+    }
 }
 
 @Composable
 private fun SetupPersonalize(draft: SetupDraft) {
-    CompactChoiceRow(
-        "Appearance",
-        listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
-        draft.appearance,
-        { draft.appearance = it },
-    )
-    CompactChoiceRow(
-        "Data mode",
-        listOf("demo" to "Demo", "empty" to "No records"),
-        if (draft.demo) "demo" else "empty",
-        { draft.demo = it == "demo" },
-    )
-    Text("Choices save on Finish. Existing dashboard widgets are preserved.")
+    R7aGroup("", r7MetricSurface(null)) {
+        Text("Make it yours", style = MaterialTheme.typography.titleMedium)
+        R7aNote("Choose how Sable Health looks and which data mode it uses.")
+    }
+    R7aGroup("Preferences") {
+        R7aAppearance(draft.appearance) { draft.appearance = it }
+        R7aRule()
+        R7aDataMode(draft.dataMode, draft::chooseDataMode)
+    }
+    R7aNote("Choices save on Finish. Existing dashboard widgets are preserved.")
 }
 
 /** Only pending non-health preferences. Android grants are never persisted here. */
@@ -230,22 +262,38 @@ internal class SetupDraft(
     appearance: String,
     demo: Boolean,
     confirmed: Boolean,
+    live: Boolean = false,
 ) {
     var appearance by mutableStateOf(appearance)
     var demo by mutableStateOf(demo)
+    var live by mutableStateOf(live && !demo)
+    val dataMode: String get() =
+        if (live) {
+            "real"
+        } else if (demo) {
+            "demo"
+        } else {
+            "empty"
+        }
+
+    fun chooseDataMode(value: String) {
+        demo = value == "demo"
+        live = value == "real"
+    }
+
     var confirmed by mutableStateOf(confirmed)
 
     fun applyTo(state: SableAppState) {
         if (appearance != state.appearance) state.chooseAppearance(appearance)
-        if (demo != state.demo) state.chooseDemo(demo)
+        if (dataMode != state.dataMode) state.chooseDataMode(dataMode)
         if (confirmed != state.companion.confirmed) state.companion.chooseConfirmation(confirmed)
     }
 
     companion object {
         val saver =
             listSaver<SetupDraft, String>(
-                save = { listOf(it.appearance, it.demo.toString(), it.confirmed.toString()) },
-                restore = { SetupDraft(it[0], it[1].toBoolean(), it[2].toBoolean()) },
+                save = { listOf(it.appearance, it.demo.toString(), it.confirmed.toString(), it.live.toString()) },
+                restore = { SetupDraft(it[0], it[1].toBoolean(), it[2].toBoolean(), it.getOrNull(3).toBoolean()) },
             )
     }
 }

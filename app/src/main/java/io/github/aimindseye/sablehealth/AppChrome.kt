@@ -1,7 +1,5 @@
 package io.github.aimindseye.sablehealth
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
@@ -19,11 +17,14 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,10 @@ internal fun HealthAppContent(
     val dashboardOnQ25 =
         profile == DeviceProfile.Q25 && state.page == Page.MAIN && state.section == Section.DASHBOARD
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        if (state.page != Page.MAIN) {
+            R7aSubscreen(state, profile)
+            return@Column
+        }
         HealthHeader(
             title =
                 if (profile == DeviceProfile.Q25 || state.page == Page.MAIN) {
@@ -53,41 +58,97 @@ internal fun HealthAppContent(
                         .lowercase()
                         .replaceFirstChar(Char::uppercaseChar)
                 },
-            subtitle =
-                if (dashboardOnQ25) {
-                    if (state.demo) "DASHBOARD · DEMO" else "DASHBOARD · NO RECORDS"
-                } else if (profile == DeviceProfile.Q25 && state.page != Page.MAIN) {
-                    state.page.name + " · " + profile.label
-                } else if (state.demo) {
-                    "DEMO DATA · ${profile.label}"
-                } else {
-                    "NO RECORDS IMPORTED · ${profile.label}"
-                },
+            subtitle = healthSubtitle(state, profile, dashboardOnQ25),
             compactQ25 = profile == DeviceProfile.Q25,
             actions =
                 HeaderActions(
                     onBack = if (state.page == Page.MAIN) null else state::back,
                     onSources = { state.page = Page.SOURCES },
                     onSettings = { state.page = Page.SETTINGS },
+                    onRefresh = if (state.live && state.page == Page.MAIN) state::refreshLive else null,
+                    iconChrome = state.live,
                 ),
         )
         Box(Modifier.weight(1f)) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        if (profile == DeviceProfile.Q25) 4.dp else 7.dp,
-                    ),
-            ) {
-                HealthPage(state, profile)
-            }
+            RefreshableHealthPage(state, profile)
         }
         if (state.page == Page.MAIN) {
-            BottomTabs(state.section, profile == DeviceProfile.Q25) { state.section = it }
+            BottomTabs(state.section, profile == DeviceProfile.Q25, state.live) { state.section = it }
         }
+    }
+}
+
+private fun healthSubtitle(
+    state: SableAppState,
+    profile: DeviceProfile,
+    dashboardOnQ25: Boolean,
+): String =
+    if (state.live && state.page == Page.MAIN) {
+        liveHeaderStatus(state)
+    } else if (dashboardOnQ25) {
+        when {
+            state.live -> "DASHBOARD · REAL DATA"
+            state.demo -> "DASHBOARD · DEMO"
+            else -> "DASHBOARD · NO RECORDS"
+        }
+    } else if (profile == DeviceProfile.Q25 && state.page != Page.MAIN) {
+        state.page.name + " · " + profile.label
+    } else if (state.live) {
+        "REAL DATA · ${profile.label}"
+    } else if (state.demo) {
+        "DEMO DATA · ${profile.label}"
+    } else {
+        "NO RECORDS IMPORTED · ${profile.label}"
+    }
+
+private fun liveHeaderStatus(state: SableAppState): String {
+    val window = state.liveHealth.snapshot?.window
+    return when {
+        state.liveHealth.loading -> "Real data · Refreshing"
+        state.liveHealth.failed -> "Refresh failed · Prior data if available"
+        window != null -> "Real data · Checked ${localTime(window.now, window.zone)}"
+        else -> "Real data · Not loaded"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RefreshableHealthPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
+    if (state.live && state.page == Page.MAIN) {
+        PullToRefreshBox(isRefreshing = state.liveHealth.loading, onRefresh = state::refreshLive) {
+            ScrollableHealthPage(state, profile)
+        }
+    } else {
+        ScrollableHealthPage(state, profile)
+    }
+}
+
+@Composable
+internal fun ScrollableHealthPage(
+    state: SableAppState,
+    profile: DeviceProfile,
+) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(
+        state.page,
+        state.section,
+        state.modeFor(state.section),
+        state.r6.detailMetric(state.section),
+        state.widgetBrowsing,
+    ) {
+        scroll.scrollTo(0)
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(scroll)
+            .padding(horizontal = 10.dp, vertical = if (profile == DeviceProfile.Q25) 2.dp else 4.dp),
+        verticalArrangement = Arrangement.spacedBy(if (profile == DeviceProfile.Q25) 4.dp else 7.dp),
+    ) {
+        HealthPage(state, profile)
     }
 }
 
@@ -97,7 +158,12 @@ private fun HealthPage(
     profile: DeviceProfile,
 ) {
     when (state.page) {
-        Page.MAIN -> Dashboard(state, profile == DeviceProfile.Q25)
+        Page.MAIN ->
+            if (state.live) {
+                LiveHealthPage(state, showRefresh = false)
+            } else {
+                Dashboard(state, profile == DeviceProfile.Q25)
+            }
         Page.SOURCES -> SourcesPage(state)
         Page.SOURCE_DETAIL -> SourceDetailPage(state)
         Page.SOURCE_PRIVACY -> SourcePrivacyPage()
@@ -107,6 +173,7 @@ private fun HealthPage(
         Page.PHONE_INPUT -> PhoneInputPage(state, profile)
         Page.SETTINGS_PRIVACY -> SettingsPrivacyPage()
         Page.HELP -> HelpPage(profile, state::back)
+        else -> R7aAdditionalPage(state)
     }
 }
 
@@ -114,6 +181,8 @@ internal data class HeaderActions(
     val onBack: (() -> Unit)?,
     val onSources: () -> Unit,
     val onSettings: () -> Unit,
+    val onRefresh: (() -> Unit)? = null,
+    val iconChrome: Boolean = false,
 )
 
 @Composable
@@ -137,7 +206,11 @@ internal fun HealthHeader(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             actions.onBack?.let { goBack ->
-                FocusButton("←", goBack, modifier = Modifier.width(48.dp))
+                if (actions.iconChrome) {
+                    R6IconButton("Back", R.drawable.ic_r6_back, goBack)
+                } else {
+                    FocusButton("←", goBack, modifier = Modifier.width(48.dp))
+                }
             }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -154,7 +227,11 @@ internal fun HealthHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (compactQ25) {
+            if (actions.iconChrome) {
+                actions.onRefresh?.let { R6IconButton("Refresh", R.drawable.ic_r6_refresh, it) }
+                R6IconButton("Sources", R.drawable.ic_r6_sources, actions.onSources)
+                R6IconButton("Settings", R.drawable.ic_r6_settings, actions.onSettings)
+            } else if (compactQ25) {
                 // Constrain the row's actions before measuring the weighted brand column.
                 // A full-width child in an unbounded Row used to hide the brand and Settings.
                 Q25ChromeButton(
@@ -190,12 +267,11 @@ internal fun FocusButton(
             modifier
                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small)
+                .then(r7FocusOutline(focused, colors.primary, MaterialTheme.shapes.small))
                 .clickable(onClick = onClick)
                 .focusable(),
         color = if (selected) colors.surfaceVariant else colors.surface,
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, colors.outlineVariant),
     ) {
         Box(
             Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
@@ -239,10 +315,9 @@ private fun Q25ChromeButton(
                 Modifier
                     .fillMaxWidth()
                     .height(Q25_VISUAL_HEIGHT_DP.dp)
-                    .border(if (focused) 2.dp else 0.dp, colors.primary, MaterialTheme.shapes.small),
+                    .then(r7FocusOutline(focused, colors.primary, MaterialTheme.shapes.small)),
             shape = MaterialTheme.shapes.small,
             color = if (selected) colors.surfaceVariant else colors.surface,
-            border = BorderStroke(1.dp, colors.outlineVariant),
         ) {
             Box(Modifier.padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
                 Text(
@@ -261,8 +336,13 @@ private fun Q25ChromeButton(
 private fun BottomTabs(
     active: Section,
     compactQ25: Boolean,
+    iconChrome: Boolean,
     onClick: (Section) -> Unit,
 ) {
+    if (iconChrome) {
+        R6BottomTabs(active, onClick)
+        return
+    }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     BoxWithConstraints {
         val compact = maxWidth < 310.dp

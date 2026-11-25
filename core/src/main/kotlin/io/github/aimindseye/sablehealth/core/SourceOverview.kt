@@ -58,7 +58,7 @@ object SourceOverview {
 
     fun category(type: String): String =
         when (type) {
-            "Steps", "Exercise sessions", "Active calories" -> "Activity"
+            "Steps", "Exercise sessions", "Active calories", "Distance", "Total calories" -> "Activity"
             "Sleep sessions" -> "Sleep"
             else -> "Vitals"
         }

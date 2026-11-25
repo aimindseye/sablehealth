@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -33,7 +34,7 @@ class SourceOverviewCoverageTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private val permission = "read.steps"
+    private val permission = M1HealthConnectProbe.metrics.first().permission
 
     private fun app(): SableAppState {
         val preferences = compose.activity.getSharedPreferences("source-overview-test", Context.MODE_PRIVATE)
@@ -71,11 +72,15 @@ class SourceOverviewCoverageTest {
         compose.setContent {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    M1DiscoveryPage(state.discovery, appState = state)
+                    if (state.page == Page.SOURCE_COVERAGE) {
+                        R7aCoverageCategory(state)
+                    } else {
+                        M1DiscoveryPage(state.discovery, appState = state)
+                    }
                 }
             }
         }
-        visible("Activity")
+        click("Activity")
         visible("Writer apps: com.example.writer")
         compose.onNodeWithText("Request selected READ access").assertDoesNotExist()
         click("Manage permissions")
@@ -100,18 +105,26 @@ class SourceOverviewCoverageTest {
         state.setupAction = { opened = it }
         compose.setContent {
             MaterialTheme {
-                Column(Modifier.verticalScroll(rememberScrollState())) { SourcesPage(state) }
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    if (state.page == Page.SOURCE_DIAGNOSTICS) {
+                        R7aSourceDiagnostics(state)
+                    } else {
+                        SourcesPage(state)
+                    }
+                }
             }
         }
         visible("Types found: 1")
         visible("1/1 allowed")
-        click("Manage permissions")
+        click("Health permissions")
         assertEquals(SetupEntry.PERMISSIONS_ONLY, opened)
         compose.runOnIdle { state.recheckPermissions() }
         visible("Not verified")
+        click("Sync diagnostics")
         click("Refresh local records")
         assertEquals(SetupEntry.PERMISSIONS_ONLY, opened)
-        click("M1-A record coverage")
+        compose.runOnIdle { state.page = Page.SOURCES }
+        click("Check data availability")
         compose.runOnIdle { assertEquals(Page.M1_DISCOVERY, state.page) }
     }
 
@@ -138,20 +151,25 @@ class SourceOverviewCoverageTest {
         compose.setContent {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    if (state.page == Page.M1_DISCOVERY) {
-                        M1DiscoveryPage(state.discovery, appState = state)
-                    } else {
-                        SourcesPage(state)
+                    when (state.page) {
+                        Page.M1_DISCOVERY -> M1DiscoveryPage(state.discovery, appState = state)
+                        Page.SOURCE_COVERAGE -> R7aCoverageCategory(state)
+                        Page.SOURCE_DIAGNOSTICS -> R7aSourceDiagnostics(state)
+                        else -> SourcesPage(state)
                     }
                 }
             }
         }
         assertEquals(0, reads)
         visible("Not verified")
+        click("Sync diagnostics")
         click("Refresh local records")
+        compose.runOnIdle { state.page = Page.SOURCES }
         visible("Types found: 1")
         assertEquals(1, reads)
-        click("M1-A record coverage")
+        compose.runOnIdle { state.page = Page.SOURCES }
+        click("Check data availability")
+        click("Activity")
         visible("Writer apps: com.fitbit.FitbitMobile")
         assertEquals(1, reads)
     }
@@ -160,17 +178,23 @@ class SourceOverviewCoverageTest {
     fun detailsAndPrivacyKeepWriterSeparateFromCompanion() {
         val state = app()
         seed(state)
+        state.page = Page.SOURCE_COMPANION
         compose.setContent {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    if (state.page == Page.SOURCE_PRIVACY) SourcePrivacyPage() else SourceDetailPage(state)
+                    when (state.page) {
+                        Page.SOURCE_PRIVACY -> SourcePrivacyPage()
+                        Page.SOURCE_COMPANION -> R7aCompanionPage(state)
+                        else -> SourceDetailPage(state)
+                    }
                 }
             }
         }
         visible("com.example.writer")
         visible("Last observed (UTC)")
-        click("I paired and synced in Google Health")
+        click("Paired and synced")
         compose.runOnIdle { assertTrue(state.companion.confirmed) }
+        compose.runOnIdle { state.page = Page.SOURCE_DETAIL }
         click("Check availability again")
         compose.runOnIdle {
             assertTrue(state.discovery.results.isEmpty())
@@ -188,9 +212,16 @@ class SourceOverviewCoverageTest {
         val widgets = state.dashboard.widgets.toList()
         compose.setContent {
             MaterialTheme {
-                Column(Modifier.verticalScroll(rememberScrollState())) { SettingsPage(state, DeviceProfile.Q25) }
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    if (state.page == Page.SETTINGS_SETUP) {
+                        R7aSetupSettings(state)
+                    } else {
+                        SettingsPage(state, DeviceProfile.Q25)
+                    }
+                }
             }
         }
+        click("Permissions & setup")
         visible("1/1 allowed · 0 not granted")
         click("Run complete setup")
         assertEquals(SetupEntry.REVIEW_ALL, opened)
@@ -198,8 +229,9 @@ class SourceOverviewCoverageTest {
         assertEquals(SetupEntry.SELECTED_STEPS, opened)
         click("Check permissions")
         assertEquals(SetupEntry.PERMISSIONS_ONLY, opened)
-        click("Dark")
-        click("No records")
+        compose.runOnIdle { state.page = Page.SETTINGS }
+        choose("Appearance", "Dark")
+        choose("Data mode", "No records")
         compose.runOnIdle {
             assertEquals("dark", state.appearance)
             assertTrue(!state.demo)
@@ -209,6 +241,15 @@ class SourceOverviewCoverageTest {
 
     private fun click(text: String) {
         compose.onNodeWithText(text).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    private fun choose(
+        label: String,
+        value: String,
+    ) {
+        compose.onNodeWithContentDescription(label).performScrollTo().performClick()
+        compose.onNodeWithText(value).performClick()
         compose.waitForIdle()
     }
 

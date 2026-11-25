@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import io.github.aimindseye.sablehealth.core.HealthCoverageContract
 import io.github.aimindseye.sablehealth.core.HealthMetricCoverage
-import io.github.aimindseye.sablehealth.core.SetupEntry
 import io.github.aimindseye.sablehealth.core.SourceOverview
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -31,9 +30,7 @@ private const val DEFAULT_SELECTED_CATEGORIES = 3
 
 /** Only transient Compose state. No record values are persisted. */
 internal class DiscoveryState(
-    private val scanRecords: suspend (Context, Instant) -> List<HealthMetricCoverage> = { context, now ->
-        M1HealthConnectProbe.scan(context, now)
-    },
+    private val scanRecords: (suspend (Context, Instant) -> List<HealthMetricCoverage>)? = null,
 ) {
     val selected =
         mutableStateMapOf<String, Boolean>().apply {
@@ -46,6 +43,23 @@ internal class DiscoveryState(
     var results by mutableStateOf<List<HealthMetricCoverage>>(emptyList())
     var scannedAt by mutableStateOf<String?>(null)
     var reportVisible by mutableStateOf(false)
+    var windowDays by mutableStateOf(HealthCoverageContract.WINDOW_DAYS)
+        private set
+
+    fun nextWindow() {
+        if (!scanning) {
+            val choices = HealthCoverageContract.SCAN_WINDOWS
+            chooseWindow(choices[(choices.indexOf(windowDays) + 1) % choices.size])
+        }
+    }
+
+    fun chooseWindow(days: Long) {
+        if (!scanning && days in HealthCoverageContract.SCAN_WINDOWS && days != windowDays) {
+            windowDays = days
+            clear()
+            message = "Window changed · scan again"
+        }
+    }
 
     fun clear() {
         results = emptyList()
@@ -70,7 +84,11 @@ internal class DiscoveryState(
         message = "Scanning locally · no measurements retained"
         try {
             val now = Instant.now()
-            results = scanRecords(context, now)
+            results = scanRecords?.invoke(context, now) ?: if (windowDays == HealthCoverageContract.WINDOW_DAYS) {
+                M1HealthConnectProbe.scan(context, now)
+            } else {
+                M1HealthConnectProbe.scan(context, now, windowDays)
+            }
             scannedAt = now.toString()
             message = "Finished · record counts are not step or sample totals"
         } catch (cancelled: CancellationException) {
@@ -135,30 +153,7 @@ internal fun M1DiscoveryPage(
 
 @Composable
 private fun SharedCoveragePage(app: SableAppState) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val state = app.discovery
-    CompactPageTitle("Record coverage", "READ ONLY")
-    Text(setupAccessSummary(app.connect), style = MaterialTheme.typography.bodySmall)
-    FocusButton(
-        "Manage permissions",
-        { app.setupAction(SetupEntry.PERMISSIONS_ONLY) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    if (app.connect.granted.isNotEmpty()) {
-        FocusButton(
-            "Scan allowed records",
-            onClick = { scope.launch { state.scan(context) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-    Text(state.message, style = MaterialTheme.typography.bodySmall)
-    val rows = SourceOverview.visibleRows(state.results, app.connect.granted)
-    if (rows.isNotEmpty()) M1ScanResults(state, context, rows)
-    Text(
-        "Records scanned in a 30-day window. Not a companion sync or Dashboard import.",
-        style = MaterialTheme.typography.bodySmall,
-    )
+    R7aCoveragePage(app)
 }
 
 @Composable
@@ -259,7 +254,7 @@ private fun M1ReportPreview(
     context: Context,
     rows: List<HealthMetricCoverage>,
 ) {
-    val report = HealthCoverageContract.redactedReport(rows, state.scannedAt.orEmpty())
+    val report = HealthCoverageContract.redactedReport(rows, state.scannedAt.orEmpty(), state.windowDays)
     Text(report, style = MaterialTheme.typography.bodySmall)
     Text(
         "This includes timestamps and writer app names. Share only if you choose.",
