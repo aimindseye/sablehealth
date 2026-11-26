@@ -39,3 +39,7 @@ Do not automatically promote a DOCUMENTED route to VERIFIED when a new device is
 This is a documentation-only branch and draft PR to `main`; it does not alter application code, merge R5.4, create release artifacts, or perform health-data access. The owner alone reviews and merges PRs. Keep this record versioned, update the source registry as interfaces change, and append decision changes rather than rewriting history.
 
 **Last research verification:** 2026-11-23. Links and licenses may change; pin any upstream code version before integration.
+
+## Research update — 2026-11-26
+
+[Fitbit Air interoperability and Bridge research supplement](FITBIT_AIR_AND_BRIDGE_RESEARCH_2026-11-26.md) records newer device evidence, official API/manual Bridge validation, sleep display concerns, experimental direct BLE/Golden Gate research, additional references, security/quality requirements and proposed roadmap. It supplements rather than retroactively changes the Nov 23 baseline. Implementation/release status is not inferred.
