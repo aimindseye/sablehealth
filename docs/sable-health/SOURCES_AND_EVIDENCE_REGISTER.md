@@ -93,3 +93,7 @@ No upstream has been pinned, tested or integrated by this documentation PR. Lice
 For each new conclusion add: source URL, publisher date, date reviewed, status (DOCUMENTED / VERIFIED / UNVERIFIED / CONTRADICTED / DECIDED), implicated metric/data route, and what test would falsify it. Change architecture decisions only after owner approval and record the delta in [Product Charter](PRODUCT_CHARTER_AND_DECISIONS.md).
 
 **Scope:** product/engineering knowledge retention only; no health values, device IDs, or proprietary APK contents stored in this public docs directory.
+
+## Evidence supplement — 2026-11-26
+
+See [dated Fitbit Air and Bridge research supplement](FITBIT_AIR_AND_BRIDGE_RESEARCH_2026-11-26.md) for the later owner-side observations (sanitized), pinned upstream source review, security and firmware limitations, previously missing product/analytics references and remaining unknowns. Earlier entries are historical snapshots, not assertions about present CI or data availability.
