@@ -89,3 +89,7 @@ Sable Health gratefully acknowledges the projects and publishers whose public do
 - Sable family: [Sable Games](https://github.com/aimindseye/sablegames), [TenSeven Launcher](https://github.com/aimindseye/tenseven-launcher), [Sable Health Bridge](https://github.com/aimindseye/sablehealth-bridge); [Phosphor Icons](https://github.com/phosphor-icons/core) (see [MIT asset notice](docs/licenses/PHOSPHOR_MIT.txt)).
 
 Research archive: [index](docs/sable-health/README.md), [evidence register](docs/sable-health/SOURCES_AND_EVIDENCE_REGISTER.md), [analytics/license evaluation](docs/sable-health/ANALYTICS_AND_LICENSE_EVALUATION.md), [November 26 interoperability and recent findings](docs/sable-health/FITBIT_AIR_AND_BRIDGE_RESEARCH_2026-11-26.md). Verify licenses at the selected upstream revision before copying code; credits are not a license grant. Direct BLE/Golden Gate remains research only, not a current capability or replacement for the authorized historical-data path.
+
+## Android testing and release qualification methodology
+
+See [Android testing methodology](docs/ANDROID_TESTING_METHODOLOGY.md) for the Q25-first emulator, instrumentation, visual regression and signed-device qualification requirements. This policy defines the migration; existing executable gates remain mandatory and the new runner is not yet implemented.

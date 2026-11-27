@@ -9,7 +9,7 @@
 
 ## 2. Design and Android engineering
 - Follow `docs/DESIGN_CONTRACT.md` and current approved screens. **Sable Blue** dark `#2E9BD6`, light `#1A6FA0`; black/`#F5F7F9` backgrounds, no default teal/green accent. Color cannot be the only indicator of readiness. Visible keyboard focus.
-- Q25 720×720 (approx. 411dp) is first-class; preserve compact header, scrolling content, anchored actions and >=48dp touch/focus targets. Test trackpad, DPAD, keyboard and Back, as well as Titan 2 I/J/K/L and large fonts.
+- Q25 720×720 (approx. 411dp) is first-class; preserve compact header, anchored actions and >=48dp touch/focus targets; primary summaries and single-dataset graphs must fit without scrolling at default settings after M2.1, with detailed lists and accessibility fallback allowed. Test trackpad, DPAD, keyboard and Back, as well as Titan 2 I/J/K/L and large fonts.
 - Kotlin 4-space formatting, UTF-8/LF final newline, official ktlint, Detekt, explicit imports, named constants and short focused functions. `@Composable` naming remains Compose-style; non-Compose naming stays enforced. Avoid deprecations when a supported API exists.
 - Split pure policy logic from Android APIs/Compose. Every new feature requires tests; permission and navigation changes require physical/instrumented verification. No blanket suppressions, fake test coverage, baseline rewrites or repository-wide autoformat on a dirty worktree.
 
@@ -56,3 +56,7 @@ State baseline SHA, touched tracked/untracked paths, local checks and versions, 
 - Run full-history Gitleaks locally before every push (including after committing), using redaction; CI independently scans history. Only exact reviewed historical fingerprints may be ignored. See docs/RELEASE_ENGINEERING.md.
 - Production APK verifier accepts fixed repository-relative artifact locations only; no caller-supplied certificate trust anchor or SDK command arguments. Reject symlinked paths and test negative boundaries. Keep R8 enabled.
 - Keep Python cognitive complexity at most 15 and measured local coverage at least 85%; do not relax Sonar gates or suppress security findings.
+
+## 10. Android testing methodology
+
+Read [docs/ANDROID_TESTING_METHODOLOGY.md](docs/ANDROID_TESTING_METHODOLOGY.md) before each deliverable. Adopt Q25-first local/CI instrumentation, visual regression and external signed-release qualification as the next implementation requirements. Preserve existing executable gates, exact M2 baseline, owner-only release and independent device acceptance. Do not claim unimplemented gates passed.
