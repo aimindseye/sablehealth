@@ -166,7 +166,8 @@ class M21NativeViewportTest {
     ) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         compose.runOnIdle {
-            val controller = WindowCompat.getInsetsController(compose.activity.window, compose.activity.window.decorView)
+            val window = compose.activity.window
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
             check(controller.isAppearanceLightStatusBars == (appearance == "light"))
             check(controller.isAppearanceLightNavigationBars == (appearance == "light"))
         }
@@ -187,23 +188,36 @@ class M21NativeViewportTest {
         appearance: String,
     ): Bitmap {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        repeat(6) {
-            compose.waitForIdle()
-            instrumentation.waitForIdleSync()
-            val drawn = CountDownLatch(1)
-            instrumentation.runOnMainSync {
-                decor.postOnAnimation {
-                    decor.postOnAnimation { drawn.countDown() }
+        var previous: Bitmap? = null
+        try {
+            repeat(6) {
+                compose.waitForIdle()
+                instrumentation.waitForIdleSync()
+                val drawn = CountDownLatch(1)
+                instrumentation.runOnMainSync {
+                    decor.postOnAnimation {
+                        decor.postOnAnimation { drawn.countDown() }
+                    }
+                }
+                check(drawn.await(5, TimeUnit.SECONDS)) { "Frame synchronization timed out" }
+                val image = instrumentation.uiAutomation.takeScreenshot()
+                if (image != null) {
+                    if (M21RenderedFrame.valid(image, appearance == "light")) {
+                        val earlier = previous
+                        if (earlier != null && M21RenderedFrame.sameBody(earlier, image)) return image
+                        previous?.recycle()
+                        previous = image
+                    } else {
+                        image.recycle()
+                        previous?.recycle()
+                        previous = null
+                    }
                 }
             }
-            check(drawn.await(5, TimeUnit.SECONDS)) { "Frame synchronization timed out" }
-            val image = instrumentation.uiAutomation.takeScreenshot()
-            if (image != null) {
-                if (M21RenderedFrame.valid(image, appearance == "light")) return image
-                image.recycle()
-            }
+            error("HOLD_RENDERED_SCREENSHOT: no stable qualifying display after six attempts")
+        } finally {
+            previous?.recycle()
         }
-        error("HOLD_RENDERED_SCREENSHOT: no qualifying full display frame after six attempts")
     }
 
     private fun fixtureState(appearance: String): SableAppState {

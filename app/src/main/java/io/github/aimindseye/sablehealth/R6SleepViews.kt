@@ -62,7 +62,12 @@ internal fun LiveSleepPage(
             if (graph && day != null) {
                 SleepGraphChoice(state.r6)
                 if (state.r6.sleepGraph != "Stacked") {
-                    R6IconButton("Sleep details", R.drawable.ic_r6_list, { details = !details }, active = details)
+                    R6IconButton(
+                        "Sleep details",
+                        if (details) R.drawable.ic_r6_back else R.drawable.ic_r6_next,
+                        { details = !details },
+                        active = details,
+                    )
                 }
             }
         },
@@ -159,7 +164,9 @@ private fun SleepSessionCard(
             SleepTotals(session, seconds, asleep)
             M2SleepDetails(session)
             if (seconds.isNotEmpty()) {
-                var journal by rememberSaveable(session.start.toString(), session.end.toString()) { mutableStateOf(false) }
+                var journal by rememberSaveable(session.start.toString(), session.end.toString()) {
+                    mutableStateOf(false)
+                }
                 R7aRow("Recorded stages", if (journal) "Hide" else "Open", action = { journal = !journal })
                 if (journal) R6SleepJournal(session, zone)
             }

@@ -26,6 +26,9 @@ class M21SystemBarsTest {
         assertBars(false)
         compose.runOnIdle { appearance.value = "light" }
         assertBars(true)
+        compose.runOnIdle { appearance.value = "system" }
+        val dark = compose.activity.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        assertBars(dark != android.content.res.Configuration.UI_MODE_NIGHT_YES)
     }
 
     private fun assertBars(light: Boolean) {

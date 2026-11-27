@@ -17,7 +17,20 @@ internal object M21RenderedFrame {
         if (image.width != SIDE || image.height != SIDE) return false
         val upper = sample(image, 60, 300)
         val lower = sample(image, 300, 590)
-        return upper.matches(light) && lower.matches(light)
+        val status = sample(image, 5, 35)
+        return upper.matches(light) && lower.matches(light) && status.statusMatches(light)
+    }
+
+    fun sameBody(
+        first: Bitmap,
+        second: Bitmap,
+    ): Boolean {
+        for (y in 60 until 590 step STEP) {
+            for (x in 12 until SIDE - 12 step STEP) {
+                if (first.getPixel(x, y) != second.getPixel(x, y)) return false
+            }
+        }
+        return true
     }
 
     private fun sample(
@@ -42,6 +55,13 @@ internal object M21RenderedFrame {
         val dark: Int,
         val light: Int,
     ) {
+        fun statusMatches(lightTheme: Boolean): Boolean =
+            if (lightTheme) {
+                light >= 500 && dark >= 15
+            } else {
+                dark >= 500 && light >= 15
+            }
+
         fun matches(lightTheme: Boolean): Boolean =
             if (lightTheme) {
                 light >= 2000 && dark >= 25

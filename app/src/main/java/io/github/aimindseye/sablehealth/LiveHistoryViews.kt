@@ -33,7 +33,7 @@ internal fun LiveHistoryPage(
                 HistoricalMetricChoice(metrics, metric) { state.r6.chooseMetric(state.section, it) }
             },
         )
-        HistoryPanel(state, snapshot, metrics, metric, metricInHeading = true) { state.r6.chooseMetric(state.section, it) }
+        HistoryPanel(state, snapshot, metrics, metric) { state.r6.chooseMetric(state.section, it) }
     }
 }
 
@@ -56,7 +56,6 @@ internal fun HistoryPanel(
     snapshot: LiveSnapshot,
     metrics: List<LiveMetric>,
     metric: LiveMetric,
-    metricInHeading: Boolean = false,
     choose: (LiveMetric) -> Unit,
 ) {
     val days = state.r6.period(state.section)
@@ -65,15 +64,10 @@ internal fun HistoryPanel(
     val points = calendar.map { series?.on(it) }
     val graph = state.modeFor(state.section) == ViewMode.GRAPHS
     val kind = state.r6.chart(metric)
-    val options: @Composable () -> Unit = {
-        PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
-        if (graph) {
-            R6Choice("Graph type", kind.label, ChartPolicy.options(metric).map { it.label }, { label ->
-                state.r6.chooseChart(metric, ChartPolicy.options(metric).first { it.label == label })
-            })
-        }
-    }
-    val combined = graph && metricInHeading && points.any { it != null }
+    val options: @Composable () -> Unit = { HistoryFilters(state, metric, days, graph) }
+    val hasPoints = points.any { it != null }
+    val metricInHeading = state.section != Section.SLEEP
+    val combined = graph && metricInHeading && hasPoints
     R6Card(verticalPadding = 2.dp) {
         if (!combined) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -85,7 +79,7 @@ internal fun HistoryPanel(
                 options()
             }
         }
-        if (points.none { it != null }) {
+        if (!hasPoints) {
             Text(
                 if (graph) "No observations to graph" else "No observations in this period",
                 style = MaterialTheme.typography.titleSmall,
@@ -110,6 +104,22 @@ internal fun HistoryPanel(
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
             }
         }
+    }
+}
+
+@Composable
+private fun HistoryFilters(
+    state: SableAppState,
+    metric: LiveMetric,
+    days: Int,
+    graph: Boolean,
+) {
+    PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
+    if (graph) {
+        val kind = state.r6.chart(metric)
+        R6Choice("Graph type", kind.label, ChartPolicy.options(metric).map { it.label }, { label ->
+            state.r6.chooseChart(metric, ChartPolicy.options(metric).first { it.label == label })
+        })
     }
 }
 
