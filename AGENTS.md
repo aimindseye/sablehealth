@@ -60,3 +60,7 @@ State baseline SHA, touched tracked/untracked paths, local checks and versions, 
 ## 10. Android testing methodology
 
 Read [docs/ANDROID_TESTING_METHODOLOGY.md](docs/ANDROID_TESTING_METHODOLOGY.md) before each deliverable. Adopt Q25-first local/CI instrumentation, visual regression and external signed-release qualification as the next implementation requirements. Preserve existing executable gates, exact M2 baseline, owner-only release and independent device acceptance. Do not claim unimplemented gates passed.
+
+## Ubuntu execution and signing migration
+
+Follow the owner-approved Ubuntu paths and proposed build/sign separation in `docs/ANDROID_TESTING_METHODOLOGY.md`. Until implementation and security qualification, existing Mac-side build/preflight/signing rules remain in force. Never give the build identity access to signing keys or execute repository code under the signing identity. No automatic signing, merging or release publication.
