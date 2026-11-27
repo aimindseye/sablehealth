@@ -77,7 +77,12 @@ class M2AnalyticsTest {
         compose.runOnIdle { current.value = sleep.copy(stages = listOf(LiveStage(start, end, "Out of bed"))) }
         clickRow("Sleep efficiency")
         visible("No recorded in-bed time; division is undefined.")
-        check(EfficiencyStatus.entries.map(::efficiencyReason).distinct().size == EfficiencyStatus.entries.size)
+        check(
+            EfficiencyStatus.entries
+                .map(::efficiencyReason)
+                .distinct()
+                .size == EfficiencyStatus.entries.size,
+        )
     }
 
     @Test

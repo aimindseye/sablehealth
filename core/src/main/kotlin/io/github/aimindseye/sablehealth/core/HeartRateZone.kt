@@ -18,11 +18,12 @@ fun heartRateZones(
     maximum: Int?,
     resting: Int? = null,
 ): List<HeartRateZone> {
-    if (maximum == null || maximum !in 1..MAX_INPUT_BPM || (resting != null && resting !in 1 until maximum)) {
-        return emptyList()
-    }
+    val max = maximum ?: 0
+    val validMaximum = max in 1..MAX_INPUT_BPM
+    val validResting = resting == null || resting in 1 until max
+    if (!validMaximum || !validResting) return emptyList()
     val base = resting ?: 0
-    val span = maximum - base
+    val span = max - base
     return (FIRST_PERCENT until LAST_PERCENT step BAND_PERCENT).map { low ->
         val high = low + BAND_PERCENT
         HeartRateZone(low, high, base + span * low / PERCENT_SCALE, base + span * high / PERCENT_SCALE)
