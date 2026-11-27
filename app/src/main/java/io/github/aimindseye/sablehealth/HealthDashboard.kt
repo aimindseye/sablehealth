@@ -146,5 +146,8 @@ internal fun Notice(
 
 @Composable
 internal fun EmptyState() {
-    Notice("No records imported", "No records mode · Choose Real data in Settings to read permitted Health Connect records.")
+    Notice(
+        "No records imported",
+        "No records mode · Choose Real data in Settings to read permitted Health Connect records.",
+    )
 }

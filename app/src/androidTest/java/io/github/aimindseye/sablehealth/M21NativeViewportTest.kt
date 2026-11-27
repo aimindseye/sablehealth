@@ -56,9 +56,10 @@ class M21NativeViewportTest {
                 }
             }
         }
-        DashboardWidget.entries.filter {
-            it in listOf(DashboardWidget.STEPS, DashboardWidget.HEART_RATE, DashboardWidget.SLEEP_STAGES, DashboardWidget.HRV)
-        }.forEach { full(tag("r7-widget-${it.name}")) }
+        DashboardWidget.entries
+            .filter {
+                it in listOf(DashboardWidget.STEPS, DashboardWidget.HEART_RATE, DashboardWidget.SLEEP_STAGES, DashboardWidget.HRV)
+            }.forEach { full(tag("r7-widget-${it.name}")) }
         capture(appearance, "dashboard")
         tab(Section.VITALS)
         full(tag("r7-metric-HRV"))
@@ -69,6 +70,8 @@ class M21NativeViewportTest {
         tab(Section.MOVE)
         full(tag("r7-metric-STEPS"))
         full(tag("r7-metric-DISTANCE"))
+        full(tag("r7-metric-CALORIES"))
+        full(tag("r7-metric-ACTIVE_CALORIES"))
         capture(appearance, "move")
         clickIcon("Next metrics")
         full(tag("r7-metric-EXERCISE_SESSIONS"))
@@ -174,19 +177,22 @@ class M21NativeViewportTest {
                 "synthetic.fixture",
                 listOf(LiveStage(start, middle, "Deep"), LiveStage(middle, end, "Awake in bed")),
             )
-        val metrics = LiveMetric.entries.associateWith { metric ->
-            val value = when (metric) {
-                LiveMetric.HEART_RATE -> 74.0
-                LiveMetric.RESTING_HR -> 62.0
-                LiveMetric.HRV -> 28.0
-                else -> 42.0
-            }
-            val points = listOf(
-                LivePoint(window.today.minusDays(2), value, window.now.minusSeconds(172800), setOf("synthetic.fixture")),
-                LivePoint(window.today, value, window.now, setOf("synthetic.fixture")),
-            )
-            LiveSeries(LiveStatus.PARTIAL, points)
-        } + (LiveMetric.SLEEP_DURATION to LiveSeries(LiveStatus.AVAILABLE, LiveHealthPolicy.sleepPoints(listOf(sleep), window)))
+        val metrics =
+            LiveMetric.entries.associateWith { metric ->
+                val value =
+                    when (metric) {
+                        LiveMetric.HEART_RATE -> 74.0
+                        LiveMetric.RESTING_HR -> 62.0
+                        LiveMetric.HRV -> 28.0
+                        else -> 42.0
+                    }
+                val points =
+                    listOf(
+                        LivePoint(window.today.minusDays(2), value, window.now.minusSeconds(172800), setOf("synthetic.fixture")),
+                        LivePoint(window.today, value, window.now, setOf("synthetic.fixture")),
+                    )
+                LiveSeries(LiveStatus.PARTIAL, points)
+            } + (LiveMetric.SLEEP_DURATION to LiveSeries(LiveStatus.AVAILABLE, LiveHealthPolicy.sleepPoints(listOf(sleep), window)))
         return LiveSnapshot(window, metrics, listOf(sleep))
     }
 }

@@ -22,9 +22,6 @@ internal fun LiveHistoryPage(
     val selected = state.r6.detailMetric(state.section)
     val metric = metrics.firstOrNull { it == selected } ?: metrics.first()
     if (selected == null) {
-        R6ModeHeading(state, period = {
-            PeriodChoice(state.r6.period(state.section)) { state.r6.choosePeriod(state.section, it) }
-        })
         MetricOverview(state, snapshot, metrics) { state.r6.chooseMetric(state.section, it) }
     } else {
         R6ModeHeading(

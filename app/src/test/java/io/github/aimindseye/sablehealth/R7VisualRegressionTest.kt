@@ -77,7 +77,9 @@ class R7VisualRegressionTest {
         dashboard(primary)
         capture(appearance, "dashboard")
         section(state, Section.MOVE)
-        metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.CALORIES))
+        metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.CALORIES, LiveMetric.ACTIVE_CALORIES))
+        full(compose.onNodeWithTag("r7-icon-Previous metrics"), 48f)
+        full(compose.onNodeWithTag("r7-icon-Next metrics"), 48f)
         capture(appearance, "move")
         compose.onNodeWithTag("r7-metric-STEPS").performClick()
         capture(appearance, "steps-detail")
@@ -154,8 +156,12 @@ class R7VisualRegressionTest {
         val density = compose.activity.resources.displayMetrics.density
         val bounds = measured.boundsInRoot
         check(bounds.height >= minHeight * density - 1f)
-        check(abs(bounds.height - measured.size.height) <= 1f) { "Vertically clipped: ${measured.id}" }
-        check(abs(bounds.width - measured.size.width) <= 1f) { "Horizontally clipped: ${measured.id}" }
+        check(abs(bounds.height - measured.size.height) <= 1f) {
+            "Vertically clipped: ${measured.config}; visible=${bounds.height}, measured=${measured.size.height}"
+        }
+        check(abs(bounds.width - measured.size.width) <= 1f) {
+            "Horizontally clipped: ${measured.config}; visible=${bounds.width}, measured=${measured.size.width}"
+        }
     }
 
     private fun section(

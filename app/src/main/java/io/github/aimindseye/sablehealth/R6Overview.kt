@@ -55,9 +55,13 @@ internal fun MetricOverview(
         val pages = if (paged) metrics.chunked(METRICS_PER_PAGE) else listOf(metrics)
         val current = pageIndex.coerceIn(pages.indices)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (pages.size > 1) {
-                MetricPageNavigation(current, pages.size) { pageIndex = it }
-            }
+            R6ModeHeading(state, period = {
+                if (pages.size > 1) {
+                    MetricPageNavigation(current, pages.size) { pageIndex = it }
+                } else {
+                    PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
+                }
+            })
             pages[current].chunked(if (twoColumns) 2 else 1).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     pair.forEach { metric ->
@@ -79,7 +83,7 @@ private fun MetricPageNavigation(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         R6IconButton("Previous metrics", R.drawable.ic_r6_back, { choose((current - 1).coerceAtLeast(0)) })
-        Text("Metrics ${current + 1}/$count", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+        Text("Metrics ${current + 1}/$count", style = MaterialTheme.typography.labelMedium)
         R6IconButton("Next metrics", R.drawable.ic_r6_next, { choose((current + 1).coerceAtMost(count - 1)) })
     }
 }
