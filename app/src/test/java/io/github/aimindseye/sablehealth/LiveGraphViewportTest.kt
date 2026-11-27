@@ -158,6 +158,56 @@ class LiveGraphViewportTest {
         compose.runOnIdle { check(state.page == Page.SOURCES) }
     }
 
+    @Test
+    fun noRecordsModeKeepsManualCalculatorAvailableWithoutDemoMeasurements() {
+        val state = state()
+        state.chooseDataMode("empty")
+        state.section = Section.MOVE
+        show(state)
+        compose.onNodeWithText("No records imported").assertIsDisplayed()
+        compose
+            .onNodeWithText("No records mode · Choose Real data in Settings to read permitted Health Connect records.")
+            .assertIsDisplayed()
+        compose
+            .onNodeWithTag("r7a-row-Heart-rate zones")
+            .performScrollTo()
+            .performClick()
+        compose.onNodeWithTag("m2-bpm-Maximum HR (bpm)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("r7-metric-STEPS").assertDoesNotExist()
+        compose.runOnIdle { check(state.liveHealth.snapshot == null && !state.demo && !state.live) }
+    }
+
+    @Test
+    fun textHistoryReportsDeniedAccessAndOffersSourcesWithoutAChart() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.TEXT)
+        val denied = mapOf(LiveMetric.HRV to LiveSeries(LiveStatus.DENIED))
+        load(state, LiveSnapshot(window, denied, emptyList()))
+        show(state)
+        compose.onNodeWithTag("r7-metric-HRV").performClick()
+        compose.onNodeWithText("No observations in this period").assertIsDisplayed()
+        compose.onNodeWithText(LiveStatus.DENIED.label).assertIsDisplayed()
+        chart("HRV (RMSSD)", 7).assertDoesNotExist()
+        compose.onNodeWithText("View data sources").performClick()
+        compose.runOnIdle { check(state.page == Page.SOURCES) }
+    }
+
+    @Test
+    @Config(qualifiers = "w600dp-h700dp")
+    fun unpagedOverviewPeriodUpdatesItsCharts() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
+        load(state, snapshot())
+        show(state)
+        compose.onNodeWithText("7D").performClick()
+        compose.onNodeWithText("30D").performClick()
+        chart("HRV (RMSSD)", 30).assertIsDisplayed()
+        chart("HRV (RMSSD)", 7).assertDoesNotExist()
+        compose.runOnIdle { check(state.r6.period(Section.VITALS) == 30) }
+    }
+
     private fun state(): SableAppState {
         val preferences = compose.activity.getSharedPreferences("r6-viewport", Context.MODE_PRIVATE)
         preferences.edit().clear().commit()

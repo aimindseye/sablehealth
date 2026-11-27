@@ -110,6 +110,57 @@ class LiveRichViewsTest {
     }
 
     @Test
+    fun stackedSleepHistorySupportsPeriodAndMissingSeriesProvenance() {
+        val state = state()
+        state.section = Section.SLEEP
+        state.chooseViewMode(Section.SLEEP, ViewMode.GRAPHS)
+        state.r6.chooseSleepGraph("Stacked")
+        load(state, richSnapshot())
+        show { LiveHealthPage(state) }
+        click("7D")
+        click("30D")
+        visible("1/30 nights")
+        compose.onNodeWithTag("r7a-row-Sleep history").assertDoesNotExist()
+        val method = compose.onNodeWithTag("r7a-row-Method and sources")
+        method.performScrollTo().performClick()
+        visible("Coverage: Available · method v1")
+        compose.runOnIdle {
+            val original = richSnapshot()
+            load(state, original.copy(metrics = original.metrics - LiveMetric.SLEEP_DURATION))
+        }
+        visible("Coverage: Not loaded · method v1")
+        visible("No observations in this period.")
+        method.performScrollTo().performClick()
+        compose.onNodeWithText("No observations in this period.").assertDoesNotExist()
+    }
+
+    @Test
+    fun sleepJournalAndHistoryCanCloseAfterInspectingAwakeOnlySession() {
+        val state = state()
+        state.section = Section.SLEEP
+        state.chooseViewMode(Section.SLEEP, ViewMode.TEXT)
+        val awake = sleep.copy(stages = listOf(LiveStage(start, end, "Awake in bed")))
+        load(state, richSnapshot().copy(sleeps = listOf(awake)))
+        show { Column(Modifier.width(280.dp)) { LiveHealthPage(state) } }
+        visible("Awake in bed · 60 min")
+        visible("1h 0m session")
+        val journal = compose.onNodeWithTag("r7a-row-Recorded stages")
+        journal.performScrollTo().performClick()
+        journal.assert(hasText("Hide"))
+        visible("Awake in bed")
+        journal.performScrollTo().performClick()
+        journal.assert(hasText("Open"))
+        compose.onNodeWithText("Awake in bed").assertDoesNotExist()
+        val history = compose.onNodeWithTag("r7a-row-Sleep history")
+        history.performScrollTo().performClick()
+        history.assert(hasText("Hide"))
+        visible("2/7 days observed", substring = true)
+        history.performScrollTo().performClick()
+        history.assert(hasText("Open"))
+        compose.onNodeWithTag("r7a-row-Method and sources").assertDoesNotExist()
+    }
+
+    @Test
     fun vitalsHistoryAndTrendsRetainGapsAndObservedAverage() {
         val state = state()
         state.section = Section.VITALS
