@@ -16,10 +16,19 @@ HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 MINIMUM_PERCENT = 80
 
 
-def git(root, *args):
-    return subprocess.run(
-        ["git", *args], cwd=root, check=True, capture_output=True, text=True,
-    ).stdout
+def commit_id(value):
+    if not re.fullmatch(r"[0-9a-f]{40}", value):
+        raise ValueError("Expected a full lowercase Git commit SHA")
+    return value
+
+
+def resolve_head(root, head):
+    if head == "HEAD":
+        return commit_id(subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+            cwd=root, check=True, capture_output=True, text=True,
+        ).stdout.strip())
+    return commit_id(head)
 
 
 def added_lines(patch):
@@ -34,23 +43,30 @@ def added_lines(patch):
 
 
 def changed_sources(root, base, head):
-    before = git(root, "rev-parse", "--verify", "--end-of-options", base + "^{commit}").strip()
-    after = git(root, "rev-parse", "--verify", "--end-of-options", head + "^{commit}").strip()
-    git(root, "merge-base", "--is-ancestor", before, after)
-    paths = git(
-        root, "diff", "--no-renames", "--name-only", "--diff-filter=AM", "-z",
-        before, after, "--", "app/src/main", "core/src/main",
-    ).split("\0")
+    before = commit_id(base)
+    after = resolve_head(root, head)
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", before, after],
+        cwd=root, check=True, capture_output=True, text=True,
+    )
+    paths = subprocess.run(
+        ["git", "diff", "--no-renames", "--name-only", "--diff-filter=AM", "-z",
+         before, after, "--", "app/src/main", "core/src/main"],
+        cwd=root, check=True, capture_output=True, text=True,
+    ).stdout.split("\0")
     for name in paths:
         path = Path(name)
         if path.suffix not in {".kt", ".java"}:
             continue
         if len(path.parts) < 6 or path.parts[3] not in {"java", "kotlin"}:
             raise ValueError("Unexpected production source layout: " + name)
-        patch = git(
-            root, "diff", "--no-ext-diff", "--no-renames", "--unified=0",
-            before, after, "--", name,
-        )
+        if not re.fullmatch(r"(app|core)/src/main/(java|kotlin)/(?:[A-Za-z0-9_]+/)+[A-Za-z0-9_]+\.(kt|java)", name):
+            raise ValueError("Unexpected production source path: " + name)
+        patch = subprocess.run(
+            ["git", "--literal-pathspecs", "diff", "--no-ext-diff", "--no-renames",
+             "--unified=0", before, after, "--", name],
+            cwd=root, check=True, capture_output=True, text=True,
+        ).stdout
         lines = added_lines(patch)
         if lines:
             yield path, lines

@@ -97,7 +97,10 @@ class M2AnalyticsTest {
         capture("light-zones")
         field("Resting HR (optional)", "200")
         visible("Enter a whole-number maximum", substring = true)
-        compose.onNodeWithTag("r7a-action-Clear inputs").performScrollTo().performClick()
+        compose
+            .onNodeWithTag("r7a-action-Clear inputs")
+            .performScrollTo()
+            .performClick()
         visible("Enter a whole-number maximum", substring = true)
         field("Maximum HR (bpm)", "180")
         clickRow("Heart-rate zones")

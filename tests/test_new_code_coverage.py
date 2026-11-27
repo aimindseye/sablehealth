@@ -1,5 +1,6 @@
 """Exercise the actual differential gate, including real Git diff fixtures."""
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -8,14 +9,20 @@ from xml.etree import ElementTree as ET
 from tools import check_new_code_coverage as gate
 
 
+def git(root, *args):
+    return subprocess.run(
+        ["git", *args], cwd=root, check=True, capture_output=True, text=True,
+    ).stdout
+
+
 class DifferentialGateTest(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        gate.git(self.root, "init", "-q")
-        gate.git(self.root, "config", "user.name", "Fixture")
-        gate.git(self.root, "config", "user.email", "fixture@example.invalid")
+        git(self.root, "init", "-q")
+        git(self.root, "config", "user.name", "Fixture")
+        git(self.root, "config", "user.email", "fixture@example.invalid")
         self.core = Path("core/src/main/kotlin/example/core/Example.kt")
         self.app = Path("app/src/main/java/example/app/Example.kt")
         self.write(self.core, "package example.core\nfun sample() = 1\n")
@@ -32,9 +39,9 @@ class DifferentialGateTest(unittest.TestCase):
         target.write_text(content, encoding="utf-8")
 
     def commit(self, name):
-        gate.git(self.root, "add", ".")
-        gate.git(self.root, "commit", "-qm", name)
-        return gate.git(self.root, "rev-parse", "HEAD").strip()
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", name)
+        return git(self.root, "rev-parse", "HEAD").strip()
 
     def report(self, module, line):
         self.write(
@@ -93,10 +100,20 @@ class DifferentialGateTest(unittest.TestCase):
         ))
         self.assertEqual(0, self.main(self.head))
         self.assertEqual(2, self.main("nonexistent"))
+        self.assertEqual(2, self.main("--help"))
+        self.assertEqual(2, self.main("0" * 40))
+        self.assertEqual(self.head, gate.resolve_head(self.root, "HEAD"))
+        with self.assertRaises(ValueError):
+            gate.resolve_head(self.root, "--help")
 
     def test_unexpected_production_layout_is_refused(self):
         self.write(Path("app/src/main/Other.kt"), "fun another() = 3\n")
         self.head = self.commit("invalid-layout")
+        self.assertEqual(2, self.main())
+
+    def test_unexpected_pathspec_is_refused(self):
+        self.write(Path("app/src/main/java/example/app/Bad*.kt"), "fun sample() = 3\n")
+        self.head = self.commit("invalid-path")
         self.assertEqual(2, self.main())
 
     def test_zero_context_hunks_cover_additions_and_not_deletions(self):
