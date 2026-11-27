@@ -52,7 +52,7 @@ class DifferentialGateTest(unittest.TestCase):
 
     def main(self, base=None):
         with patch.object(gate, "ROOT", self.root):
-            return gate.main(["--base", base or self.base, "--head", self.head])
+            return gate.main(["--base=" + (base or self.base), "--head", self.head])
 
     def test_actual_git_diff_and_coverage_boundary(self):
         self.assertEqual({self.core: {2}, self.app: {2}}, dict(
