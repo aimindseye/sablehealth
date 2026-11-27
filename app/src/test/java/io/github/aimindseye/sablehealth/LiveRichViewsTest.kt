@@ -192,6 +192,8 @@ class LiveRichViewsTest {
         compose.runOnIdle { runBlocking { state.liveHealth.load(access) { throw IllegalStateException() } } }
         visible("Refresh failed. Retry when ready.")
         visible("Refresh failed · retry")
+        compose.runOnIdle { state.section = Section.MOVE }
+        visible("Heart-rate zones")
     }
 
     private fun state(): SableAppState {

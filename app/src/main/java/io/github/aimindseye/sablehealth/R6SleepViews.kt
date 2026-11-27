@@ -2,6 +2,8 @@ package io.github.aimindseye.sablehealth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val SECONDS_PER_MINUTE = 60L
+private const val STAGE_COLUMN_MIN_WIDTH = 320
+private const val STAGE_MAX_FONT_SCALE = 1.3f
 private val asleepStageNames = setOf("Asleep (unspecified)", "Light", "Deep", "REM")
 
 @Composable
@@ -161,16 +166,31 @@ private fun SleepTotals(
         }
         val gap = (duration - seconds.values.sum()).coerceAtLeast(0)
         if (gap > 0) Text("Unrecorded: ${r7HoursMinutes(gap)}", style = MaterialTheme.typography.labelSmall)
-        seconds.entries.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                pair.forEach { (name, stageSeconds) ->
-                    Text(
-                        "$name · ${stageSeconds / SECONDS_PER_MINUTE} min",
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+        StageTotalRows(seconds)
+    }
+}
+
+@Composable
+private fun StageTotalRows(seconds: Map<String, Long>) {
+    BoxWithConstraints {
+        val columns =
+            if (maxWidth >= STAGE_COLUMN_MIN_WIDTH.dp && LocalConfiguration.current.fontScale <= STAGE_MAX_FONT_SCALE) {
+                2
+            } else {
+                1
+            }
+        Column {
+            seconds.entries.chunked(columns).forEach { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    pair.forEach { (name, stageSeconds) ->
+                        Text(
+                            "$name · ${stageSeconds / SECONDS_PER_MINUTE} min",
+                            Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    if (pair.size < columns) Box(Modifier.weight(1f))
                 }
-                if (pair.size == 1) Box(Modifier.weight(1f))
             }
         }
     }

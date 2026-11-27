@@ -86,19 +86,62 @@ class LiveGraphViewportTest {
         chart("HRV (RMSSD)", 7).assertIsDisplayed()
         compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
         compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("All metrics").performClick()
+        compose.onNodeWithContentDescription("All metrics").performScrollTo().performClick()
         compose.onNodeWithTag("r7-metric-RESTING_HR").assertIsDisplayed().performClick()
         chart("Resting heart rate", 7).assertIsDisplayed()
         compose.onNodeWithContentDescription("Text").performClick()
         compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
         compose.onNodeWithText(historyMethod(LiveMetric.RESTING_HR)).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("All metrics").performClick()
+        compose.onNodeWithContentDescription("All metrics").performScrollTo().performClick()
         compose.runOnIdle {
             state.section = Section.TRENDS
             state.r6.chooseMetric(Section.TRENDS, null)
             state.chooseViewMode(Section.TRENDS, ViewMode.GRAPHS)
         }
         chart("Steps", 7).assertIsDisplayed()
+    }
+
+    @Test
+    fun compactPagesShowRemainingMetricsAndCalculator() {
+        val state = state()
+        state.section = Section.MOVE
+        state.chooseViewMode(Section.MOVE, ViewMode.TEXT)
+        load(state, snapshot())
+        show(state)
+        compose.onNodeWithContentDescription("Previous metrics").performClick()
+        compose.onNodeWithText("Metrics 1/2").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Next metrics").performClick()
+        compose.onNodeWithContentDescription("Next metrics").performClick()
+        compose.onNodeWithText("Metrics 2/2").assertIsDisplayed()
+        compose.onNodeWithTag("r7-metric-EXERCISE_SESSIONS").assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Heart-rate zones").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("m2-bpm-Maximum HR (bpm)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous metrics").performScrollTo().performClick()
+        compose.onNodeWithText("Metrics 1/2").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w280dp-h600dp")
+    fun narrowWindowAllowsAccessibleUnpagedOverview() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.TEXT)
+        load(state, snapshot())
+        show(state)
+        compose.onNodeWithContentDescription("Next metrics").assertDoesNotExist()
+        compose.onNodeWithTag("r7-metric-SKIN_TEMPERATURE").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w600dp-h700dp")
+    fun tallWindowDoesNotForceMetricPagination() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
+        load(state, snapshot())
+        show(state)
+        compose.onNodeWithContentDescription("Next metrics").assertDoesNotExist()
+        compose.onNodeWithTag("r7-metric-SKIN_TEMPERATURE").performScrollTo().assertIsDisplayed()
     }
 
     @Test
