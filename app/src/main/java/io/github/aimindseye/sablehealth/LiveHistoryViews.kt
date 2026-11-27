@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -7,6 +8,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.ChartPolicy
 import io.github.aimindseye.sablehealth.core.LiveMetric
 import io.github.aimindseye.sablehealth.core.LivePoint
@@ -27,8 +29,11 @@ internal fun LiveHistoryPage(
         R6ModeHeading(
             state,
             onOverview = { state.r6.chooseMetric(state.section, null) },
+            titleContent = {
+                HistoricalMetricChoice(metrics, metric) { state.r6.chooseMetric(state.section, it) }
+            },
         )
-        HistoryPanel(state, snapshot, metrics, metric) { state.r6.chooseMetric(state.section, it) }
+        HistoryPanel(state, snapshot, metrics, metric, metricInHeading = true) { state.r6.chooseMetric(state.section, it) }
     }
 }
 
@@ -51,6 +56,7 @@ internal fun HistoryPanel(
     snapshot: LiveSnapshot,
     metrics: List<LiveMetric>,
     metric: LiveMetric,
+    metricInHeading: Boolean = false,
     choose: (LiveMetric) -> Unit,
 ) {
     val days = state.r6.period(state.section)
@@ -59,16 +65,24 @@ internal fun HistoryPanel(
     val points = calendar.map { series?.on(it) }
     val graph = state.modeFor(state.section) == ViewMode.GRAPHS
     val kind = state.r6.chart(metric)
-    R6Card {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            R6Choice("Historical metric", metric.label, metrics.map { it.label }, { label ->
-                choose(metrics.first { it.label == label })
-            }, Modifier.weight(1f))
-            PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
-            if (graph) {
-                R6Choice("Graph type", kind.label, ChartPolicy.options(metric).map { it.label }, { label ->
-                    state.r6.chooseChart(metric, ChartPolicy.options(metric).first { it.label == label })
-                })
+    val options: @Composable () -> Unit = {
+        PeriodChoice(days) { state.r6.choosePeriod(state.section, it) }
+        if (graph) {
+            R6Choice("Graph type", kind.label, ChartPolicy.options(metric).map { it.label }, { label ->
+                state.r6.chooseChart(metric, ChartPolicy.options(metric).first { it.label == label })
+            })
+        }
+    }
+    val combined = graph && metricInHeading && points.any { it != null }
+    R6Card(verticalPadding = 2.dp) {
+        if (!combined) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!metricInHeading) {
+                    Box(Modifier.weight(1f)) {
+                        HistoricalMetricChoice(metrics, metric, choose)
+                    }
+                }
+                options()
             }
         }
         if (points.none { it != null }) {
@@ -79,17 +93,35 @@ internal fun HistoryPanel(
             Text(series?.status?.label ?: "No records received", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { state.page = Page.SOURCES }) { Text("View data sources") }
         } else if (graph) {
-            R6HistoryChart(calendar, points, metric, kind)
+            R6HistoryChart(calendar, points, metric, kind, options = if (combined) options else null)
         }
-        Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
-        ObservedAverage(points.dropLast(1), metric)
-        M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone)
+        M2HistoryEvidence(
+            metric,
+            series?.status,
+            points,
+            snapshot.window.zone,
+            summary = {
+                Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
+                ObservedAverage(points.dropLast(1), metric)
+            },
+        )
         if (!graph) {
             calendar.zip(points).asReversed().forEach { (day, point) ->
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
             }
         }
     }
+}
+
+@Composable
+private fun HistoricalMetricChoice(
+    metrics: List<LiveMetric>,
+    metric: LiveMetric,
+    choose: (LiveMetric) -> Unit,
+) {
+    R6Choice("Historical metric", metric.label, metrics.map { it.label }, { label ->
+        choose(metrics.first { it.label == label })
+    })
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import android.app.Activity
 import android.graphics.Typeface
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,12 +10,15 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
 /** SableOS supplies Source Sans; the Android system falls back to a sans-serif font. */
 private val sableFont = FontFamily(Typeface.create("source-sans", Typeface.NORMAL))
@@ -75,6 +79,16 @@ internal fun SableHealthTheme(
             else -> isSystemInDarkTheme()
         }
     val colors = if (dark) sableDarkColors() else sableLightColors()
+    val view = LocalView.current
+    val activity = view.context as? Activity
+    SideEffect {
+        activity?.window?.let { window ->
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
+    }
     MaterialTheme(
         colorScheme = colors,
         typography = sableTypography,

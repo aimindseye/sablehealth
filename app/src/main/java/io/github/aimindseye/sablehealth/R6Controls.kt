@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -108,17 +109,23 @@ internal fun R6Choice(
 internal fun R6ModeHeading(
     state: SableAppState,
     onOverview: (() -> Unit)? = null,
+    titleContent: (@Composable () -> Unit)? = null,
     period: (@Composable () -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         if (onOverview != null) R6IconButton("All metrics", R.drawable.ic_r6_back, onOverview)
-        Text(
-            state.section.title,
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Box(Modifier.weight(1f)) {
+            if (titleContent == null) {
+                Text(
+                    state.section.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                titleContent()
+            }
+        }
         period?.invoke()
         R6IconButton(
             "Text",

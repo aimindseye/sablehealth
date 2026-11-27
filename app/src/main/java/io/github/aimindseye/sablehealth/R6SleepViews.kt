@@ -47,13 +47,26 @@ internal fun LiveSleepPage(
     var dayName by rememberSaveable { mutableStateOf("") }
     val day = days.firstOrNull { it.toString() == dayName } ?: days.firstOrNull()
     val graph = state.modeFor(Section.SLEEP) == ViewMode.GRAPHS
-    R6ModeHeading(state, period = {
-        if (day != null) {
-            val label = day.format(DateTimeFormatter.ofPattern("MMM d"))
-            R6Choice("Sleep date", label, days.map(LocalDate::toString), { dayName = it })
-            if (graph) SleepGraphChoice(state.r6)
-        }
-    })
+    var details by rememberSaveable(dayName) { mutableStateOf(false) }
+    R6ModeHeading(
+        state,
+        titleContent = {
+            if (day != null) {
+                val label = day.format(DateTimeFormatter.ofPattern("MMM d"))
+                R6Choice("Sleep date", label, days.map(LocalDate::toString), { dayName = it })
+            } else {
+                Text("Sleep", style = MaterialTheme.typography.titleLarge)
+            }
+        },
+        period = {
+            if (graph && day != null) {
+                SleepGraphChoice(state.r6)
+                if (state.r6.sleepGraph != "Stacked") {
+                    R6IconButton("Sleep details", R.drawable.ic_r6_list, { details = !details }, active = details)
+                }
+            }
+        },
+    )
     if (day == null) {
         R6EmptyCard(state, "No sleep sessions yet", "If Health Connect has no sessions, check Google Health export.")
     } else if (graph && state.r6.sleepGraph == "Stacked") {
@@ -64,9 +77,9 @@ internal fun LiveSleepPage(
         val points = calendar(snapshot, period).map { series?.on(it) }
         M2HistoryEvidence(LiveMetric.SLEEP_DURATION, series?.status, points, snapshot.window.zone)
     } else {
-        SelectedSleepSession(state, snapshot, day, graph)
+        SelectedSleepSession(state, snapshot, day, graph && !details)
     }
-    if (!graph || state.r6.sleepGraph != "Stacked") SleepHistoryDisclosure(state, snapshot)
+    if (!graph || details || day == null) SleepHistoryDisclosure(state, snapshot)
 }
 
 @Composable
@@ -142,12 +155,14 @@ private fun SleepSessionCard(
         } else if (seconds.isEmpty()) {
             Text("No stages exported")
         }
-        SleepTotals(session, seconds, asleep)
-        M2SleepDetails(session)
-        if (!graph && seconds.isNotEmpty()) {
-            var journal by rememberSaveable(session.start.toString(), session.end.toString()) { mutableStateOf(false) }
-            R7aRow("Recorded stages", if (journal) "Hide" else "Open", action = { journal = !journal })
-            if (journal) R6SleepJournal(session, zone)
+        if (!graph) {
+            SleepTotals(session, seconds, asleep)
+            M2SleepDetails(session)
+            if (seconds.isNotEmpty()) {
+                var journal by rememberSaveable(session.start.toString(), session.end.toString()) { mutableStateOf(false) }
+                R7aRow("Recorded stages", if (journal) "Hide" else "Open", action = { journal = !journal })
+                if (journal) R6SleepJournal(session, zone)
+            }
         }
     }
 }
