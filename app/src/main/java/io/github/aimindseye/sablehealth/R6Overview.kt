@@ -161,4 +161,3 @@ private fun OverviewPlot(
         Text("Open for details", style = MaterialTheme.typography.labelSmall)
     }
 }
-

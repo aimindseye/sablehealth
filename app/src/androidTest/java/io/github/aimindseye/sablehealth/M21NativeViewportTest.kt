@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -168,7 +167,13 @@ class M21NativeViewportTest {
         val start = Instant.parse("2026-11-26T04:00:00Z")
         val middle = start.plusSeconds(3600)
         val end = middle.plusSeconds(900)
-        val sleep = LiveSleep(start, end, "synthetic.fixture", listOf(LiveStage(start, middle, "Deep"), LiveStage(middle, end, "Awake in bed")))
+        val sleep =
+            LiveSleep(
+                start,
+                end,
+                "synthetic.fixture",
+                listOf(LiveStage(start, middle, "Deep"), LiveStage(middle, end, "Awake in bed")),
+            )
         val metrics = LiveMetric.entries.associateWith { metric ->
             val value = when (metric) {
                 LiveMetric.HEART_RATE -> 74.0

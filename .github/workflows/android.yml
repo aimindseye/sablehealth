@@ -32,7 +32,7 @@ jobs:
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build, test, lint and quality gates
         run: |
-          gradle --no-daemon --console=plain --continue :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug detekt ktlintCheck
+          gradle --no-daemon --console=plain --continue :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug detekt ktlintCheck
       - name: Verify static source contract
         run: |
           python3 tools/check-structure.py
