@@ -34,11 +34,12 @@ internal fun M2HistoryEvidence(
     var expanded by remember(metric) { mutableStateOf(false) }
     BoxWithConstraints {
         val sideBySide =
-            summary != null && maxWidth >= SUMMARY_MIN_WIDTH.dp &&
+            summary != null &&
+                maxWidth >= SUMMARY_MIN_WIDTH.dp &&
                 LocalConfiguration.current.fontScale <= SUMMARY_MAX_FONT
         if (sideBySide) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) { summary?.invoke() }
+                Column(Modifier.weight(1f)) { summary() }
                 Box(Modifier.weight(1f)) {
                     R7aRow("Method and sources", action = { expanded = !expanded })
                 }

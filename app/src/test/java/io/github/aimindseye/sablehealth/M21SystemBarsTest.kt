@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
@@ -27,8 +28,8 @@ class M21SystemBarsTest {
         compose.runOnIdle { appearance.value = "light" }
         assertBars(true)
         compose.runOnIdle { appearance.value = "system" }
-        val dark = compose.activity.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        assertBars(dark != android.content.res.Configuration.UI_MODE_NIGHT_YES)
+        val dark = compose.activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        assertBars(dark != Configuration.UI_MODE_NIGHT_YES)
     }
 
     private fun assertBars(light: Boolean) {

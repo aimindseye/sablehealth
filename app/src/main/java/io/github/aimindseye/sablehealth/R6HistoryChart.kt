@@ -76,7 +76,8 @@ internal fun R6HistoryChart(
     val next = { selected = (selected + 1).coerceAtMost(days.lastIndex) }
     BoxWithConstraints {
         val combined =
-            options != null && maxWidth >= COMBINED_MIN_WIDTH_DP.dp &&
+            options != null &&
+                maxWidth >= COMBINED_MIN_WIDTH_DP.dp &&
                 LocalConfiguration.current.fontScale <= COMBINED_MAX_FONT_SCALE
         Column {
             if (!combined && options != null) Row { options() }
@@ -87,7 +88,7 @@ internal fun R6HistoryChart(
                     Text(dateLabel, style = MaterialTheme.typography.labelSmall)
                 }
                 R6IconButton("Next day", R.drawable.ic_r6_next, next)
-                if (combined) options?.invoke()
+                if (combined) options()
             }
             R6Plot(
                 PlotData(days, points.map { it?.value }, metric, kind),

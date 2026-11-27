@@ -48,6 +48,8 @@ internal fun LiveSleepPage(
     val day = days.firstOrNull { it.toString() == dayName } ?: days.firstOrNull()
     val graph = state.modeFor(Section.SLEEP) == ViewMode.GRAPHS
     var details by rememberSaveable(dayName) { mutableStateOf(false) }
+    val stacked = graph && state.r6.sleepGraph == "Stacked"
+    val showDetails = !graph || details
     R6ModeHeading(
         state,
         titleContent = {
@@ -60,21 +62,13 @@ internal fun LiveSleepPage(
         },
         period = {
             if (graph && day != null) {
-                SleepGraphChoice(state.r6)
-                if (state.r6.sleepGraph != "Stacked") {
-                    R6IconButton(
-                        "Sleep details",
-                        if (details) R.drawable.ic_r6_back else R.drawable.ic_r6_next,
-                        { details = !details },
-                        active = details,
-                    )
-                }
+                SleepGraphControls(state.r6, details) { details = !details }
             }
         },
     )
     if (day == null) {
         R6EmptyCard(state, "No sleep sessions yet", "If Health Connect has no sessions, check Google Health export.")
-    } else if (graph && state.r6.sleepGraph == "Stacked") {
+    } else if (stacked) {
         PeriodChoice(state.r6.period(Section.SLEEP)) { state.r6.choosePeriod(Section.SLEEP, it) }
         val period = state.r6.period(Section.SLEEP)
         R6SleepHistoryBars(snapshot, period)
@@ -82,9 +76,26 @@ internal fun LiveSleepPage(
         val points = calendar(snapshot, period).map { series?.on(it) }
         M2HistoryEvidence(LiveMetric.SLEEP_DURATION, series?.status, points, snapshot.window.zone)
     } else {
-        SelectedSleepSession(state, snapshot, day, graph && !details)
+        SelectedSleepSession(state, snapshot, day, !showDetails)
     }
-    if (!graph || day == null || details && state.r6.sleepGraph != "Stacked") SleepHistoryDisclosure(state, snapshot)
+    if (day == null || (showDetails && !stacked)) SleepHistoryDisclosure(state, snapshot)
+}
+
+@Composable
+private fun SleepGraphControls(
+    preferences: R6Preferences,
+    details: Boolean,
+    toggle: () -> Unit,
+) {
+    SleepGraphChoice(preferences)
+    if (preferences.sleepGraph != "Stacked") {
+        R6IconButton(
+            "Sleep details",
+            if (details) R.drawable.ic_r6_back else R.drawable.ic_r6_next,
+            toggle,
+            active = details,
+        )
+    }
 }
 
 @Composable

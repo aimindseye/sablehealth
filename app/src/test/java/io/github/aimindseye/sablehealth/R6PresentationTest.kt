@@ -92,6 +92,10 @@ class R6PresentationTest {
         compose.setContent {
             MaterialTheme { Column(Modifier.verticalScroll(rememberScrollState())) { LiveHealthPage(state) } }
         }
+        verifySleepViews(state)
+    }
+
+    private fun verifySleepViews(state: SableAppState) {
         compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         visible("Recorded asleep: 50 min · gaps unknown")
         compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
