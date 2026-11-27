@@ -1,6 +1,6 @@
 # Sable Health — staged delivery plan and quality gates
 
-**Status:** Roadmap recommended from approved product strategy; scope can be refined only with documented owner decisions.
+**Status (2026-11-26):** M1-C/R7/R7A are integrated. Bridge R11.4 implementation and docs are merged; unattended Q25 acceptance remains open in [Bridge issue #10](https://github.com/aimindseye/sablehealth-bridge/issues/10). M2 is the next implementation milestone. Earlier sections and immediate queue below describe the historical plan, not current merge status.
 
 ## M0/R5.4 baseline — HOLD for merge
 
@@ -39,7 +39,9 @@ Current app supports keyboard-first, theme, synthetic Dashboard and diagnostic-o
 
 **Acceptance:** no duplicate on repeated import, correct source attribution, permission-revoke recovery, accurate sample/step semantics and no fabricated data.
 
-## M2 — evidence-based charts + minimal transparent metrics
+## M2 — evidence-based charts + minimal transparent metrics (**next implementation**)
+
+See [M2 calculation and acceptance contract](../M2_ANALYTICS_ACCEPTANCE.md). Keep existing real-data chart semantics and add local, explainable calculations and provenance. M2 does not depend on completing the remaining Bridge unattended observation.
 
 - Honest daily/hourly steps (Android Aggregate API), sleep wake-day/naps, stage timeline, provenance-aware HRV/RHR trends.
 - Local sleep efficiency and HR-zone calculators with method details. Raw RR/IBI RMSSD only if actually available.

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -87,6 +88,7 @@ class LiveRichViewsTest {
         visible("Recorded asleep: 60 min · gaps unknown")
         visible("No stages exported")
         visible("Deep · 60 min")
+        check(compose.onAllNodesWithTag("r7a-row-Sleep efficiency").fetchSemanticsNodes().size == 2)
         compose.runOnIdle { state.chooseViewMode(Section.SLEEP, ViewMode.TEXT) }
         visible("No stages exported")
         visible("Deep · 60 min")
@@ -125,6 +127,7 @@ class LiveRichViewsTest {
             state.chooseViewMode(Section.MOVE, ViewMode.TEXT)
         }
         visible("Exercise sessions")
+        visible("Method and sources")
     }
 
     @Test

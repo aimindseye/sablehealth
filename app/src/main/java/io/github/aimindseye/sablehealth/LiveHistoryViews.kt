@@ -97,6 +97,7 @@ internal fun HistoryPanel(
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
             }
         }
+        M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone)
     }
 }
 

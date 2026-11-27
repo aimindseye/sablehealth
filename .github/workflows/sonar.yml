@@ -79,6 +79,11 @@ jobs:
           print("PASS_CORE_SETUP_JACOCO_SOURCE_MAPPING")
           APPCOV
           test -s app/build/reports/lint-results-debug.xml
+      - name: Enforce 80 percent actual changed-code coverage per module
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/check_new_code_coverage.py --base "$BASE_SHA" --head HEAD
       - name: Measure Python security and contract test coverage
         run: |
           python3 -m pip install --disable-pip-version-check --only-binary :all: 'coverage==7.13.3'
@@ -96,6 +101,7 @@ jobs:
               "tools/check_mobsf_findings.py", "tools/check-m1a-contract.py",
               "tools/check-r5-contract.py", "tools/check-structure.py",
               "tools/quality_preflight.py", "tools/verify-release-apk.py",
+              "tools/check_new_code_coverage.py",
           }
           for name in sorted(required):
               matches = [item for item in files if item.get("filename") == name]
