@@ -86,12 +86,19 @@ class LiveRichViewsTest {
         load(state, richSnapshot())
         show { LiveHealthPage(state) }
         visible("Recorded asleep: 60 min · gaps unknown")
-        visible("No stages exported")
         visible("Deep · 60 min")
-        check(compose.onAllNodesWithTag("r7a-row-Sleep efficiency").fetchSemanticsNodes().size == 2)
+        check(compose.onAllNodesWithTag("r7a-row-Sleep efficiency").fetchSemanticsNodes().size == 1)
+        click("Session 1")
+        click("Session 2")
+        visible("No stages exported")
         compose.runOnIdle { state.chooseViewMode(Section.SLEEP, ViewMode.TEXT) }
         visible("No stages exported")
+        click("Session 2")
+        click("Session 1")
         visible("Deep · 60 min")
+        compose.onNodeWithTag("r7a-row-Recorded stages").performScrollTo().performClick()
+        visible("Deep")
+        compose.onNodeWithTag("r7a-row-Sleep history").performScrollTo().performClick()
         click("7D")
         compose.onNodeWithText("30D").performClick()
         visible("2/30 days observed", substring = true)
@@ -126,8 +133,11 @@ class LiveRichViewsTest {
             state.section = Section.MOVE
             state.chooseViewMode(Section.MOVE, ViewMode.TEXT)
         }
-        visible("Exercise sessions")
+        compose.onNodeWithTag("r7-metric-STEPS").performScrollTo().performClick()
         visible("Method and sources")
+        click("Steps")
+        click("Exercise sessions")
+        visible("2/7 days observed", substring = true)
     }
 
     @Test

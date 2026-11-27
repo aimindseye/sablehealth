@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -57,7 +58,7 @@ class LiveGraphViewportTest {
         chart("Steps", 30).performTouchInput { click(center) }
         compose.onNodeWithText("No record").assertIsDisplayed()
         compose.onNodeWithContentDescription("Text").performClick()
-        compose.onNodeWithText("Exercise sessions").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().assertIsDisplayed()
         chart("Steps", 30).assertDoesNotExist()
         compose.runOnIdle { state.chooseViewMode(Section.MOVE, ViewMode.GRAPHS) }
         chart("Steps", 30).assertIsDisplayed()
@@ -70,14 +71,31 @@ class LiveGraphViewportTest {
         state.chooseViewMode(Section.TRENDS, ViewMode.TEXT)
         load(state, snapshot())
         show(state)
-        compose.onNodeWithText("Skin temperature delta").performScrollTo().assertIsDisplayed()
+        repeat(3) { compose.onNodeWithContentDescription("Next metrics").performClick() }
+        compose.onNodeWithText("Skin temperature delta").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous metrics").performClick()
+        compose.onNodeWithContentDescription("Next metrics").performClick()
+        compose.onNodeWithText("Skin temperature delta").performClick()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
         compose.runOnIdle {
             state.section = Section.VITALS
             state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
         }
         chart("Heart rate", 7).assertIsDisplayed()
+        compose.onNodeWithTag("r7-metric-HRV").assertIsDisplayed().performClick()
+        chart("HRV (RMSSD)", 7).assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("All metrics").performClick()
+        compose.onNodeWithTag("r7-metric-RESTING_HR").assertIsDisplayed().performClick()
+        chart("Resting heart rate", 7).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Text").performClick()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.RESTING_HR)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("All metrics").performClick()
         compose.runOnIdle {
             state.section = Section.TRENDS
+            state.r6.chooseMetric(Section.TRENDS, null)
             state.chooseViewMode(Section.TRENDS, ViewMode.GRAPHS)
         }
         chart("Steps", 7).assertIsDisplayed()

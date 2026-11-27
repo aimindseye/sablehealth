@@ -146,5 +146,5 @@ internal fun Notice(
 
 @Composable
 internal fun EmptyState() {
-    Notice("No records imported", "This is a foundation build. Actual Health Connect import is scheduled for M1.")
+    Notice("No records imported", "No records mode · Choose Real data in Settings to read permitted Health Connect records.")
 }

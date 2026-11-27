@@ -21,8 +21,7 @@ internal fun LiveHistoryPage(
 ) {
     val selected = state.r6.detailMetric(state.section)
     val metric = metrics.firstOrNull { it == selected } ?: metrics.first()
-    val graph = state.modeFor(state.section) == ViewMode.GRAPHS
-    if (graph && selected == null) {
+    if (selected == null) {
         R6ModeHeading(state, period = {
             PeriodChoice(state.r6.period(state.section)) { state.r6.choosePeriod(state.section, it) }
         })
@@ -30,14 +29,8 @@ internal fun LiveHistoryPage(
     } else {
         R6ModeHeading(
             state,
-            onOverview =
-                if (graph) {
-                    { state.r6.chooseMetric(state.section, null) }
-                } else {
-                    null
-                },
+            onOverview = { state.r6.chooseMetric(state.section, null) },
         )
-        if (!graph) DailyMetricCards(snapshot, metrics)
         HistoryPanel(state, snapshot, metrics, metric) { state.r6.chooseMetric(state.section, it) }
     }
 }
@@ -81,23 +74,24 @@ internal fun HistoryPanel(
                 })
             }
         }
-        if (graph) {
-            if (points.any { it != null }) {
-                R6HistoryChart(calendar, points, metric, kind)
-            } else {
-                Text("No observations to graph", style = MaterialTheme.typography.titleSmall)
-                Text(series?.status?.label ?: "No records received", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { state.page = Page.SOURCES }) { Text("View data sources") }
-            }
+        if (points.none { it != null }) {
+            Text(
+                if (graph) "No observations to graph" else "No observations in this period",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(series?.status?.label ?: "No records received", style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = { state.page = Page.SOURCES }) { Text("View data sources") }
+        } else if (graph) {
+            R6HistoryChart(calendar, points, metric, kind)
         }
         Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
         ObservedAverage(points.dropLast(1), metric)
+        M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone)
         if (!graph) {
             calendar.zip(points).asReversed().forEach { (day, point) ->
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
             }
         }
-        M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone)
     }
 }
 

@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.aimindseye.sablehealth"
         minSdk = 30
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2-m1c"
+        versionCode = 4
+        versionName = "0.1.3-m2.1"
     }
     buildFeatures { compose = true }
     compileOptions {

@@ -64,6 +64,7 @@ internal fun LiveHealthPage(
                 else -> "Loading local measurements"
             }
         Notice("Real data", message)
+        if (state.section == Section.MOVE) M2HeartRateCalculator()
         return
     }
     when (state.section) {

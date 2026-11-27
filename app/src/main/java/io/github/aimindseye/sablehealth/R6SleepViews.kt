@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -52,15 +53,44 @@ internal fun LiveSleepPage(
         R6EmptyCard(state, "No sleep sessions yet", "If Health Connect has no sessions, check Google Health export.")
     } else if (graph && state.r6.sleepGraph == "Stacked") {
         PeriodChoice(state.r6.period(Section.SLEEP)) { state.r6.choosePeriod(Section.SLEEP, it) }
-        R6SleepHistoryBars(snapshot, state.r6.period(Section.SLEEP))
+        val period = state.r6.period(Section.SLEEP)
+        R6SleepHistoryBars(snapshot, period)
+        val series = snapshot.metrics[LiveMetric.SLEEP_DURATION]
+        val points = calendar(snapshot, period).map { series?.on(it) }
+        M2HistoryEvidence(LiveMetric.SLEEP_DURATION, series?.status, points, snapshot.window.zone)
     } else {
-        snapshot.sleeps.filter { snapshot.window.day(it.end) == day }.forEach { session ->
-            SleepSessionCard(session, snapshot.window.zone, graph, state.r6)
-        }
+        SelectedSleepSession(state, snapshot, day, graph)
     }
-    if (!graph || state.r6.sleepGraph != "Stacked") {
-        HistoryPanel(state, snapshot, listOf(LiveMetric.SLEEP_DURATION), LiveMetric.SLEEP_DURATION) {}
+    if (!graph || state.r6.sleepGraph != "Stacked") SleepHistoryDisclosure(state, snapshot)
+}
+
+@Composable
+private fun SelectedSleepSession(
+    state: SableAppState,
+    snapshot: LiveSnapshot,
+    day: LocalDate,
+    graph: Boolean,
+) {
+    val sessions = snapshot.sleeps.filter { snapshot.window.day(it.end) == day }
+    var index by rememberSaveable(day) { mutableStateOf(0) }
+    val selected = index.coerceIn(sessions.indices)
+    if (sessions.size > 1) {
+        val options = sessions.indices.map { "Session ${it + 1}" }
+        R6Choice("Sleep session", options[selected], options, { index = options.indexOf(it) })
     }
+    SleepSessionCard(sessions[selected], snapshot.window.zone, graph, state.r6)
+}
+
+@Composable
+private fun SleepHistoryDisclosure(
+    state: SableAppState,
+    snapshot: LiveSnapshot,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    R7aGroup("") {
+        R7aRow("Sleep history", if (expanded) "Hide" else "Open", action = { expanded = !expanded })
+    }
+    if (expanded) HistoryPanel(state, snapshot, listOf(LiveMetric.SLEEP_DURATION), LiveMetric.SLEEP_DURATION) {}
 }
 
 @Composable
@@ -104,12 +134,16 @@ private fun SleepSessionCard(
         }
         if (graph) {
             R6SleepSessionGraph(session, zone, preferences)
-        } else {
-            if (seconds.isEmpty()) Text("No stages exported")
-            R6SleepJournal(session, zone)
+        } else if (seconds.isEmpty()) {
+            Text("No stages exported")
         }
         SleepTotals(session, seconds, asleep)
         M2SleepDetails(session)
+        if (!graph && seconds.isNotEmpty()) {
+            var journal by rememberSaveable(session.start.toString(), session.end.toString()) { mutableStateOf(false) }
+            R7aRow("Recorded stages", if (journal) "Hide" else "Open", action = { journal = !journal })
+            if (journal) R6SleepJournal(session, zone)
+        }
     }
 }
 
@@ -127,6 +161,17 @@ private fun SleepTotals(
         }
         val gap = (duration - seconds.values.sum()).coerceAtLeast(0)
         if (gap > 0) Text("Unrecorded: ${r7HoursMinutes(gap)}", style = MaterialTheme.typography.labelSmall)
-        seconds.forEach { (name, stageSeconds) -> Text("$name · ${stageSeconds / SECONDS_PER_MINUTE} min") }
+        seconds.entries.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                pair.forEach { (name, stageSeconds) ->
+                    Text(
+                        "$name · ${stageSeconds / SECONDS_PER_MINUTE} min",
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (pair.size == 1) Box(Modifier.weight(1f))
+            }
+        }
     }
 }

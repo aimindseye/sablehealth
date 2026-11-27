@@ -164,7 +164,7 @@ private fun HealthPage(
             } else {
                 Dashboard(state, profile == DeviceProfile.Q25)
             }
-            if (state.section == Section.MOVE) M2HeartRateCalculator()
+            if (state.section == Section.MOVE && !state.live) M2HeartRateCalculator()
         }
         Page.SOURCES -> SourcesPage(state)
         Page.SOURCE_DETAIL -> SourceDetailPage(state)
