@@ -47,6 +47,9 @@ class LiveGraphViewportTest {
         chart("Steps", 7).assertIsDisplayed()
         compose.onNodeWithText("Steps").performClick()
         chart("Steps", 7).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous day").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Next day").assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Method and sources").assertIsDisplayed()
         val density = compose.activity.resources.displayMetrics.density
         check(chart("Steps", 7).fetchSemanticsNode().boundsInRoot.height >= 100f * density - 1f)
         compose.onNodeWithText("7D").performClick()
@@ -206,6 +209,23 @@ class LiveGraphViewportTest {
         chart("HRV (RMSSD)", 30).assertIsDisplayed()
         chart("HRV (RMSSD)", 7).assertDoesNotExist()
         compose.runOnIdle { check(state.r6.period(Section.VITALS) == 30) }
+    }
+
+    @Test
+    @Config(qualifiers = "w280dp-h600dp")
+    fun narrowHistoryKeepsFiltersAndMethodsReachable() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
+        load(state, snapshot())
+        show(state)
+        compose.onNodeWithTag("r7-metric-HRV").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("History period").performScrollTo().performClick()
+        compose.onNodeWithText("30D").performClick()
+        chart("HRV (RMSSD)", 30).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous day").performScrollTo().performClick()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
     }
 
     private fun state(): SableAppState {

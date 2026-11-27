@@ -2,6 +2,7 @@ package io.github.aimindseye.sablehealth
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.core.view.WindowCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.aimindseye.sablehealth.core.DashboardWidget
 import io.github.aimindseye.sablehealth.core.DeviceProfile
@@ -33,6 +35,8 @@ import org.junit.Test
 import java.io.File
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 /** Native synthetic-only viewport exercise. Never starts MainActivity or reads Health Connect. */
@@ -62,8 +66,9 @@ class M21NativeViewportTest {
             }.forEach { full(tag("r7-widget-${it.name}")) }
         capture(appearance, "dashboard")
         tab(Section.VITALS)
-        full(tag("r7-metric-HRV"))
-        full(tag("r7-metric-RESTING_HR"))
+        listOf(LiveMetric.HEART_RATE, LiveMetric.RESTING_HR, LiveMetric.HRV, LiveMetric.RESPIRATORY_RATE).forEach {
+            full(tag("r7-metric-${it.name}"))
+        }
         capture(appearance, "vitals")
         history(appearance, LiveMetric.HRV)
         history(appearance, LiveMetric.RESTING_HR)
@@ -78,7 +83,9 @@ class M21NativeViewportTest {
         full(tag("r7a-row-Heart-rate zones"))
         capture(appearance, "move-more")
         tab(Section.TRENDS)
-        full(tag("r7-metric-STEPS"))
+        listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.ACTIVE_CALORIES, LiveMetric.CALORIES).forEach {
+            full(tag("r7-metric-${it.name}"))
+        }
         capture(appearance, "trends")
         clickIcon("Next metrics")
         clickIcon("Next metrics")
@@ -87,10 +94,16 @@ class M21NativeViewportTest {
         tab(Section.SLEEP)
         full(tag("r7-sleep-summary"))
         full(compose.onNodeWithContentDescription("Sleep stage transitions with recorded times"))
+        listOf("Previous stage", "Next stage", "Sleep details").forEach { full(tag("r7-icon-$it")) }
+        full(tag("r7-choice-Transition labels"))
         capture(appearance, "sleep")
+        clickIcon("Sleep details")
+        tag("r7a-row-Sleep efficiency").performScrollTo().assertIsDisplayed()
+        clickIcon("Sleep details")
         clickIcon("Text")
         full(tag("r7-sleep-summary"))
-        tag("r7a-row-Recorded stages").performScrollTo().assertIsDisplayed()
+        full(tag("r7a-row-Sleep efficiency"))
+        full(tag("r7a-row-Recorded stages"))
         capture(appearance, "sleep-text")
         clickIcon("Sources")
         compose.onNodeWithText("Health Connect").assertIsDisplayed()
@@ -109,6 +122,10 @@ class M21NativeViewportTest {
         tag("r7-metric-${metric.name}").performClick()
         val chart = compose.onNodeWithContentDescription("${metric.label}, 7 days; gaps are missing data")
         full(chart)
+        listOf("All metrics", "Text", "Graphs", "Previous day", "Next day").forEach { full(tag("r7-icon-$it")) }
+        listOf("Historical metric", "History period", "Graph type").forEach { full(tag("r7-choice-$it")) }
+        full(tag("r7a-row-Method and sources"))
+        compose.onNodeWithText("2/7 days observed").assertIsDisplayed()
         capture(appearance, metric.name.lowercase())
         clickIcon("Text")
         chart.assertDoesNotExist()
@@ -127,7 +144,7 @@ class M21NativeViewportTest {
 
     private fun clickIcon(label: String) {
         val node = compose.onNodeWithContentDescription(label)
-        if (label == "All metrics") node.performScrollTo()
+        if (label == "All metrics" || label == "Sleep details") node.performScrollTo()
         node.performClick()
         compose.waitForIdle()
     }
@@ -135,24 +152,58 @@ class M21NativeViewportTest {
     private fun full(node: SemanticsNodeInteraction) {
         node.assertIsDisplayed()
         val measured = node.fetchSemanticsNode()
-        check(abs(measured.boundsInRoot.width - measured.size.width) <= 1f)
-        check(abs(measured.boundsInRoot.height - measured.size.height) <= 1f)
+        check(abs(measured.boundsInRoot.width - measured.size.width) <= 1f) {
+            "Horizontally clipped: ${measured.config}"
+        }
+        check(abs(measured.boundsInRoot.height - measured.size.height) <= 1f) {
+            "Vertically clipped: ${measured.config}"
+        }
     }
 
     private fun capture(
         appearance: String,
         name: String,
     ) {
-        compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val image = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
-        check(image.width == 720 && image.height == 720) { "Expected native Q25 viewport" }
-        val directory = File(instrumentation.targetContext.filesDir, "m21-native")
-        check(directory.isDirectory || directory.mkdirs())
-        File(directory, "$appearance-$name.png").outputStream().use {
-            check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+        compose.runOnIdle {
+            val controller = WindowCompat.getInsetsController(compose.activity.window, compose.activity.window.decorView)
+            check(controller.isAppearanceLightStatusBars == (appearance == "light"))
+            check(controller.isAppearanceLightNavigationBars == (appearance == "light"))
         }
-        image.recycle()
+        val image = renderedFrame(compose.activity.window.decorView, appearance)
+        try {
+            val directory = File(instrumentation.targetContext.filesDir, "m21-native")
+            check(directory.isDirectory || directory.mkdirs())
+            File(directory, "$appearance-$name.png").outputStream().use {
+                check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+            }
+        } finally {
+            image.recycle()
+        }
+    }
+
+    private fun renderedFrame(
+        decor: View,
+        appearance: String,
+    ): Bitmap {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        repeat(6) {
+            compose.waitForIdle()
+            instrumentation.waitForIdleSync()
+            val drawn = CountDownLatch(1)
+            instrumentation.runOnMainSync {
+                decor.postOnAnimation {
+                    decor.postOnAnimation { drawn.countDown() }
+                }
+            }
+            check(drawn.await(5, TimeUnit.SECONDS)) { "Frame synchronization timed out" }
+            val image = instrumentation.uiAutomation.takeScreenshot()
+            if (image != null) {
+                if (M21RenderedFrame.valid(image, appearance == "light")) return image
+                image.recycle()
+            }
+        }
+        error("HOLD_RENDERED_SCREENSHOT: no qualifying full display frame after six attempts")
     }
 
     private fun fixtureState(appearance: String): SableAppState {

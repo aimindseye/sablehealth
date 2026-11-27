@@ -85,9 +85,11 @@ class LiveRichViewsTest {
         state.chooseViewMode(Section.SLEEP, ViewMode.GRAPHS)
         load(state, richSnapshot())
         show { LiveHealthPage(state) }
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         visible("Recorded asleep: 60 min · gaps unknown")
         visible("Deep · 60 min")
         check(compose.onAllNodesWithTag("r7a-row-Sleep efficiency").fetchSemanticsNodes().size == 1)
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         click("Session 1")
         click("Session 2")
         visible("No stages exported")

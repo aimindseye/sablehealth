@@ -82,11 +82,13 @@ class R7VisualRegressionTest {
         full(compose.onNodeWithTag("r7-icon-Next metrics"), 48f)
         capture(appearance, "move")
         compose.onNodeWithTag("r7-metric-STEPS").performClick()
+        historyControls()
         capture(appearance, "steps-detail")
         section(state, Section.VITALS)
         metrics(listOf(LiveMetric.HEART_RATE, LiveMetric.RESTING_HR, LiveMetric.HRV, LiveMetric.RESPIRATORY_RATE))
         capture(appearance, "vitals")
         compose.onNodeWithTag("r7-metric-HEART_RATE").performClick()
+        historyControls()
         capture(appearance, "heart-detail")
         section(state, Section.TRENDS)
         metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.ACTIVE_CALORIES, LiveMetric.CALORIES))
@@ -98,7 +100,19 @@ class R7VisualRegressionTest {
         compose.onNodeWithText("0h 40m asleep").assertIsDisplayed()
         full(compose.onNodeWithTag("r7-icon-Previous stage"), 48f)
         full(compose.onNodeWithTag("r7-icon-Next stage"), 48f)
+        full(compose.onNodeWithTag("r7-icon-Sleep details"), 48f)
+        full(compose.onNodeWithTag("r7-choice-Transition labels"), 48f)
         capture(appearance, "sleep")
+    }
+
+    private fun historyControls() {
+        listOf("All metrics", "Text", "Graphs", "Previous day", "Next day").forEach { label ->
+            full(compose.onNodeWithTag("r7-icon-$label"), 48f)
+        }
+        listOf("Historical metric", "History period", "Graph type").forEach { label ->
+            full(compose.onNodeWithTag("r7-choice-$label"), 48f)
+        }
+        full(compose.onNodeWithTag("r7a-row-Method and sources"), 48f)
     }
 
     private fun dashboard(primary: Color) {

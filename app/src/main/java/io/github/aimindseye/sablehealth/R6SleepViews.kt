@@ -79,7 +79,7 @@ internal fun LiveSleepPage(
     } else {
         SelectedSleepSession(state, snapshot, day, graph && !details)
     }
-    if (!graph || details || day == null) SleepHistoryDisclosure(state, snapshot)
+    if (!graph || day == null || details && state.r6.sleepGraph != "Stacked") SleepHistoryDisclosure(state, snapshot)
 }
 
 @Composable

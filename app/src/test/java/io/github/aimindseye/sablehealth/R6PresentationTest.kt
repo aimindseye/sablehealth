@@ -92,7 +92,9 @@ class R6PresentationTest {
         compose.setContent {
             MaterialTheme { Column(Modifier.verticalScroll(rememberScrollState())) { LiveHealthPage(state) } }
         }
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         visible("Recorded asleep: 50 min · gaps unknown")
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         compose
             .onNodeWithContentDescription("Sleep stage transitions with recorded times")
             .performScrollTo()
@@ -104,7 +106,10 @@ class R6PresentationTest {
         compose.runOnIdle { check(state.r6.transitionLabels == "All times") }
         click("Timeline")
         compose.onNodeWithText("Donut").performClick()
+        visible("Unrecorded: 10 min")
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         visible("Unrecorded: 0h 10m")
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
         click("Donut")
         compose.onNodeWithText("Stacked").performClick()
         compose
