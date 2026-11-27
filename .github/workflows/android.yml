@@ -32,7 +32,7 @@ jobs:
           "$sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build, test, lint and quality gates
         run: |
-          gradle --no-daemon --console=plain :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug detekt ktlintCheck
+          gradle --no-daemon --console=plain --continue :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug detekt ktlintCheck
       - name: Verify static source contract
         run: |
           python3 tools/check-structure.py
@@ -44,6 +44,17 @@ jobs:
           python3 tools/check-m1a-contract.py
       - name: Full release engineering preflight
         run: python3 tools/quality_preflight.py --ci
+      - name: Capture actual formatter patch if ktlint failed
+        if: failure()
+        run: |
+          if find app/build/reports/ktlint core/build/reports/ktlint -name '*.txt' -size +0c -print 2>/dev/null | grep -q .; then
+            mkdir -p app/build/reports/m2-ci
+            status=0
+            gradle --no-daemon --console=plain --continue ktlintFormat || status=$?
+            git diff --check
+            git diff -- '*.kt' '*.kts' > app/build/reports/m2-ci/ktlint-format.patch
+            exit "$status"
+          fi
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

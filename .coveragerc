@@ -9,6 +9,7 @@ include =
     tools/check-structure.py
     tools/quality_preflight.py
     tools/verify-release-apk.py
+    tools/check_new_code_coverage.py
 
 [report]
 show_missing = True

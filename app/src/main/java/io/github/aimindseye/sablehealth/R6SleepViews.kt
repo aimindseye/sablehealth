@@ -109,6 +109,7 @@ private fun SleepSessionCard(
             R6SleepJournal(session, zone)
         }
         SleepTotals(session, seconds, asleep)
+        M2SleepDetails(session)
     }
 }
 
