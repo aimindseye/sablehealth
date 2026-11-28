@@ -21,3 +21,5 @@ Baseline ab1f7b606537c61cb62fbbfe17ce840d4451cd96. M2 PR 14 was merged with pend
 
 ## R6 native history viewport correction
 R5 exact evidence run bb89c5202a58 passed 534/630 differential coverage and 93 app/49 core tests; both native themes failed at the HRV Method and sources row (vertically clipped). The action now occupies the existing metric/mode heading in both Text and Graph, and statistics occupy one compact row. The full chart height and 48dp controls remain unchanged. The native test asserts the method control is above the day controls, both statistics are fully displayed, and clipping diagnostics include visible/full dimensions. The existing stacked-sleep history control retains its local disclosure. No signing, permissions, infrastructure, or acceptance thresholds change.
+
+On narrow windows (<360dp) or font scale >1.3, Methods retains the scrollable body disclosure and vertical statistics so the heading retains the metric selector. Existing narrow-window test continues to exercise this fallback.

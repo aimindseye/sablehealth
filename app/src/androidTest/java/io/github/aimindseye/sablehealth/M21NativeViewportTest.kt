@@ -161,7 +161,8 @@ class M21NativeViewportTest {
             "Horizontally clipped: ${measured.config}"
         }
         check(abs(measured.boundsInRoot.height - measured.size.height) <= 1f) {
-            "Vertically clipped: ${measured.config}; visible=${measured.boundsInRoot.height}, full=${measured.size.height}"
+            "Vertically clipped: ${measured.config}; " +
+                "visible=${measured.boundsInRoot.height}, full=${measured.size.height}"
         }
     }
 

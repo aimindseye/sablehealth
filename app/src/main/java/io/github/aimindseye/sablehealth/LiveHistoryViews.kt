@@ -2,6 +2,7 @@ package io.github.aimindseye.sablehealth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.ChartPolicy
@@ -21,6 +23,10 @@ import io.github.aimindseye.sablehealth.core.LiveMetric
 import io.github.aimindseye.sablehealth.core.LivePoint
 import io.github.aimindseye.sablehealth.core.LiveSnapshot
 import java.time.LocalDate
+
+private const val METHOD_HEADER_MIN_WIDTH = 360
+private const val METHOD_HEADER_MAX_FONT = 1.3f
+private const val METHOD_HEADER_BUTTON_WIDTH = 96
 
 @Composable
 internal fun LiveHistoryPage(
@@ -45,6 +51,10 @@ private fun HistoryDetail(
     metric: LiveMetric,
 ) {
     var methodsExpanded by remember(metric) { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val inlineMethods =
+        configuration.screenWidthDp >= METHOD_HEADER_MIN_WIDTH &&
+            configuration.fontScale <= METHOD_HEADER_MAX_FONT
     R6ModeHeading(
         state,
         onOverview = { state.r6.chooseMetric(state.section, null) },
@@ -52,15 +62,18 @@ private fun HistoryDetail(
             HistoricalMetricChoice(metrics, metric) { state.r6.chooseMetric(state.section, it) }
         },
         period = {
-            FocusButton(
-                "Method and sources",
-                { methodsExpanded = !methodsExpanded },
-                selected = methodsExpanded,
-                modifier = Modifier.width(96.dp).testTag("r7a-row-Method and sources"),
-            )
+            if (inlineMethods) {
+                FocusButton(
+                    "Method and sources",
+                    { methodsExpanded = !methodsExpanded },
+                    selected = methodsExpanded,
+                    modifier = Modifier.width(METHOD_HEADER_BUTTON_WIDTH.dp).testTag("r7a-row-Method and sources"),
+                )
+            }
         },
     )
-    HistoryPanel(state, snapshot, metrics, metric, methodsExpanded) { state.r6.chooseMetric(state.section, it) }
+    val expanded = if (inlineMethods) methodsExpanded else null
+    HistoryPanel(state, snapshot, metrics, metric, expanded) { state.r6.chooseMetric(state.section, it) }
 }
 
 @Composable
@@ -122,7 +135,14 @@ internal fun HistoryPanel(
             points,
             snapshot.window.zone,
             summary = {
-                HistorySummary(points, days, metric)
+                if (methodsExpanded != null) {
+                    HistorySummary(points, days, metric)
+                } else {
+                    Column {
+                        Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
+                        ObservedAverage(points.dropLast(1), metric)
+                    }
+                }
             },
             externalExpanded = methodsExpanded,
         )
@@ -173,7 +193,7 @@ private fun HistorySummary(
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelSmall,
         )
-        Box(Modifier.weight(2f)) {
+        Box(Modifier.weight(1f)) {
             ObservedAverage(points.dropLast(1), metric)
         }
     }
