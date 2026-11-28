@@ -1,5 +1,6 @@
 package io.github.aimindseye.sablehealth
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,20 +19,32 @@ internal fun M2HistoryEvidence(
     status: LiveStatus?,
     points: List<LivePoint?>,
     zone: ZoneId,
+    summary: (@Composable () -> Unit)? = null,
 ) {
     var expanded by remember(metric) { mutableStateOf(false) }
-    R7aRow("Method and sources", action = { expanded = !expanded })
-    if (expanded) {
-        R7aNote(historyMethod(metric))
-        R7aNote("Coverage: ${status?.label ?: "Not loaded"} · method v1")
-        val observed = points.filterNotNull()
-        if (observed.isEmpty()) {
-            R7aNote("No observations in this period.")
-        } else {
-            observed.asReversed().forEach { point ->
-                Text(displayValue(metric, point), style = MaterialTheme.typography.labelMedium)
-                R7aNote(observation(point, zone))
-            }
+    Column {
+        summary?.invoke()
+        R7aRow("Method and sources", action = { expanded = !expanded })
+    }
+    if (expanded) HistoryEvidenceBody(metric, status, points, zone)
+}
+
+@Composable
+internal fun HistoryEvidenceBody(
+    metric: LiveMetric,
+    status: LiveStatus?,
+    points: List<LivePoint?>,
+    zone: ZoneId,
+) {
+    R7aNote(historyMethod(metric))
+    R7aNote("Coverage: ${status?.label ?: "Not loaded"} · method v1")
+    val observed = points.filterNotNull()
+    if (observed.isEmpty()) {
+        R7aNote("No observations in this period.")
+    } else {
+        observed.asReversed().forEach { point ->
+            Text(displayValue(metric, point), style = MaterialTheme.typography.labelMedium)
+            R7aNote(observation(point, zone))
         }
     }
 }

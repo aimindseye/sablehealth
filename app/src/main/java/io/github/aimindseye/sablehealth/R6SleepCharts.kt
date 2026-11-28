@@ -117,16 +117,6 @@ private fun SleepTransitionChart(
     val chart: @Composable (Modifier) -> Unit = { modifier ->
         SleepPlot(session, stages, palette, SleepSelection(selected, labels, format) { selected = it }, modifier)
     }
-    if (all) {
-        Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            chart(Modifier.width((stages.size * ALL_STAGE_WIDTH).coerceIn(MIN_TIMELINE_DP, MAX_TIMELINE_DP).dp))
-        }
-    } else {
-        chart(Modifier.fillMaxWidth())
-    }
-    if (all) {
-        Text("Scroll the timeline; select a stage for both exact times.", style = MaterialTheme.typography.labelSmall)
-    }
     val stage = stages[selected]
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         R6IconButton("Previous stage", R.drawable.ic_r6_back, { selected = (selected - 1).coerceAtLeast(0) })
@@ -141,18 +131,28 @@ private fun SleepTransitionChart(
             Text("${format(stage.start)} – ${format(stage.end)}", style = MaterialTheme.typography.bodyMedium)
         }
         R6IconButton("Next stage", R.drawable.ic_r6_next, { selected = (selected + 1).coerceAtMost(stages.lastIndex) })
+        R6Choice(
+            "Transition labels",
+            labels,
+            listOf("Key times", "All times", "Selected"),
+            preferences::chooseTransitionLabels,
+        )
+    }
+    if (all) {
+        Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            chart(Modifier.width((stages.size * ALL_STAGE_WIDTH).coerceIn(MIN_TIMELINE_DP, MAX_TIMELINE_DP).dp))
+        }
+    } else {
+        chart(Modifier.fillMaxWidth())
     }
     val previous = stages.getOrNull(selected - 1)
     val next = stages.getOrNull(selected + 1)
     val before = previous?.takeIf { SleepPlotPolicy.contiguous(it, stage) }?.type ?: "Start / gap"
     val after = next?.takeIf { SleepPlotPolicy.contiguous(stage, it) }?.type ?: "End / gap"
     Text("$before → ${stage.type} → $after", style = MaterialTheme.typography.labelSmall)
-    R6Choice(
-        "Transition labels",
-        labels,
-        listOf("Key times", "All times", "Selected"),
-        preferences::chooseTransitionLabels,
-    )
+    if (all) {
+        Text("Scroll the timeline; select a stage for both exact times.", style = MaterialTheme.typography.labelSmall)
+    }
 }
 
 private data class SleepSelection(

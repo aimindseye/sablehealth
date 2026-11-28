@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -68,6 +69,7 @@ class LiveViewCoverageTest {
             .onNodeWithText("If Health Connect has no sessions", substring = true)
             .performScrollTo()
             .assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Sleep history").performScrollTo().performClick()
         compose.onNodeWithText("7D").performScrollTo().performClick()
         compose.onNodeWithText("30D").performClick()
         compose.runOnIdle { state.section = Section.MOVE }

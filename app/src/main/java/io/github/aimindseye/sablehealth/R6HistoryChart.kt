@@ -3,7 +3,7 @@ package io.github.aimindseye.sablehealth
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +29,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
@@ -51,6 +52,8 @@ private const val AXIS_BOTTOM = 19f
 private const val BAR_FRACTION = .64f
 private const val WEEK = 7
 private const val FULL_CHART_DP = 112
+private const val COMBINED_MIN_WIDTH_DP = 350
+private const val COMBINED_MAX_FONT_SCALE = 1.3f
 private const val MINI_CHART_DP = 32
 private const val MINI_INSET_DP = 4f
 private const val CELL_CENTER = .5f
@@ -63,24 +66,35 @@ internal fun R6HistoryChart(
     points: List<LivePoint?>,
     metric: LiveMetric,
     kind: ChartKind,
+    options: (@Composable () -> Unit)? = null,
 ) {
     var selected by remember(metric, days) { mutableIntStateOf(days.lastIndex) }
     val point = points[selected]
     val title = point?.let { displayValue(metric, it) } ?: "No record"
     val dateLabel = "${days[selected]}${if (selected == days.lastIndex) " · Today" else ""}"
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Text(dateLabel, style = MaterialTheme.typography.labelSmall)
-        }
-        R6Plot(
-            PlotData(days, points.map { it?.value }, metric, kind),
-            selected,
-            { selected = it },
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            R6IconButton("Previous day", R.drawable.ic_r6_back, { selected = (selected - 1).coerceAtLeast(0) })
-            R6IconButton("Next day", R.drawable.ic_r6_next, { selected = (selected + 1).coerceAtMost(days.lastIndex) })
+    val previous = { selected = (selected - 1).coerceAtLeast(0) }
+    val next = { selected = (selected + 1).coerceAtMost(days.lastIndex) }
+    BoxWithConstraints {
+        val combined =
+            options != null &&
+                maxWidth >= COMBINED_MIN_WIDTH_DP.dp &&
+                LocalConfiguration.current.fontScale <= COMBINED_MAX_FONT_SCALE
+        Column {
+            if (!combined && options != null) Row { options() }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                R6IconButton("Previous day", R.drawable.ic_r6_back, previous)
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(dateLabel, style = MaterialTheme.typography.labelSmall)
+                }
+                R6IconButton("Next day", R.drawable.ic_r6_next, next)
+                if (combined) options()
+            }
+            R6Plot(
+                PlotData(days, points.map { it?.value }, metric, kind),
+                selected,
+                { selected = it },
+            )
         }
     }
 }

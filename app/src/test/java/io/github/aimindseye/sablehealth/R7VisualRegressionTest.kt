@@ -77,14 +77,18 @@ class R7VisualRegressionTest {
         dashboard(primary)
         capture(appearance, "dashboard")
         section(state, Section.MOVE)
-        metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.CALORIES))
+        metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.CALORIES, LiveMetric.ACTIVE_CALORIES))
+        full(compose.onNodeWithTag("r7-icon-Previous metrics"), 48f)
+        full(compose.onNodeWithTag("r7-icon-Next metrics"), 48f)
         capture(appearance, "move")
         compose.onNodeWithTag("r7-metric-STEPS").performClick()
+        historyControls()
         capture(appearance, "steps-detail")
         section(state, Section.VITALS)
         metrics(listOf(LiveMetric.HEART_RATE, LiveMetric.RESTING_HR, LiveMetric.HRV, LiveMetric.RESPIRATORY_RATE))
         capture(appearance, "vitals")
         compose.onNodeWithTag("r7-metric-HEART_RATE").performClick()
+        historyControls()
         capture(appearance, "heart-detail")
         section(state, Section.TRENDS)
         metrics(listOf(LiveMetric.STEPS, LiveMetric.DISTANCE, LiveMetric.ACTIVE_CALORIES, LiveMetric.CALORIES))
@@ -96,7 +100,22 @@ class R7VisualRegressionTest {
         compose.onNodeWithText("0h 40m asleep").assertIsDisplayed()
         full(compose.onNodeWithTag("r7-icon-Previous stage"), 48f)
         full(compose.onNodeWithTag("r7-icon-Next stage"), 48f)
+        full(compose.onNodeWithTag("r7-icon-Sleep details"), 48f)
+        full(compose.onNodeWithTag("r7-choice-Transition labels"), 48f)
         capture(appearance, "sleep")
+    }
+
+    private fun historyControls() {
+        listOf("All metrics", "Text", "Graphs", "Previous day", "Next day").forEach { label ->
+            full(compose.onNodeWithTag("r7-icon-$label"), 48f)
+        }
+        listOf("Historical metric", "History period", "Graph type").forEach { label ->
+            full(compose.onNodeWithTag("r7-choice-$label"), 48f)
+        }
+        full(compose.onNodeWithTag("r7a-row-Method and sources"), 48f)
+        val methods = compose.onNodeWithTag("r7a-row-Method and sources").fetchSemanticsNode().boundsInRoot
+        val previous = compose.onNodeWithTag("r7-icon-Previous day").fetchSemanticsNode().boundsInRoot
+        check(methods.bottom <= previous.top + 1f) { "Method control must occupy the existing heading" }
     }
 
     private fun dashboard(primary: Color) {
@@ -154,8 +173,12 @@ class R7VisualRegressionTest {
         val density = compose.activity.resources.displayMetrics.density
         val bounds = measured.boundsInRoot
         check(bounds.height >= minHeight * density - 1f)
-        check(abs(bounds.height - measured.size.height) <= 1f) { "Vertically clipped: ${measured.id}" }
-        check(abs(bounds.width - measured.size.width) <= 1f) { "Horizontally clipped: ${measured.id}" }
+        check(abs(bounds.height - measured.size.height) <= 1f) {
+            "Vertically clipped: ${measured.config}; visible=${bounds.height}, measured=${measured.size.height}"
+        }
+        check(abs(bounds.width - measured.size.width) <= 1f) {
+            "Horizontally clipped: ${measured.config}; visible=${bounds.width}, measured=${measured.size.width}"
+        }
     }
 
     private fun section(
