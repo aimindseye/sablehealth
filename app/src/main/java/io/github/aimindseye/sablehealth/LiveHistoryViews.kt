@@ -24,7 +24,9 @@ import io.github.aimindseye.sablehealth.core.ChartPolicy
 import io.github.aimindseye.sablehealth.core.LiveMetric
 import io.github.aimindseye.sablehealth.core.LivePoint
 import io.github.aimindseye.sablehealth.core.LiveSnapshot
+import io.github.aimindseye.sablehealth.core.LiveStatus
 import java.time.LocalDate
+import java.time.ZoneId
 
 private const val METHOD_HEADER_MIN_WIDTH = 360
 private const val METHOD_HEADER_MAX_FONT = 1.3f
@@ -130,19 +132,30 @@ internal fun HistoryPanel(
         } else if (graph) {
             R6HistoryChart(calendar, points, metric, kind, options = if (combined) options else null)
         }
-        if (methodsExpanded == null) {
-            M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone) {
-                HistorySummary(points, days, metric, compact = false)
-            }
-        } else {
-            HistorySummary(points, days, metric, compact = true)
-            if (methodsExpanded) HistoryEvidenceBody(metric, series?.status, points, snapshot.window.zone)
-        }
+        HistoryPanelEvidence(metric, series?.status, points, snapshot.window.zone, methodsExpanded)
         if (!graph) {
             calendar.zip(points).asReversed().forEach { (day, point) ->
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")
             }
         }
+    }
+}
+
+@Composable
+private fun HistoryPanelEvidence(
+    metric: LiveMetric,
+    status: LiveStatus?,
+    points: List<LivePoint?>,
+    zone: ZoneId,
+    methodsExpanded: Boolean?,
+) {
+    if (methodsExpanded == null) {
+        M2HistoryEvidence(metric, status, points, zone) {
+            HistorySummary(points, points.size, metric, compact = false)
+        }
+    } else {
+        HistorySummary(points, points.size, metric, compact = true)
+        if (methodsExpanded) HistoryEvidenceBody(metric, status, points, zone)
     }
 }
 

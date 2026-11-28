@@ -237,7 +237,7 @@ class LiveGraphViewportTest {
     fun largeFontUsesScrollableMethodsAndNoForcedPagination() {
         val state = state()
         state.section = Section.VITALS
-        state.chooseViewMode(Section.VITALS, ViewMode.TEXT)
+        state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
         load(state, snapshot())
         compose.setContent {
             val configuration = Configuration(LocalConfiguration.current).apply { fontScale = 1.5f }
@@ -247,6 +247,9 @@ class LiveGraphViewportTest {
         }
         compose.onNodeWithContentDescription("Next metrics").assertDoesNotExist()
         compose.onNodeWithTag("r7-metric-HRV").performScrollTo().performClick()
+        chart("HRV (RMSSD)", 7).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("History period").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous day").performScrollTo().assertIsDisplayed()
         val method = compose.onNodeWithTag("r7a-row-Method and sources")
         method.performScrollTo().performClick()
         compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
