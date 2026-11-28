@@ -2,6 +2,7 @@ package io.github.aimindseye.sablehealth
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.SystemClock
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -177,50 +178,70 @@ class M21NativeViewportTest {
             check(controller.isAppearanceLightStatusBars == (appearance == "light"))
             check(controller.isAppearanceLightNavigationBars == (appearance == "light"))
         }
-        val image = renderedFrame(compose.activity.window.decorView, appearance)
+        val directory = File(instrumentation.targetContext.filesDir, "m21-native")
+        check(directory.isDirectory || directory.mkdirs())
+        val rejected = File(directory, "$appearance-$name-rejected.png")
+        val image = renderedFrame(compose.activity.window.decorView, appearance, rejected)
         try {
-            val directory = File(instrumentation.targetContext.filesDir, "m21-native")
-            check(directory.isDirectory || directory.mkdirs())
-            File(directory, "$appearance-$name.png").outputStream().use {
-                check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
-            }
+            saveFrame(image, File(directory, "$appearance-$name.png"))
         } finally {
             image.recycle()
         }
     }
 
+    private fun saveFrame(
+        image: Bitmap,
+        destination: File,
+    ) {
+        destination.outputStream().use {
+            check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
+    }
+
+    private fun awaitDisplayFrame(decor: View) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        compose.waitForIdle()
+        instrumentation.waitForIdleSync()
+        // Compose idleness alone does not include the emulator's display compositor and navigation ripples.
+        SystemClock.sleep(250)
+        val drawn = CountDownLatch(1)
+        instrumentation.runOnMainSync {
+            decor.postOnAnimation {
+                decor.postOnAnimation { drawn.countDown() }
+            }
+        }
+        check(drawn.await(5, TimeUnit.SECONDS)) { "Frame synchronization timed out" }
+    }
+
     private fun renderedFrame(
         decor: View,
         appearance: String,
+        rejected: File,
     ): Bitmap {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val diagnostics = mutableListOf<String>()
         var previous: Bitmap? = null
+        var previousValid = false
         try {
-            repeat(6) {
-                compose.waitForIdle()
-                instrumentation.waitForIdleSync()
-                val drawn = CountDownLatch(1)
-                instrumentation.runOnMainSync {
-                    decor.postOnAnimation {
-                        decor.postOnAnimation { drawn.countDown() }
-                    }
-                }
-                check(drawn.await(5, TimeUnit.SECONDS)) { "Frame synchronization timed out" }
+            repeat(16) { attempt ->
+                awaitDisplayFrame(decor)
                 val image = instrumentation.uiAutomation.takeScreenshot()
-                if (image != null) {
-                    if (M21RenderedFrame.valid(image, appearance == "light")) {
-                        val earlier = previous
-                        if (earlier != null && M21RenderedFrame.sameBody(earlier, image)) return image
-                        previous?.recycle()
-                        previous = image
-                    } else {
-                        image.recycle()
-                        previous?.recycle()
-                        previous = null
-                    }
+                if (image == null) {
+                    diagnostics.add("attempt=${attempt + 1} null screenshot")
+                    previousValid = false
+                } else {
+                    val valid = M21RenderedFrame.valid(image, appearance == "light")
+                    val earlier = previous
+                    val stable = valid && previousValid && earlier != null && M21RenderedFrame.sameBody(earlier, image)
+                    diagnostics.add("attempt=${attempt + 1} valid=$valid stable=$stable ${M21RenderedFrame.describe(image)}")
+                    if (stable) return image
+                    previous?.recycle()
+                    previous = image
+                    previousValid = valid
                 }
             }
-            error("HOLD_RENDERED_SCREENSHOT: no stable qualifying display after six attempts")
+            previous?.let { saveFrame(it, rejected) }
+            error("HOLD_RENDERED_SCREENSHOT: ${rejected.name}; ${diagnostics.joinToString("; ")}")
         } finally {
             previous?.recycle()
         }

@@ -21,6 +21,11 @@ internal object M21RenderedFrame {
         return upper.matches(light) && lower.matches(light) && status.statusMatches(light)
     }
 
+    fun describe(image: Bitmap): String {
+        if (image.width != SIDE || image.height != SIDE) return "geometry=${image.width}x${image.height}"
+        return "upper=${sample(image, 60, 300)} lower=${sample(image, 300, 590)} status=${sample(image, 5, 35)}"
+    }
+
     fun sameBody(
         first: Bitmap,
         second: Bitmap,
