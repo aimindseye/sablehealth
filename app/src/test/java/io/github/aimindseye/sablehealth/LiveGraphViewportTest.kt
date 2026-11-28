@@ -1,8 +1,11 @@
 package io.github.aimindseye.sablehealth
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -228,6 +231,46 @@ class LiveGraphViewportTest {
         compose.onNodeWithContentDescription("Previous day").performScrollTo().performClick()
         compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
         compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun largeFontUsesScrollableMethodsAndNoForcedPagination() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.TEXT)
+        load(state, snapshot())
+        compose.setContent {
+            val configuration = Configuration(LocalConfiguration.current).apply { fontScale = 1.5f }
+            CompositionLocalProvider(LocalConfiguration provides configuration) {
+                MaterialTheme { HealthAppContent(state, DeviceProfile.Q25) }
+            }
+        }
+        compose.onNodeWithContentDescription("Next metrics").assertDoesNotExist()
+        compose.onNodeWithTag("r7-metric-HRV").performScrollTo().performClick()
+        val method = compose.onNodeWithTag("r7a-row-Method and sources")
+        method.performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
+        method.performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.HRV)).assertDoesNotExist()
+    }
+
+    @Test
+    fun inlineMethodsShowMissingHistoryWithoutFabricatingAnAverage() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.GRAPHS)
+        load(state, LiveSnapshot(window, emptyMap(), emptyList()))
+        show(state)
+        compose.onNodeWithTag("r7-metric-RESTING_HR").performClick()
+        compose.onNodeWithText("No observations to graph").assertIsDisplayed()
+        val method = compose.onNodeWithTag("r7a-row-Method and sources")
+        method.performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.RESTING_HR)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Coverage: Not loaded · method v1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("No observations in this period.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Observed mean (excl. today):", substring = true).assertDoesNotExist()
+        method.performScrollTo().performClick()
+        compose.onNodeWithText("No observations in this period.").assertDoesNotExist()
     }
 
     private fun state(): SableAppState {

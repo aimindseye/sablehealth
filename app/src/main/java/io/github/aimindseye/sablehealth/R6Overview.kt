@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,10 +50,11 @@ internal fun MetricOverview(
     val days = state.r6.period(state.section)
     val calendar = calendar(snapshot, days)
     val configuration = LocalConfiguration.current
+    val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     var pageIndex by rememberSaveable(state.section) { mutableIntStateOf(0) }
     BoxWithConstraints {
         val twoColumns = maxWidth >= TWO_COLUMN_WIDTH.dp && configuration.fontScale <= MAX_COMPACT_FONT
-        val paged = twoColumns && configuration.screenHeightDp <= COMPACT_SCREEN_HEIGHT
+        val paged = twoColumns && windowHeight <= COMPACT_SCREEN_HEIGHT.dp
         val pages = if (paged) metrics.chunked(METRICS_PER_PAGE) else listOf(metrics)
         val current = pageIndex.coerceIn(pages.indices)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

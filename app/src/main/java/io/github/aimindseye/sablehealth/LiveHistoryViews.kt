@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.ChartPolicy
@@ -51,10 +53,10 @@ private fun HistoryDetail(
     metric: LiveMetric,
 ) {
     var methodsExpanded by remember(metric) { mutableStateOf(false) }
-    val configuration = LocalConfiguration.current
+    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
     val inlineMethods =
-        configuration.screenWidthDp >= METHOD_HEADER_MIN_WIDTH &&
-            configuration.fontScale <= METHOD_HEADER_MAX_FONT
+        windowWidth >= METHOD_HEADER_MIN_WIDTH.dp &&
+            LocalConfiguration.current.fontScale <= METHOD_HEADER_MAX_FONT
     R6ModeHeading(
         state,
         onOverview = { state.r6.chooseMetric(state.section, null) },
@@ -73,7 +75,7 @@ private fun HistoryDetail(
         },
     )
     val expanded = if (inlineMethods) methodsExpanded else null
-    HistoryPanel(state, snapshot, metrics, metric, expanded) { state.r6.chooseMetric(state.section, it) }
+    HistoryPanel(state, snapshot, metrics, metric, expanded)
 }
 
 @Composable
@@ -96,7 +98,6 @@ internal fun HistoryPanel(
     metrics: List<LiveMetric>,
     metric: LiveMetric,
     methodsExpanded: Boolean? = null,
-    choose: (LiveMetric) -> Unit,
 ) {
     val days = state.r6.period(state.section)
     val calendar = calendar(snapshot, days)
@@ -113,7 +114,7 @@ internal fun HistoryPanel(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!metricInHeading) {
                     Box(Modifier.weight(1f)) {
-                        HistoricalMetricChoice(metrics, metric, choose)
+                        HistoricalMetricChoice(metrics, metric) {}
                     }
                 }
                 options()
@@ -129,14 +130,14 @@ internal fun HistoryPanel(
         } else if (graph) {
             R6HistoryChart(calendar, points, metric, kind, options = if (combined) options else null)
         }
-        M2HistoryEvidence(
-            metric,
-            series?.status,
-            points,
-            snapshot.window.zone,
-            summary = { HistorySummary(points, days, metric, compact = methodsExpanded != null) },
-            externalExpanded = methodsExpanded,
-        )
+        if (methodsExpanded == null) {
+            M2HistoryEvidence(metric, series?.status, points, snapshot.window.zone) {
+                HistorySummary(points, days, metric, compact = false)
+            }
+        } else {
+            HistorySummary(points, days, metric, compact = true)
+            if (methodsExpanded) HistoryEvidenceBody(metric, series?.status, points, snapshot.window.zone)
+        }
         if (!graph) {
             calendar.zip(points).asReversed().forEach { (day, point) ->
                 CompactSummary(day.toString(), point?.let { displayValue(metric, it) } ?: "No record")

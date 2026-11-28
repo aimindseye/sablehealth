@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -106,7 +107,7 @@ private fun SelectedSleepSession(
     graph: Boolean,
 ) {
     val sessions = snapshot.sleeps.filter { snapshot.window.day(it.end) == day }
-    var index by rememberSaveable(day) { mutableStateOf(0) }
+    var index by rememberSaveable(day) { mutableIntStateOf(0) }
     val selected = index.coerceIn(sessions.indices)
     if (sessions.size > 1) {
         val options = sessions.indices.map { "Session ${it + 1}" }
@@ -124,7 +125,7 @@ private fun SleepHistoryDisclosure(
     R7aGroup("") {
         R7aRow("Sleep history", if (expanded) "Hide" else "Open", action = { expanded = !expanded })
     }
-    if (expanded) HistoryPanel(state, snapshot, listOf(LiveMetric.SLEEP_DURATION), LiveMetric.SLEEP_DURATION) {}
+    if (expanded) HistoryPanel(state, snapshot, listOf(LiveMetric.SLEEP_DURATION), LiveMetric.SLEEP_DURATION)
 }
 
 @Composable

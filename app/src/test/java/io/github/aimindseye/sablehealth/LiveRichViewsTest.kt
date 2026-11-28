@@ -163,6 +163,31 @@ class LiveRichViewsTest {
     }
 
     @Test
+    fun graphSleepHistoryKeepsSessionSelectionAndMethodDisclosureIndependent() {
+        val state = state()
+        state.section = Section.SLEEP
+        state.chooseViewMode(Section.SLEEP, ViewMode.GRAPHS)
+        val earlier = sleep.copy(start = start.minusSeconds(86400), end = end.minusSeconds(86400), stages = emptyList())
+        load(state, richSnapshot().copy(sleeps = listOf(sleep, nap, earlier)))
+        show { LiveHealthPage(state) }
+        compose.onNodeWithContentDescription("Sleep date").performScrollTo().performClick()
+        click(window.today.minusDays(1).toString())
+        visible("No stages exported")
+        compose.onNodeWithContentDescription("Sleep date").performScrollTo().performClick()
+        click(window.today.toString())
+        click("Session 1")
+        click("Session 2")
+        visible("No stages exported")
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
+        compose.onNodeWithTag("r7a-row-Sleep history").performScrollTo().performClick()
+        val method = compose.onNodeWithTag("r7a-row-Method and sources")
+        method.performScrollTo().performClick()
+        visible(historyMethod(LiveMetric.SLEEP_DURATION))
+        method.performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.SLEEP_DURATION)).assertDoesNotExist()
+    }
+
+    @Test
     fun vitalsHistoryAndTrendsRetainGapsAndObservedAverage() {
         val state = state()
         state.section = Section.VITALS
