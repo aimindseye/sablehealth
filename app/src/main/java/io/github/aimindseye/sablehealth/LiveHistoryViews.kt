@@ -134,16 +134,7 @@ internal fun HistoryPanel(
             series?.status,
             points,
             snapshot.window.zone,
-            summary = {
-                if (methodsExpanded != null) {
-                    HistorySummary(points, days, metric)
-                } else {
-                    Column {
-                        Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
-                        ObservedAverage(points.dropLast(1), metric)
-                    }
-                }
-            },
+            summary = { HistorySummary(points, days, metric, compact = methodsExpanded != null) },
             externalExpanded = methodsExpanded,
         )
         if (!graph) {
@@ -186,14 +177,19 @@ private fun HistorySummary(
     points: List<LivePoint?>,
     days: Int,
     metric: LiveMetric,
+    compact: Boolean,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            "${points.count { it != null }}/$days days observed",
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelSmall,
-        )
-        Box(Modifier.weight(1f)) {
+    val coverage = "${points.count { it != null }}/$days days observed"
+    if (compact) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(coverage, style = MaterialTheme.typography.labelSmall)
+            Box(Modifier.weight(1f)) {
+                ObservedAverage(points.dropLast(1), metric)
+            }
+        }
+    } else {
+        Column {
+            Text(coverage, style = MaterialTheme.typography.labelSmall)
             ObservedAverage(points.dropLast(1), metric)
         }
     }
