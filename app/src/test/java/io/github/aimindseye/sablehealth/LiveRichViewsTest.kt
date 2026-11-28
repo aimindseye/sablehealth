@@ -1,6 +1,7 @@
 package io.github.aimindseye.sablehealth
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
@@ -8,7 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
@@ -160,6 +164,71 @@ class LiveRichViewsTest {
         history.performScrollTo().performClick()
         history.assert(hasText("Open"))
         compose.onNodeWithTag("r7a-row-Method and sources").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w600dp-h700dp")
+    fun stageTotalsUseTwoColumnsAndReadableLargeFontFallback() {
+        val state = state()
+        state.section = Section.SLEEP
+        state.chooseViewMode(Section.SLEEP, ViewMode.TEXT)
+        val staged =
+            sleep.copy(
+                stages =
+                    listOf(
+                        LiveStage(start, start.plusSeconds(600), "Light"),
+                        LiveStage(start.plusSeconds(600), start.plusSeconds(1800), "Deep"),
+                        LiveStage(start.plusSeconds(1800), end, "REM"),
+                    ),
+            )
+        load(state, richSnapshot().copy(sleeps = listOf(staged)))
+        val largeFont = mutableStateOf(false)
+        show {
+            val configuration = Configuration(LocalConfiguration.current)
+            configuration.fontScale = if (largeFont.value) 1.5f else 1f
+            CompositionLocalProvider(LocalConfiguration provides configuration) {
+                Column(Modifier.width(560.dp)) { LiveHealthPage(state) }
+            }
+        }
+        visible("Recorded asleep: 60 min · gaps unknown")
+        visible("Light · 10 min")
+        visible("Deep · 20 min")
+        visible("REM · 30 min")
+        val light = compose.onNodeWithText("Light · 10 min")
+        val deep = compose.onNodeWithText("Deep · 20 min")
+        val rem = compose.onNodeWithText("REM · 30 min")
+        val first = light.fetchSemanticsNode().boundsInRoot
+        val second = deep.fetchSemanticsNode().boundsInRoot
+        check(first.top == second.top && first.left < second.left)
+        check(rem.fetchSemanticsNode().boundsInRoot.top > second.top)
+        compose.runOnIdle { largeFont.value = true }
+        visible("REM · 30 min")
+        val largeFirst = light.fetchSemanticsNode().boundsInRoot
+        val largeSecond = deep.fetchSemanticsNode().boundsInRoot
+        check(largeFirst.top < largeSecond.top)
+        check(largeSecond.left == largeFirst.left)
+    }
+
+    @Test
+    fun stackedGraphHidesSessionDetailsEvenWhenPreviouslyExpanded() {
+        val state = state()
+        state.section = Section.SLEEP
+        state.chooseViewMode(Section.SLEEP, ViewMode.GRAPHS)
+        load(state, richSnapshot())
+        show { LiveHealthPage(state) }
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
+        visible("Deep · 60 min")
+        click("Timeline")
+        click("Stacked")
+        compose.onNodeWithTag("r7a-row-Sleep history").assertDoesNotExist()
+        compose.onNodeWithTag("r7a-row-Sleep efficiency").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Sleep details").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Sleep stage composition by night").performScrollTo().assertIsDisplayed()
+        click("Stacked")
+        click("Timeline")
+        visible("Deep · 60 min")
+        compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Sleep stage transitions with recorded times").performScrollTo().assertIsDisplayed()
     }
 
     @Test

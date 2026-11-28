@@ -6,8 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -274,6 +276,51 @@ class LiveGraphViewportTest {
         compose.onNodeWithText("Observed mean (excl. today):", substring = true).assertDoesNotExist()
         method.performScrollTo().performClick()
         compose.onNodeWithText("No observations in this period.").assertDoesNotExist()
+    }
+
+    @Test
+    fun trendsWithoutCompletedDaysShowMissingMeanThenUpdateAfterRefresh() {
+        val state = state()
+        state.section = Section.TRENDS
+        state.chooseViewMode(Section.TRENDS, ViewMode.TEXT)
+        val point = LivePoint(window.today, 120.0, window.now, setOf("fixture.writer"))
+        val series = LiveSeries(LiveStatus.AVAILABLE, listOf(point))
+        load(state, LiveSnapshot(window, mapOf(LiveMetric.STEPS to series), emptyList()))
+        show(state)
+        val steps = compose.onNodeWithTag("r7-metric-STEPS")
+        steps.assert(hasText("—"))
+        steps.performClick()
+        compose.onNodeWithText("1/7 days observed").assertIsDisplayed()
+        compose.onNodeWithText("Observed mean (excl. today):", substring = true).assertDoesNotExist()
+        compose.onNodeWithTag("r7a-row-Method and sources").performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.STEPS)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Coverage: Available · method v1").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { load(state, snapshot()) }
+        compose.onNodeWithText("2/7 days observed").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Observed mean (excl. today):", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("All metrics").performScrollTo().performClick()
+        steps.assert(hasText("20", substring = true))
+    }
+
+    @Test
+    fun unavailableMetricOverviewUpdatesToPartialTimestampedReading() {
+        val state = state()
+        state.section = Section.VITALS
+        state.chooseViewMode(Section.VITALS, ViewMode.TEXT)
+        val denied = LiveSeries(LiveStatus.DENIED)
+        load(state, LiveSnapshot(window, mapOf(LiveMetric.HRV to denied), emptyList()))
+        show(state)
+        val hrv = compose.onNodeWithTag("r7-metric-HRV")
+        hrv.assert(hasText(LiveStatus.DENIED.label))
+        val observed = LivePoint(window.today, 28.0, window.now, setOf("fixture.writer"))
+        val series = LiveSeries(LiveStatus.PARTIAL, listOf(observed))
+        compose.runOnIdle { load(state, LiveSnapshot(window, mapOf(LiveMetric.HRV to series), emptyList())) }
+        hrv.assert(hasText("28", substring = true))
+        hrv.assert(hasText("${window.today} · partial"))
+        hrv.performClick()
+        compose.onNodeWithTag("r7a-row-Method and sources").performClick()
+        compose.onNodeWithText("Coverage: Partial · method v1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
     }
 
     private fun state(): SableAppState {

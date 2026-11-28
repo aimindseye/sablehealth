@@ -50,7 +50,11 @@ internal fun MetricOverview(
     val days = state.r6.period(state.section)
     val calendar = calendar(snapshot, days)
     val configuration = LocalConfiguration.current
-    val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val windowHeight =
+        with(LocalDensity.current) {
+            LocalWindowInfo.current.containerSize.height
+                .toDp()
+        }
     var pageIndex by rememberSaveable(state.section) { mutableIntStateOf(0) }
     BoxWithConstraints {
         val twoColumns = maxWidth >= TWO_COLUMN_WIDTH.dp && configuration.fontScale <= MAX_COMPACT_FONT

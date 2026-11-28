@@ -55,7 +55,11 @@ private fun HistoryDetail(
     metric: LiveMetric,
 ) {
     var methodsExpanded by remember(metric) { mutableStateOf(false) }
-    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+    val windowWidth =
+        with(LocalDensity.current) {
+            LocalWindowInfo.current.containerSize.width
+                .toDp()
+        }
     val inlineMethods =
         windowWidth >= METHOD_HEADER_MIN_WIDTH.dp &&
             LocalConfiguration.current.fontScale <= METHOD_HEADER_MAX_FONT
