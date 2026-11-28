@@ -1,13 +1,20 @@
 package io.github.aimindseye.sablehealth
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.aimindseye.sablehealth.core.ChartPolicy
 import io.github.aimindseye.sablehealth.core.LiveMetric
@@ -26,15 +33,34 @@ internal fun LiveHistoryPage(
     if (selected == null) {
         MetricOverview(state, snapshot, metrics) { state.r6.chooseMetric(state.section, it) }
     } else {
-        R6ModeHeading(
-            state,
-            onOverview = { state.r6.chooseMetric(state.section, null) },
-            titleContent = {
-                HistoricalMetricChoice(metrics, metric) { state.r6.chooseMetric(state.section, it) }
-            },
-        )
-        HistoryPanel(state, snapshot, metrics, metric) { state.r6.chooseMetric(state.section, it) }
+        HistoryDetail(state, snapshot, metrics, metric)
     }
+}
+
+@Composable
+private fun HistoryDetail(
+    state: SableAppState,
+    snapshot: LiveSnapshot,
+    metrics: List<LiveMetric>,
+    metric: LiveMetric,
+) {
+    var methodsExpanded by remember(metric) { mutableStateOf(false) }
+    R6ModeHeading(
+        state,
+        onOverview = { state.r6.chooseMetric(state.section, null) },
+        titleContent = {
+            HistoricalMetricChoice(metrics, metric) { state.r6.chooseMetric(state.section, it) }
+        },
+        period = {
+            FocusButton(
+                "Method and sources",
+                { methodsExpanded = !methodsExpanded },
+                selected = methodsExpanded,
+                modifier = Modifier.width(96.dp).testTag("r7a-row-Method and sources"),
+            )
+        },
+    )
+    HistoryPanel(state, snapshot, metrics, metric, methodsExpanded) { state.r6.chooseMetric(state.section, it) }
 }
 
 @Composable
@@ -56,6 +82,7 @@ internal fun HistoryPanel(
     snapshot: LiveSnapshot,
     metrics: List<LiveMetric>,
     metric: LiveMetric,
+    methodsExpanded: Boolean? = null,
     choose: (LiveMetric) -> Unit,
 ) {
     val days = state.r6.period(state.section)
@@ -95,9 +122,9 @@ internal fun HistoryPanel(
             points,
             snapshot.window.zone,
             summary = {
-                Text("${points.count { it != null }}/$days days observed", style = MaterialTheme.typography.labelSmall)
-                ObservedAverage(points.dropLast(1), metric)
+                HistorySummary(points, days, metric)
             },
+            externalExpanded = methodsExpanded,
         )
         if (!graph) {
             calendar.zip(points).asReversed().forEach { (day, point) ->
@@ -132,6 +159,24 @@ private fun HistoricalMetricChoice(
     R6Choice("Historical metric", metric.label, metrics.map { it.label }, { label ->
         choose(metrics.first { it.label == label })
     })
+}
+
+@Composable
+private fun HistorySummary(
+    points: List<LivePoint?>,
+    days: Int,
+    metric: LiveMetric,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "${points.count { it != null }}/$days days observed",
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+        )
+        Box(Modifier.weight(2f)) {
+            ObservedAverage(points.dropLast(1), metric)
+        }
+    }
 }
 
 @Composable

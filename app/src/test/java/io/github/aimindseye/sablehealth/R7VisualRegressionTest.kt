@@ -113,6 +113,9 @@ class R7VisualRegressionTest {
             full(compose.onNodeWithTag("r7-choice-$label"), 48f)
         }
         full(compose.onNodeWithTag("r7a-row-Method and sources"), 48f)
+        val methods = compose.onNodeWithTag("r7a-row-Method and sources").fetchSemanticsNode().boundsInRoot
+        val previous = compose.onNodeWithTag("r7-icon-Previous day").fetchSemanticsNode().boundsInRoot
+        check(methods.bottom <= previous.top + 1f) { "Method control must occupy the existing heading" }
     }
 
     private fun dashboard(primary: Color) {

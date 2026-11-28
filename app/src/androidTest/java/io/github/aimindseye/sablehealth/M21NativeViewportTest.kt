@@ -124,8 +124,13 @@ class M21NativeViewportTest {
         full(chart)
         listOf("All metrics", "Text", "Graphs", "Previous day", "Next day").forEach { full(tag("r7-icon-$it")) }
         listOf("Historical metric", "History period", "Graph type").forEach { full(tag("r7-choice-$it")) }
-        full(tag("r7a-row-Method and sources"))
-        compose.onNodeWithText("2/7 days observed").assertIsDisplayed()
+        val methods = tag("r7a-row-Method and sources")
+        full(methods)
+        val methodBounds = methods.fetchSemanticsNode().boundsInRoot
+        val dayBounds = tag("r7-icon-Previous day").fetchSemanticsNode().boundsInRoot
+        check(methodBounds.bottom <= dayBounds.top + 1f) { "Methods must remain in the history heading" }
+        full(compose.onNodeWithText("2/7 days observed"))
+        full(compose.onNodeWithText("Observed mean (excl. today):", substring = true))
         capture(appearance, metric.name.lowercase())
         clickIcon("Text")
         chart.assertDoesNotExist()
@@ -156,7 +161,7 @@ class M21NativeViewportTest {
             "Horizontally clipped: ${measured.config}"
         }
         check(abs(measured.boundsInRoot.height - measured.size.height) <= 1f) {
-            "Vertically clipped: ${measured.config}"
+            "Vertically clipped: ${measured.config}; visible=${measured.boundsInRoot.height}, full=${measured.size.height}"
         }
     }
 

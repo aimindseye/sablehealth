@@ -95,6 +95,8 @@ class LiveGraphViewportTest {
         compose.onNodeWithContentDescription("Text").performClick()
         compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
         compose.onNodeWithText(historyMethod(LiveMetric.RESTING_HR)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("r7a-row-Method and sources").performScrollTo().performClick()
+        compose.onNodeWithText(historyMethod(LiveMetric.RESTING_HR)).assertDoesNotExist()
         compose.onNodeWithContentDescription("All metrics").performScrollTo().performClick()
         compose.runOnIdle {
             state.section = Section.TRENDS

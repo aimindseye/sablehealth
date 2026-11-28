@@ -30,8 +30,24 @@ internal fun M2HistoryEvidence(
     points: List<LivePoint?>,
     zone: ZoneId,
     summary: (@Composable () -> Unit)? = null,
+    externalExpanded: Boolean? = null,
 ) {
     var expanded by remember(metric) { mutableStateOf(false) }
+    if (externalExpanded == null) {
+        HistoryEvidenceHeader(summary) { expanded = !expanded }
+    } else {
+        summary?.invoke()
+    }
+    if (externalExpanded ?: expanded) {
+        HistoryEvidenceBody(metric, status, points, zone)
+    }
+}
+
+@Composable
+private fun HistoryEvidenceHeader(
+    summary: (@Composable () -> Unit)?,
+    toggle: () -> Unit,
+) {
     BoxWithConstraints {
         val sideBySide =
             summary != null &&
@@ -41,27 +57,34 @@ internal fun M2HistoryEvidence(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { summary() }
                 Box(Modifier.weight(1f)) {
-                    R7aRow("Method and sources", action = { expanded = !expanded })
+                    R7aRow("Method and sources", action = toggle)
                 }
             }
         } else {
             Column {
                 summary?.invoke()
-                R7aRow("Method and sources", action = { expanded = !expanded })
+                R7aRow("Method and sources", action = toggle)
             }
         }
     }
-    if (expanded) {
-        R7aNote(historyMethod(metric))
-        R7aNote("Coverage: ${status?.label ?: "Not loaded"} · method v1")
-        val observed = points.filterNotNull()
-        if (observed.isEmpty()) {
-            R7aNote("No observations in this period.")
-        } else {
-            observed.asReversed().forEach { point ->
-                Text(displayValue(metric, point), style = MaterialTheme.typography.labelMedium)
-                R7aNote(observation(point, zone))
-            }
+}
+
+@Composable
+private fun HistoryEvidenceBody(
+    metric: LiveMetric,
+    status: LiveStatus?,
+    points: List<LivePoint?>,
+    zone: ZoneId,
+) {
+    R7aNote(historyMethod(metric))
+    R7aNote("Coverage: ${status?.label ?: "Not loaded"} · method v1")
+    val observed = points.filterNotNull()
+    if (observed.isEmpty()) {
+        R7aNote("No observations in this period.")
+    } else {
+        observed.asReversed().forEach { point ->
+            Text(displayValue(metric, point), style = MaterialTheme.typography.labelMedium)
+            R7aNote(observation(point, zone))
         }
     }
 }
