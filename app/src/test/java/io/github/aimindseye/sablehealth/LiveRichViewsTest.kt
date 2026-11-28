@@ -228,7 +228,10 @@ class LiveRichViewsTest {
         click("Timeline")
         visible("Deep · 60 min")
         compose.onNodeWithContentDescription("Sleep details").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Sleep stage transitions with recorded times").performScrollTo().assertIsDisplayed()
+        compose
+            .onNodeWithContentDescription("Sleep stage transitions with recorded times")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test

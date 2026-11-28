@@ -319,7 +319,10 @@ class LiveGraphViewportTest {
         hrv.assert(hasText("${window.today} · partial"))
         hrv.performClick()
         compose.onNodeWithTag("r7a-row-Method and sources").performClick()
-        compose.onNodeWithText("Coverage: Partial · method v1").performScrollTo().assertIsDisplayed()
+        compose
+            .onNodeWithText("Coverage: ${LiveStatus.PARTIAL.label} · method v1")
+            .performScrollTo()
+            .assertIsDisplayed()
         compose.onNodeWithText(historyMethod(LiveMetric.HRV)).performScrollTo().assertIsDisplayed()
     }
 
